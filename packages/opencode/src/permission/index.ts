@@ -6,6 +6,7 @@ import { Deferred, Effect, Layer, Context } from "effect"
 import os from "os"
 import { PermissionV1 } from "@opencode-ai/core/v1/permission"
 import { EventV2Bridge } from "@/event-v2-bridge"
+import { Plugin } from "@/plugin"
 
 export const Event = PermissionV1.Event
 
@@ -43,6 +44,7 @@ const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
     const events = yield* EventV2Bridge.Service
+    const plugin = yield* Plugin.Service
     const state = yield* InstanceState.make<State>(
       Effect.fn("Permission.state")(function* (ctx) {
         void ctx
@@ -93,6 +95,20 @@ const layer = Layer.effect(
         always: request.always,
         tool: request.tool,
       }
+      // Dispatch the permission.ask hook the plugin API already declares. Static rules have
+      // run: a denied request returned above and an allowed one never reached here, so a
+      // handler can only ever speak to the residual "ask" set. With no handler registered
+      // trigger returns the output untouched and this is a no-op.
+      // Annotated rather than `as const`: the literal would narrow the hook's output type to
+      // "ask" alone, and the branches below would be unreachable.
+      const verdict: { status: "ask" | "deny" | "allow" } = { status: "ask" }
+      const decision = yield* plugin.trigger("permission.ask", info as never, verdict)
+      if (decision.status === "allow") return
+      if (decision.status === "deny")
+        return yield* new PermissionV1.DeniedError({
+          ruleset: ruleset.filter((rule) => Wildcard.match(request.permission, rule.permission)),
+        })
+
       yield* Effect.logInfo("asking", { id, permission: info.permission, patterns: info.patterns })
 
       const deferred = yield* Deferred.make<void, PermissionV1.RejectedError | PermissionV1.CorrectedError>()
@@ -218,6 +234,6 @@ export function visibleTools<T>(tools: Record<string, T>, ruleset: PermissionV1.
   return Object.fromEntries(Object.entries(tools).filter(([name]) => !hidden.has(name)))
 }
 
-export const node = LayerNode.make({ service: Service, layer: layer, deps: [EventV2Bridge.node] })
+export const node = LayerNode.make({ service: Service, layer: layer, deps: [EventV2Bridge.node, Plugin.node] })
 
 export * as Permission from "."

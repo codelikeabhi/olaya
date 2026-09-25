@@ -1,0 +1,14 @@
+[project]
+name = "olaya-laya-sidecar"
+version = "0.1.0"
+description = "Local decision service wrapping the Laya encoder for Olaya"
+requires-python = ">=3.10,<3.13"
+# ponytail: stdlib http.server only - no web framework. The service is loopback-only,
+# single-consumer, and serialises inference anyway, so a framework would add deps for nothing.
+dependencies = [
+    "laya==0.3.5",
+]
+
+[project.optional-dependencies]
+# Patched Laya, when we need one (e.g. exposing truncate_left through system_one):
+#   laya @ git+https://github.com/codelikeabhi/laya@<sha>

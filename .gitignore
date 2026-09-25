@@ -32,3 +32,12 @@ UPCOMING_CHANGELOG.md
 logs/
 *.bun-build
 tsconfig.tsbuildinfo
+
+# Laya shadow-mode records. These contain real shell commands, file paths and diff
+# fragments; this repository is public. Default storage is the XDG data dir, but these
+# entries guard the case where OLAYA_LAYA_SHADOW_DIR is pointed inside a working tree.
+shadow-*.jsonl
+.olaya/
+laya/shadow/
+laya/.venv/
+laya/__pycache__/
