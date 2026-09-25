@@ -554,6 +554,54 @@ it.instance("loop calls LLM and returns assistant message", () =>
   }),
 )
 
+it.instance("verify-before-exit sends one nudge, then lets the loop end", () =>
+  Effect.gen(function* () {
+    const previous = process.env.OLAYA_EXPERIMENTAL_VERIFY_BEFORE_EXIT
+    process.env.OLAYA_EXPERIMENTAL_VERIFY_BEFORE_EXIT = "1"
+    try {
+      const { llm } = yield* useServerConfig(providerCfg)
+      const prompt = yield* SessionPrompt.Service
+      const sessions = yield* Session.Service
+      const chat = yield* sessions.create({
+        title: "Pinned",
+        permission: [{ permission: "*", pattern: "*", action: "allow" }],
+      })
+      yield* prompt.prompt({ sessionID: chat.id, agent: "build", noReply: true, parts: [{ type: "text", text: "fix it" }] })
+      yield* llm.text("run git stash apply to get your changes back")
+      yield* llm.text("applied the stash and merged; git log shows the commit")
+
+      const result = yield* prompt.loop({ sessionID: chat.id })
+      expect(yield* llm.hits).toHaveLength(2)
+      expect(result.parts.some((p) => p.type === "text" && p.text.startsWith("applied the stash"))).toBe(true)
+      const msgs = yield* sessions.messages({ sessionID: chat.id })
+      const nudges = msgs.filter((m) =>
+        m.parts.some((p) => p.type === "text" && p.synthetic && (p.metadata as { loop_exit_nudge?: boolean })?.loop_exit_nudge),
+      )
+      expect(nudges).toHaveLength(1)
+    } finally {
+      if (previous === undefined) delete process.env.OLAYA_EXPERIMENTAL_VERIFY_BEFORE_EXIT
+      else process.env.OLAYA_EXPERIMENTAL_VERIFY_BEFORE_EXIT = previous
+    }
+  }),
+)
+
+it.instance("without verify-before-exit the loop ends on the first stop", () =>
+  Effect.gen(function* () {
+    delete process.env.OLAYA_EXPERIMENTAL_VERIFY_BEFORE_EXIT
+    const { llm } = yield* useServerConfig(providerCfg)
+    const prompt = yield* SessionPrompt.Service
+    const sessions = yield* Session.Service
+    const chat = yield* sessions.create({
+      title: "Pinned",
+      permission: [{ permission: "*", pattern: "*", action: "allow" }],
+    })
+    yield* prompt.prompt({ sessionID: chat.id, agent: "build", noReply: true, parts: [{ type: "text", text: "fix it" }] })
+    yield* llm.text("done")
+    yield* prompt.loop({ sessionID: chat.id })
+    expect(yield* llm.hits).toHaveLength(1)
+  }),
+)
+
 withMcpInstructions.instance(
   "loop includes MCP instructions in model system context",
   () =>

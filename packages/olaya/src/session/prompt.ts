@@ -4,6 +4,7 @@ import path from "path"
 import { SessionV1 } from "@olaya/core/v1/session"
 import os from "os"
 import { SessionID, MessageID, PartID } from "./schema"
+import { truthy } from "@olaya/core/flag/flag"
 import { MessageV2 } from "./message-v2"
 import { SessionRevert } from "./revert"
 import { Session } from "./session"
@@ -56,6 +57,12 @@ import { SessionTable } from "@olaya/core/session/sql"
 import { SessionReminders } from "./reminders"
 import { SessionTools } from "./tools"
 import { LLMEvent } from "@olaya/llm"
+
+/** HR1 verify-before-exit prompt: premature "done" was the most common unattended failure. */
+const VERIFY_BEFORE_EXIT =
+  "Before you finish, check your work. Is the task the user asked for actually complete? Verify it directly: inspect the files you changed, or run the relevant command or tests. If anything is incomplete, or you only described steps for the user to run, do that work yourself now. If it is complete and verified, reply with a short summary of what you did and how you verified it."
+/** Upper bound on deferred exits per run, whatever plugins ask for. */
+const MAX_EXIT_NUDGES = 3
 
 // @ts-ignore
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -1083,6 +1090,9 @@ const layer = Layer.effect(
         const ctx = yield* InstanceState.context
         let structured: unknown
         let step = 0
+        // Verify-before-exit nudges sent in this run. Capped at one: the nudge is itself a user
+        // turn, so a per-message guard would let the loop nudge its own nudge forever.
+        let exitNudges = 0
         const session = yield* sessions.get(sessionID).pipe(Effect.orDie)
 
         while (true) {
@@ -1124,6 +1134,46 @@ const layer = Layer.effect(
                 tool: orphan.tool,
                 callID: orphan.callID,
               })
+            }
+            const exit = yield* plugin.trigger(
+              "experimental.loop.exit",
+              {
+                sessionID,
+                agent: lastUser.agent,
+                step,
+                text: (lastAssistantMsg?.parts ?? [])
+                  .filter((part): part is SessionV1.TextPart => part.type === "text")
+                  .map((part) => part.text)
+                  .join("\n"),
+              },
+              { continue: false } as { continue: boolean; prompt?: string },
+            )
+            if (!exit.continue && truthy("OLAYA_EXPERIMENTAL_VERIFY_BEFORE_EXIT") && exitNudges === 0) {
+              exit.continue = true
+              exit.prompt = VERIFY_BEFORE_EXIT
+            }
+            if (exit.continue && exit.prompt && exitNudges < MAX_EXIT_NUDGES) {
+              exitNudges++
+              const nudge = yield* sessions.updateMessage({
+                id: MessageID.ascending(),
+                role: "user",
+                sessionID,
+                time: { created: Date.now() },
+                agent: lastUser.agent,
+                model: lastUser.model,
+              })
+              yield* sessions.updatePart({
+                id: PartID.ascending(),
+                messageID: nudge.id,
+                sessionID,
+                type: "text",
+                metadata: { loop_exit_nudge: true },
+                synthetic: true,
+                text: exit.prompt,
+                time: { start: Date.now(), end: Date.now() },
+              })
+              yield* Effect.logInfo("loop exit deferred", { "session.id": sessionID, nudges: exitNudges })
+              continue
             }
             yield* Effect.logInfo("exiting loop", { "session.id": sessionID })
             break

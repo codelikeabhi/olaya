@@ -324,6 +324,17 @@ export interface Hooks {
     },
     output: { enabled: boolean },
   ) => Promise<void>
+  /**
+   * Called when the agent loop is about to end: the model finished a turn without tool calls.
+   * This is where a harness decides whether the task is actually done.
+   *
+   * - `continue`: Defaults to `false`. Set to `true` to keep going: `prompt` is sent as a
+   *   synthetic user turn and the loop runs again instead of ending.
+   */
+  "experimental.loop.exit"?: (
+    input: { sessionID: string; agent: string; step: number; text: string },
+    output: { continue: boolean; prompt?: string },
+  ) => Promise<void>
   "experimental.text.complete"?: (
     input: { sessionID: string; messageID: string; partID: string },
     output: { text: string },
