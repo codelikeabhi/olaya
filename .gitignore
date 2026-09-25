@@ -40,4 +40,8 @@ shadow-*.jsonl
 .olaya/
 laya/shadow/
 laya/.venv/
-laya/__pycache__/
+__pycache__/
+laya/data/
+laya/cache/
+laya/checkpoints/
+laya/reports/
