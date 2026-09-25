@@ -30,6 +30,36 @@ const paths = {
 
 export const Path = paths
 
+/**
+ * One-time import of an existing OpenCode install. If Olaya's directory does not exist yet and (olaya-rename:keep)
+ * OpenCode's does, copy it (never share it: a user may still run OpenCode, and two apps (olaya-rename:keep)
+ * writing one database is how state gets corrupted), rename top-level files that carry the old
+ * name (opencode.json -> olaya.json, opencode.db -> olaya.db), and leave a marker. OpenCode's (olaya-rename:keep)
+ * copy is not modified. Returns true when an import happened.
+ */
+export async function adoptLegacyDir(legacy: string, current: string): Promise<boolean> {
+  const exists = (p: string) => fs.stat(p).then(() => true, () => false)
+  if ((await exists(current)) || !(await exists(legacy))) return false
+  await fs.cp(legacy, current, { recursive: true })
+  for (const name of await fs.readdir(current)) {
+    if (!name.startsWith("opencode")) continue // olaya-rename:keep
+    const renamed = "olaya" + name.slice("opencode".length) // olaya-rename:keep
+    if (!(await exists(path.join(current, renamed)))) await fs.rename(path.join(current, name), path.join(current, renamed))
+  }
+  await fs.writeFile(path.join(current, ".imported-from-opencode"), new Date().toISOString() + "\n") // olaya-rename:keep
+  return true
+}
+
+if (!process.env.OLAYA_DISABLE_LEGACY_IMPORT) {
+  const legacy = "opencode" // olaya-rename:keep
+  const imported = await Promise.all([
+    adoptLegacyDir(path.join(xdgConfig!, legacy), config),
+    adoptLegacyDir(path.join(xdgData!, legacy), data),
+  ])
+  if (imported.some(Boolean))
+    console.error("olaya: imported your OpenCode configuration and data (OpenCode's own copy is untouched)") // olaya-rename:keep
+}
+
 Flock.setGlobal({ state })
 
 await Promise.all([
