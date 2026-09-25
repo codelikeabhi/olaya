@@ -44,14 +44,20 @@ describe("olaya-rename", () => {
     for (const s of [
       "catalog.provider.get(ProviderV2.ID.opencode)",
       "providerOptions?.opencode?.itemId",
-      "  opencode: schema.make(",
-      '{ opencode: 0, anthropic: 1 }',
       'language.t("dialog.provider.opencode.note")',
       'provider.request.headers["X-BILLING-INVOKE-ORIGIN"] ??= "OpenCode"',
       'const clientID = "opencode-cli"',
       "label: \"OpenCode Console account\"",
     ])
       expect(r(s)).toBe(s)
+    // Object keys are the provider id only in provider files, and only in object literals.
+    const table = "const priority = {\n  opencode: 0,\n  anthropic: 1,\n}\njobs:\n  opencode:\n"
+    expect(r(table, "packages/opencode/src/cli/cmd/github.handler.ts")).toBe(
+      "const priority = {\n  opencode: 0,\n  anthropic: 1,\n}\njobs:\n  olaya:\n",
+    )
+    expect(r("({ home, llm, opencode }) => opencode.run()", "packages/opencode/test/cli/acp/x.test.ts")).toBe(
+      "({ home, llm, olaya }) => olaya.run()",
+    )
     // ...while paths and plain words still rename.
     expect(r('path.join(dir, ".opencode", "agent")')).toBe('path.join(dir, ".olaya", "agent")')
     expect(r("resources/opencode-cli")).toBe("resources/olaya-cli")

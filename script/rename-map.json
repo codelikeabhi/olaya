@@ -73,10 +73,6 @@
       "re": "(?<=[A-Za-z0-9_$\\])]\\??\\.)opencode\\b"
     },
     {
-      "why": "provider id used as an object key",
-      "re": "(?<=^|[\\s{,(])opencode(?=\\s*:)"
-    },
-    {
       "why": "provider id inside i18n keys",
       "re": "provider\\.opencode\\."
     },
@@ -121,9 +117,12 @@
       "packages/opencode/test/provider/provider.test.ts",
       "packages/opencode/test/session/llm-native.test.ts",
       "packages/opencode/test/session/llm-native-recorded.test.ts",
-      "packages/schema/src/provider.ts"
+      "packages/schema/src/provider.ts",
+      "packages/core/test/config/provider.test.ts",
+      "packages/opencode/src/cli/cmd/github.handler.ts",
+      "packages/opencode/src/cli/cmd/providers.ts"
     ],
-    "re": "([\"'`])opencode\\1|\\bopencode/(?=[A-Za-z0-9])|X-Title[^\\n]*"
+    "re": "([\"'`])opencode\\1|\\bopencode/(?=[A-Za-z0-9])|(?<=[{,]\\s*)opencode(?=\\s*:)|X-Title[^\\n]*"
   },
   "protectPaths": [
     "packages/ui/src/assets/icons/provider/opencode"
