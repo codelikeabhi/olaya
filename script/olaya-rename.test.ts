@@ -40,6 +40,23 @@ describe("olaya-rename", () => {
     expect(r(code, "packages/olaya/src/other.ts")).toBe('if (providerID === "olaya") return')
   })
 
+  test("the provider identifier survives in every syntactic form", () => {
+    for (const s of [
+      "catalog.provider.get(ProviderV2.ID.opencode)",
+      "providerOptions?.opencode?.itemId",
+      "  opencode: schema.make(",
+      '{ opencode: 0, anthropic: 1 }',
+      'language.t("dialog.provider.opencode.note")',
+      'provider.request.headers["X-BILLING-INVOKE-ORIGIN"] ??= "OpenCode"',
+      'const clientID = "opencode-cli"',
+      "label: \"OpenCode Console account\"",
+    ])
+      expect(r(s)).toBe(s)
+    // ...while paths and plain words still rename.
+    expect(r('path.join(dir, ".opencode", "agent")')).toBe('path.join(dir, ".olaya", "agent")')
+    expect(r("resources/opencode-cli")).toBe("resources/olaya-cli")
+  })
+
   test("is idempotent", () => {
     const s = 'Olaya at https://opencode.ai uses OPENCODE_API_KEY and "@olaya/sdk"'
     expect(r(r(s))).toBe(r(s))

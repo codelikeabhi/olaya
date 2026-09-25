@@ -67,6 +67,30 @@
     {
       "why": "historical upstream references",
       "re": "github\\.com/(?:anomalyco|sst)/opencode/(?:issues|pull|commit|blob)/[^\\s\"'`)<>]*"
+    },
+    {
+      "why": "provider id used as a property (ID.opencode, providerOptions?.opencode); a path like .opencode/ is not preceded by an identifier",
+      "re": "(?<=[A-Za-z0-9_$\\])]\\??\\.)opencode\\b"
+    },
+    {
+      "why": "provider id used as an object key",
+      "re": "(?<=^|[\\s{,(])opencode(?=\\s*:)"
+    },
+    {
+      "why": "provider id inside i18n keys",
+      "re": "provider\\.opencode\\."
+    },
+    {
+      "why": "partner attribution headers and their values",
+      "re": "X-Cerebras-3rd-Party-Integration[^\\n]*|X-BILLING-INVOKE-ORIGIN[^\\n]*"
+    },
+    {
+      "why": "OAuth client id registered with the upstream console",
+      "re": "(?<=client_?[Ii][Dd]\\s*[:=]\\s*[\\\"'])opencode-cli(?=[\\\"'])"
+    },
+    {
+      "why": "upstream's console and Zen integration display names",
+      "re": "OpenCode Console|integration\\.name = \\\"OpenCode\\\""
     }
   ],
   "protectInFiles": {
@@ -96,9 +120,10 @@
       "packages/opencode/test/provider/transform.test.ts",
       "packages/opencode/test/provider/provider.test.ts",
       "packages/opencode/test/session/llm-native.test.ts",
-      "packages/opencode/test/session/llm-native-recorded.test.ts"
+      "packages/opencode/test/session/llm-native-recorded.test.ts",
+      "packages/schema/src/provider.ts"
     ],
-    "re": "([\"'`])opencode\\1|\\bopencode(?=\\s*:)|\\bopencode/(?=[A-Za-z0-9])|X-Title[^\\n]*|X-Cerebras-3rd-Party-Integration[^\\n]*"
+    "re": "([\"'`])opencode\\1|\\bopencode/(?=[A-Za-z0-9])|X-Title[^\\n]*"
   },
   "protectPaths": [
     "packages/ui/src/assets/icons/provider/opencode"
