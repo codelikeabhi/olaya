@@ -28,10 +28,13 @@ const root = path.resolve(import.meta.dir, "..")
 const rules: Rules = JSON.parse(fs.readFileSync(path.join(import.meta.dir, "rename-map.json"), "utf8"))
 const mode = process.argv.includes("--apply") ? "apply" : process.argv.includes("--check") ? "check" : "dry-run"
 
-const excluded = rules.exclude.map((g) => new Bun.Glob(g))
 const protectRes = rules.protect.map((p) => new RegExp(p.re, "g"))
-const fileProtect = new Set(rules.protectInFiles.files)
 const fileProtectRe = new RegExp(rules.protectInFiles.re, "g")
+// Rules name files by their upstream paths. A moved file must stay covered on the next run
+// (idempotence), so every path-keyed rule also matches the path's renamed form.
+const withRenamed = (paths: string[]) => [...new Set(paths.flatMap((p) => [p, renamePath(p)]))]
+const excluded = withRenamed(rules.exclude).map((g) => new Bun.Glob(g))
+const fileProtect = new Set(withRenamed(rules.protectInFiles.files))
 
 /** Rewrite a string: mask protected tokens, apply replacements in order, restore. */
 export function rename(text: string, file = ""): { out: string; hits: number[] } {
@@ -43,7 +46,7 @@ export function rename(text: string, file = ""): { out: string; hits: number[] }
     })
   }
   for (const re of protectRes) mask(re)
-  if (fileProtect.has(file)) mask(fileProtectRe)
+  if (file && fileProtect.has(file)) mask(fileProtectRe)
   const hits = rules.replace.map(([from, to]) => {
     let n = 0
     text = text.split(from).reduce((acc, part, i) => (i === 0 ? part : (n++, acc + to + part)), "")
@@ -73,9 +76,13 @@ function main() {
   const moves: [string, string][] = []
 
   for (const file of tracked) {
-    if (excluded.some((g) => g.match(file))) continue
     const abs = path.join(root, file)
-    if (!fs.existsSync(abs) || fs.lstatSync(abs).isSymbolicLink()) continue
+    if (!fs.existsSync(abs)) continue
+    // Paths move even when contents are excluded: a fixture that stays behind while its tests
+    // move is a broken reference, not a protected one.
+    const target = renamePath(file)
+    if (target !== file) moves.push([file, target])
+    if (excluded.some((g) => g.match(file)) || fs.lstatSync(abs).isSymbolicLink()) continue
     const buf = fs.readFileSync(abs)
     if (!isBinary(buf)) {
       const { out, hits } = rename(buf.toString("utf8"), file)
@@ -85,8 +92,6 @@ function main() {
         if (mode === "apply") fs.writeFileSync(abs, out)
       }
     }
-    const target = renamePath(file)
-    if (target !== file) moves.push([file, target])
   }
 
   if (mode === "apply") {
