@@ -1,3 +1,4 @@
+import { PluginSDK } from "./plugin-sdk"
 import { LayerNode } from "@olaya/core/effect/layer-node"
 import { httpClient } from "@olaya/core/effect/app-node-platform"
 import { serviceUse } from "@olaya/core/effect/service-use"
@@ -453,8 +454,8 @@ const layer = Layer.effect(
             .install(dir, {
               add: [
                 {
-                  name: "@olaya/plugin",
-                  version: InstallationLocal ? undefined : InstallationVersion,
+                  name: PluginSDK.name,
+                  version: InstallationLocal ? undefined : PluginSDK.version,
                 },
               ],
             })

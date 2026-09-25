@@ -1,3 +1,4 @@
+import { PluginSDK } from "./plugin-sdk"
 export * as TuiConfig from "./tui"
 
 import path from "path"
@@ -238,8 +239,8 @@ const layer = Layer.effect(
           .install(dir, {
             add: [
               {
-                name: "@olaya/plugin",
-                version: InstallationLocal ? undefined : InstallationVersion,
+                name: PluginSDK.name,
+                version: InstallationLocal ? undefined : PluginSDK.version,
               },
             ],
           })
