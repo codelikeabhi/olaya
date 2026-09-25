@@ -69,8 +69,8 @@
       "re": "github\\.com/(?:anomalyco|sst)/opencode/(?:issues|pull|commit|blob)/[^\\s\"'`)<>]*"
     },
     {
-      "why": "provider id used as a property (ID.opencode, providerOptions?.opencode); a path like .opencode/ is not preceded by an identifier",
-      "re": "(?<=[A-Za-z0-9_$\\])]\\??\\.)opencode\\b"
+      "why": "the provider-id constant (ProviderV2.ID.opencode) and provider option keys (providerOptions?.opencode)",
+      "re": "(?<=\\bID\\.)opencode\\b|(?<=providerOptions\\??\\.)opencode\\b"
     },
     {
       "why": "provider id inside i18n keys",
