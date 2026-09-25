@@ -1,4 +1,4 @@
-import { describe, expect } from "bun:test"
+import { afterAll, beforeAll, describe, expect } from "bun:test"
 import { makeGlobalNode } from "@olaya/core/effect/app-node"
 import { LayerNode } from "@olaya/core/effect/layer-node"
 import { httpClient } from "@olaya/core/effect/app-node-platform"
@@ -67,6 +67,17 @@ function testLayer(
 }
 
 describe("installation", () => {
+  // These exercise each channel's lookup and upgrade mechanics, which only run once a channel is
+  // published; opt them in the way a packager would.
+  const previous = process.env.OLAYA_PUBLISHED_CHANNELS
+  beforeAll(() => {
+    process.env.OLAYA_PUBLISHED_CHANNELS = "npm,bun,pnpm,yarn,scoop,choco,brew"
+  })
+  afterAll(() => {
+    if (previous === undefined) delete process.env.OLAYA_PUBLISHED_CHANNELS
+    else process.env.OLAYA_PUBLISHED_CHANNELS = previous
+  })
+
   describe("latest", () => {
     testEffect(testLayer(() => jsonResponse({ tag_name: "v1.2.3" }))).effect(
       "reads release version from GitHub releases",

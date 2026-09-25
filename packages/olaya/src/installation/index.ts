@@ -17,6 +17,21 @@ import { InstallationEvent } from "@olaya/schema/installation-event"
 
 export type Method = "curl" | "npm" | "yarn" | "pnpm" | "bun" | "brew" | "scoop" | "choco" | "unknown"
 
+/**
+ * Channels Olaya is actually published to. Everything else refuses to upgrade: the package
+ * names are not registered yet, so `npm install -g olaya` would install whatever a stranger
+ * publishes under that name, and the upstream channels would silently turn Olaya back into
+ * OpenCode. Add a method here only once the package exists and is owned by the project.
+ */
+export const PUBLISHED: ReadonlySet<Method> = new Set<Method>(["curl"])
+
+/** A packager who ships Olaya through a channel they own names it in OLAYA_PUBLISHED_CHANNELS. */
+export function isPublished(method: Method) {
+  if (PUBLISHED.has(method)) return true
+  return (process.env.OLAYA_PUBLISHED_CHANNELS ?? "").split(",").map((m) => m.trim()).includes(method)
+}
+export const INSTALL_SCRIPT = "https://raw.githubusercontent.com/codelikeabhi/olaya/main/install"
+
 export type ReleaseType = "patch" | "minor" | "major"
 
 export const Event = InstallationEvent
@@ -144,7 +159,7 @@ const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProcess.Serv
 
     const upgradeCurl = Effect.fnUntraced(
       function* (target: string) {
-        const response = yield* httpOk.execute(HttpClientRequest.get("https://opencode.ai/install"))
+        const response = yield* httpOk.execute(HttpClientRequest.get(INSTALL_SCRIPT))
         const body = yield* response.text
         const bodyBytes = new TextEncoder().encode(body)
         const shell = yield* upgradeScriptShell()
@@ -206,7 +221,10 @@ const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProcess.Serv
         return "unknown" as Method
       }),
       latest: Effect.fn("Installation.latest")(function* (installMethod?: Method) {
-        const detectedMethod = installMethod || (yield* result.method())
+        // Unpublished channels have no registry to ask (and a squatted one would lie): read
+        // the version from Olaya's own GitHub releases instead.
+        const found = installMethod || (yield* result.method())
+        const detectedMethod: Method = isPublished(found) ? found : "curl"
 
         if (detectedMethod === "brew") {
           const formula = yield* getBrewFormula()
@@ -263,6 +281,10 @@ const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProcess.Serv
         return data.tag_name.replace(/^v/, "")
       }, Effect.orDie),
       upgrade: Effect.fn("Installation.upgrade")(function* (m: Method, target: string) {
+        if (!isPublished(m))
+          return yield* new UpgradeFailedError({
+            stderr: `Olaya is not published to ${m} yet. Reinstall with the install script from https://github.com/codelikeabhi/olaya; upgrades then work from there.`,
+          })
         let upgradeResult: { code: number; stdout: string; stderr: string } | undefined
         switch (m) {
           case "curl":
