@@ -13,7 +13,8 @@
     "script/olaya-rename.ts",
     "laya/laya/**",
     "laya/tests/**",
-    "packages/opencode/test/cli/github-remote.test.ts"
+    "packages/opencode/test/cli/github-remote.test.ts",
+    "packages/opencode/test/tool/fixtures/models-api.json"
   ],
   "protect": [
     {
