@@ -8,5 +8,8 @@ This product includes software developed by the OpenCode project
 The original MIT license text and copyright notice are retained in
 LICENSES/opencode-MIT.txt and continue to apply to that code.
 
-This product depends on Laya (https://github.com/NandhaKishorM/laya),
-licensed under the Apache License, Version 2.0.
+This product includes software developed by the Laya project
+(https://github.com/NandhaKishorM/laya), Copyright Convai Innovations and
+Laya contributors, licensed under the Apache License, Version 2.0. It is
+vendored in laya/laya/ (see laya/laya/VENDORED.md); its license text is
+retained in LICENSES/laya-Apache-2.0.txt.
