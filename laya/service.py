@@ -8,12 +8,19 @@ Protocol
                       "max_len": int, "head_max_len": int, "state_budget": int}
     POST /decide  -> {"state": <str|obj>, "questions": {qid: {...}}}
                   -> {"answers": {qid: {...}}, "usage": {...}, "latency_ms": float}
+    POST /budget  -> {"questions": {qid: {...}}}
+                  -> {"state_budget": int, "question_hash": str}
+
+A fine-tuned checkpoint is bound to the exact questions it was trained on. When the
+checkpoint directory holds an `olaya_manifest.json` with a `question_hash`, /decide refuses
+(409) any question set that hashes differently, and the client falls back to asking.
 
 On startup the bound port is announced on stdout as a single line:
     OLAYA_SIDECAR_LISTENING {"port": 8731}
 so the parent can use an ephemeral port and avoid collisions.
 """
 
+import hashlib
 import json
 import os
 import sys
@@ -38,6 +45,22 @@ KEEP_WARM_SECONDS = 60
 _LOCK = threading.Lock()
 
 
+def question_hash(questions):
+    """Canonical sha256 of a question set. Must match `questionHash` in the TypeScript client:
+    keys sorted at every level, no whitespace, non-ASCII kept as UTF-8."""
+    canon = json.dumps(questions, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canon.encode("utf-8")).hexdigest()
+
+
+def read_manifest(checkpoint):
+    """The Olaya manifest of a local checkpoint directory, or None (hub ids have none)."""
+    path = os.path.join(checkpoint, "olaya_manifest.json")
+    if not os.path.isfile(path):
+        return None
+    with open(path) as f:
+        return json.load(f)
+
+
 class State:
     """Model and readiness, shared across handler threads."""
 
@@ -46,21 +69,37 @@ class State:
         self.checkpoint = os.environ.get("OLAYA_LAYA_MODEL", DEFAULT_MODEL)
         self.error = None
         self.last_used = 0.0
+        manifest = read_manifest(self.checkpoint)
+        self.pinned_hash = (manifest or {}).get("question_hash")
 
     @property
     def ready(self):
         return self.agent is not None
 
-    def budget(self):
-        """Tokens available for state, derived from the checkpoint rather than hardcoded.
+    def budget(self, questions=None):
+        """Tokens available for state.
 
-        build_sequence spends max_len on [CLS] head [SEP] options [SEP] state [SEP]; the head
-        and its options are capped at head_max_len. What is left over is the state budget.
+        build_sequence lays out [CLS] head [SEP] options [SEP] state [SEP] and gives the state
+        whatever the ACTUAL head leaves; head_max_len is only the head's cap. So with the
+        questions known, the budget is measured from their tokenized head: for v1's one short
+        noul question that is ~480 tokens on a 512 checkpoint, not the 316 the cap implies.
+        Without them (or without a tokenizer) the conservative cap-based figure is returned.
         """
         cfg = self.agent.cfg
         max_len = int(cfg.get("max_len", 512))
         head_max_len = int(cfg.get("head_max_len", 192))
-        return max(0, max_len - head_max_len - 4)
+        tok = getattr(self.agent, "tok", None)
+        if not questions or tok is None:
+            return max(0, max_len - head_max_len - 4)
+        from laya.agent import Agent
+        from laya.common import build_sequence
+
+        rooms = []
+        for q in questions.values():
+            # With an empty state the sequence is head + [SEP], so the room is what remains.
+            ids, _ = build_sequence(tok, "", Agent._to_internal(q), max_len, head_max_len)
+            rooms.append(max(0, max_len - len(ids)))
+        return min(rooms)
 
     def describe(self):
         d = {"ready": self.ready, "checkpoint": self.checkpoint}
@@ -74,6 +113,7 @@ class State:
                 head_max_len=int(cfg.get("head_max_len", 192)),
                 state_budget=self.budget(),
             )
+        d["pinned_question_hash"] = self.pinned_hash
         return d
 
 
@@ -142,6 +182,17 @@ def keep_warm(state=None):
             print("keep-warm pass failed: %s" % exc, file=sys.stderr, flush=True)
 
 
+def budget(payload, state=None):
+    """State budget and hash for a question set. Returns (status_code, body)."""
+    state = STATE if state is None else state
+    questions = payload.get("questions") if isinstance(payload, dict) else None
+    if not isinstance(questions, dict) or not questions:
+        return 400, {"error": "missing or empty 'questions'"}
+    if not state.ready:
+        return 503, {"error": "model not ready", "detail": state.error}
+    return 200, {"state_budget": state.budget(questions), "question_hash": question_hash(questions)}
+
+
 def normalise(qid, answer):
     """Flatten one laya answer into a stable shape.
 
@@ -177,6 +228,9 @@ def decide(payload, state=None):
 
     if not state.ready:
         return 503, {"error": "model not ready", "detail": state.error}
+    if state.pinned_hash and question_hash(questions) != state.pinned_hash:
+        # The checkpoint was trained on different questions; its probabilities mean nothing here.
+        return 409, {"error": "question set does not match the checkpoint", "pinned": state.pinned_hash}
 
     t0 = time.time()
     # All questions go through one system_one call: laya evaluates them in a single
@@ -236,7 +290,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._loopback():
             return
-        if self.path.split("?")[0] != "/decide":
+        route = self.path.split("?")[0]
+        if route not in ("/decide", "/budget"):
             return self._send(404, {"error": "not found"})
         try:
             length = int(self.headers.get("Content-Length") or 0)
@@ -249,7 +304,7 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, UnicodeDecodeError):
             return self._send(400, {"error": "body must be valid JSON"})
         try:
-            code, body = decide(payload)
+            code, body = (decide if route == "/decide" else budget)(payload)
         except Exception as exc:
             code, body = 500, {"error": "%s: %s" % (type(exc).__name__, exc)}
         self._send(code, body)

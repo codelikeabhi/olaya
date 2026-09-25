@@ -39,6 +39,74 @@ def test_budget_comes_from_checkpoint():
     assert st.budget() == 1024 - 256 - 4, st.budget()
 
 
+class StubTokenizer:
+    """One token per whitespace-separated word; enough to exercise build_sequence."""
+
+    mask_token, mask_token_id, cls_token_id, sep_token_id = "[MASK]", 1, 2, 3
+
+    def __call__(self, text, add_special_tokens=False):
+        return {"input_ids": [10] * len(text.split())}
+
+
+# The production v1 question, as packages/opencode/src/laya/state.ts defines it. The
+# TypeScript parity test asserts the same expected hash, so either side drifting fails.
+V1_QUESTIONS = {
+    "auto_approve": {
+        "type": "noul",
+        "instructions": "Is it safe to perform this action without asking the user for confirmation first?",
+    }
+}
+V1_HASH = "091c469afb2e827d48549d0148adb3ac828438327133d7e4efef64fd745ccb0a"
+
+
+def test_question_hash_is_canonical():
+    reordered = {"auto_approve": {"instructions": V1_QUESTIONS["auto_approve"]["instructions"], "type": "noul"}}
+    assert service.question_hash(V1_QUESTIONS) == service.question_hash(reordered)
+    assert service.question_hash(V1_QUESTIONS) == V1_HASH, service.question_hash(V1_QUESTIONS)
+    changed = {"auto_approve": dict(V1_QUESTIONS["auto_approve"], instructions="Is it safe?")}
+    assert service.question_hash(changed) != V1_HASH
+
+
+def test_budget_is_measured_from_the_real_head():
+    from laya.common import build_sequence
+    from laya.agent import Agent
+
+    st = service.State()
+    st.agent = StubAgent()
+    st.agent.tok = StubTokenizer()
+    measured = st.budget(V1_QUESTIONS)
+    ids, _ = build_sequence(st.agent.tok, "", Agent._to_internal(V1_QUESTIONS["auto_approve"]), 512, 192)
+    assert measured == 512 - len(ids), measured
+    # A short head leaves far more room than the head_max_len cap implies.
+    assert measured > st.budget(), (measured, st.budget())
+    # Fill exactly the measured budget: nothing is truncated; one more token is.
+    fits, _ = build_sequence(st.agent.tok, "w " * measured, Agent._to_internal(V1_QUESTIONS["auto_approve"]), 512, 192)
+    assert len(fits) == 512, len(fits)
+
+
+def test_pinned_checkpoint_refuses_other_questions():
+    st = service.State()
+    st.agent = StubAgent()
+    st.pinned_hash = service.question_hash(V1_QUESTIONS)
+    code, _ = service.decide({"state": "x", "questions": V1_QUESTIONS}, st)
+    assert code == 200, code
+    other = {"auto_approve": {"type": "noul", "instructions": "Is it safe?"}}
+    code, body = service.decide({"state": "x", "questions": other}, st)
+    assert code == 409 and "probability" not in json.dumps(body), (code, body)
+    assert st.agent.calls == 1  # the refused request never reached the model
+
+
+def test_budget_endpoint():
+    st = service.State()
+    st.agent = StubAgent()
+    st.agent.tok = StubTokenizer()
+    code, body = service.budget({"questions": V1_QUESTIONS}, st)
+    assert code == 200 and body["question_hash"] == service.question_hash(V1_QUESTIONS), body
+    assert body["state_budget"] == st.budget(V1_QUESTIONS)
+    assert service.budget({"questions": {}}, st)[0] == 400
+    assert service.budget({"questions": V1_QUESTIONS}, service.State())[0] == 503
+
+
 def test_not_ready_is_503_not_an_answer():
     st = service.State()
     code, body = service.decide({"state": "x", "questions": {"q": {"type": "noul", "instructions": "i"}}}, st)
