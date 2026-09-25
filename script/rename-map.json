@@ -1,0 +1,71 @@
+{
+  "$comment": "Rules for script/olaya-rename.ts. Built from docs/research/07-rename-hazards-audit.md (planning workspace). Protected tokens are masked before any replacement and restored afterwards, so no rule can partially rename them.",
+  "exclude": [
+    "bun.lock",
+    "LICENSES/**",
+    "NOTICE",
+    "packages/ui/LICENSE",
+    "packages/http-recorder/LICENSE",
+    "patches/**",
+    "**/*.tgz",
+    "packages/opencode/test/fixtures/recordings/**",
+    "script/rename-map.json",
+    "script/olaya-rename.ts",
+    "laya/laya/**",
+    "laya/tests/**"
+  ],
+  "protect": [
+    { "why": "upstream hosted endpoints and docs, still called or linked", "re": "https?://[A-Za-z0-9.-]*opencode\\.ai[^\\s\"'`)<>\\]]*" },
+    { "why": "bare upstream hostnames", "re": "(?<![A-Za-z0-9-])(?:[a-z0-9-]+\\.)*opencode\\.ai\\b" },
+    { "why": "enterprise orgs host this path", "re": "\\.well-known/opencode\\b" },
+    { "why": "models.dev provider id and its display names", "re": "opencode-go\\b|OpenCode (?:Zen|Go)\\b|opencode(?:Zen|Go)\\b" },
+    { "why": "provider API key defined by models.dev", "re": "OPENCODE_API_KEY" },
+    { "why": "Zen gateway request headers", "re": "x-opencode-(?:session|request|client|project)\\b" },
+    { "why": "third-party packages", "re": "(?:@gitlab/)?opencode-(?:gitlab-auth|poe-auth|gemini-auth|openai-codex-auth|copilot-auth)\\b" },
+    { "why": "third-party wasm assets", "re": "anomalyco/tree-sitter-[a-z-]+" },
+    { "why": "VS Code marketplace id of the upstream extension", "re": "sst-dev\\.opencode\\b" },
+    { "why": "name baked into a patched dependency", "re": "__OPENCODE_PHOTON_WASM_PATH" },
+    { "why": "matched against recorded request bodies", "re": "session-recorded-opencode-loop" },
+    { "why": "historical upstream references", "re": "github\\.com/(?:anomalyco|sst)/opencode/(?:issues|pull|commit|blob)/[^\\s\"'`)<>]*" }
+  ],
+  "protectInFiles": {
+    "$comment": "In these files the bare literal is the models.dev provider id or a partner attribution value.",
+    "files": [
+      "packages/opencode/src/provider/transform.ts",
+      "packages/opencode/src/provider/provider.ts",
+      "packages/opencode/src/session/llm/native-runtime.ts",
+      "packages/opencode/src/session/llm/request.ts",
+      "packages/opencode/src/tool/registry.ts",
+      "packages/opencode/src/plugin/openai/codex.ts",
+      "packages/opencode/src/plugin/xai.ts",
+      "packages/tui/src/component/dialog-provider.tsx",
+      "packages/app/src/components/dialog-connect-provider.tsx",
+      "packages/app/src/hooks/use-providers.ts",
+      "packages/app/src/pages/session/usage-exceeded-dialogs.tsx",
+      "packages/ui/src/components/provider-icons/types.ts",
+      "packages/ui/src/components/provider-icons/sprite.svg",
+      "packages/core/src/plugin/provider/opencode.ts",
+      "packages/core/src/plugin/provider/openrouter.ts",
+      "packages/core/src/plugin/provider/vercel.ts",
+      "packages/core/src/plugin/provider/zenmux.ts",
+      "packages/core/src/plugin/provider/kilo.ts",
+      "packages/core/src/plugin/provider/nvidia.ts",
+      "packages/core/src/plugin/provider/llmgateway.ts"
+    ],
+    "re": "([\"'`])opencode\\1|X-Title[^\\n]*|X-Cerebras-3rd-Party-Integration[^\\n]*"
+  },
+  "protectPaths": [
+    "packages/ui/src/assets/icons/provider/opencode"
+  ],
+  "replace": [
+    ["@opencode-ai/", "@olaya/"],
+    ["opencode-ai", "olaya"],
+    ["anomalyco/opencode", "codelikeabhi/olaya"],
+    ["sst/opencode", "codelikeabhi/olaya"],
+    ["OpenCode", "Olaya"],
+    ["Opencode", "Olaya"],
+    ["openCode", "olaya"],
+    ["OPENCODE", "OLAYA"],
+    ["opencode", "olaya"]
+  ]
+}
