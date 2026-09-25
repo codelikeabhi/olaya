@@ -75,6 +75,9 @@ const cli = yargs(args)
     process.env.AGENT = "1"
     process.env.OLAYA = "1"
     process.env.OLAYA_PID = String(process.pid)
+    // Tools that detect an agent session look for the upstream names; keep answering to them.
+    process.env.OPENCODE = "1" // olaya-rename:keep
+    process.env.OPENCODE_PID = String(process.pid) // olaya-rename:keep
   })
   .usage("")
   .completion("completion", "generate shell completion script")

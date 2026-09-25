@@ -1,1 +1,1 @@
-olaya-client-1.17.13-v2.tgz: upstream @opencode-ai/client 1.17.13 (MIT), renamed to @olaya/client by script/olaya-rename.ts so its type imports resolve against the renamed workspace packages.
+olaya-client-1.17.13-v2.tgz: upstream @opencode-ai/client 1.17.13 (MIT), renamed to @olaya/client by script/olaya-rename.ts so its type imports resolve against the renamed workspace packages. <!-- olaya-rename:keep -->

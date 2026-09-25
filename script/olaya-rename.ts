@@ -113,7 +113,7 @@ function main() {
     if (target !== file) moves.push([file, target])
     if (excluded.some((g) => g.match(file)) || fs.lstatSync(abs).isSymbolicLink()) continue
     const buf = fs.readFileSync(abs)
-    if (!isBinary(buf)) {
+    if (!isBinary(buf) && !buf.subarray(0, 2048).includes("olaya-rename:keep-file")) {
       const { out, hits } = rename(buf.toString("utf8"), file)
       if (hits.some((h) => h > 0)) {
         changedFiles++

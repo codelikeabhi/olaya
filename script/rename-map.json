@@ -14,9 +14,14 @@
     "laya/laya/**",
     "laya/tests/**",
     "packages/opencode/test/cli/github-remote.test.ts",
-    "packages/opencode/test/tool/fixtures/models-api.json"
+    "packages/opencode/test/tool/fixtures/models-api.json",
+    "script/olaya-rename.test.ts"
   ],
   "protect": [
+    {
+      "why": "explicit escape hatch: a line carrying this marker is kept verbatim (compatibility code that must name the upstream)",
+      "re": "[^\\n]*olaya-rename:keep(?!-file)[^\\n]*"
+    },
     {
       "why": "upstream hosted endpoints and docs, still called or linked",
       "re": "https?://[A-Za-z0-9.-]*opencode\\.ai[^\\s\"'`)<>\\]]*"

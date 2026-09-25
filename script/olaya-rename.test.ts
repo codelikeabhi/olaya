@@ -64,6 +64,12 @@ describe("olaya-rename", () => {
     expect(r("resources/olaya-cli")).toBe("resources/olaya-cli")
   })
 
+  test("a marked line is kept verbatim", () => {
+    const s = 'process.env.OPENCODE = "1" // olaya-rename:keep'
+    expect(r(s)).toBe(s)
+    expect(r("process.env.OPENCODE = x")).toBe("process.env.OLAYA = x")
+  })
+
   test("is idempotent", () => {
     const s = 'Olaya at https://opencode.ai uses OPENCODE_API_KEY and "@olaya/sdk"'
     expect(r(r(s))).toBe(r(s))

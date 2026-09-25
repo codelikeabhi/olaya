@@ -1,5 +1,22 @@
 import { Config } from "effect"
 
+/**
+ * Olaya was OpenCode. For one release cycle, every OPENCODE_* variable is honoured as its (olaya-rename:keep)
+ * OLAYA_* equivalent when that is unset, so existing setups (shell profiles, CI, the VS Code
+ * extension, Harbor's OPENCODE_FAKE_VCS) keep working (olaya-rename:keep). Copying into process.env here, the
+ * first module to read the environment, covers every later reader too, not just this file.
+ * OPENCODE_API_KEY is not ours: it is the OpenCode Zen provider's key, defined by models.dev.
+ */
+export function adoptLegacyEnv(env: Record<string, string | undefined> = process.env) {
+  for (const [key, value] of Object.entries(env)) {
+    if (!key.startsWith("OPENCODE_") || key === "OPENCODE_API_KEY") continue // olaya-rename:keep
+    const renamed = "OLAYA_" + key.slice("OPENCODE_".length) // olaya-rename:keep
+    if (env[renamed] === undefined) env[renamed] = value
+  }
+  if (env["OPENCODE"] !== undefined && env["OLAYA"] === undefined) env["OLAYA"] = env["OPENCODE"] // olaya-rename:keep
+}
+adoptLegacyEnv()
+
 export function truthy(key: string) {
   const value = process.env[key]?.toLowerCase()
   return value === "true" || value === "1"

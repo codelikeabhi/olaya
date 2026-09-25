@@ -65,7 +65,7 @@ export function experimentalWebSocketsEnabled(input: { enabled: boolean; channel
 }
 
 // Built-in plugins that are directly imported (not installed from npm)
-// Third-party plugins are typed against upstream's `@opencode-ai/plugin`. Olaya's plugin API is
+// Third-party plugins are typed against upstream's `@opencode-ai/plugin`. Olaya's plugin API is // olaya-rename:keep
 // the same contract under the `@olaya/plugin` name, but TypeScript treats the two packages as
 // unrelated types, so these are bridged here, in one place, rather than at every use.
 const GitlabAuthPlugin = gitlabAuthPlugin as unknown as PluginInstance
