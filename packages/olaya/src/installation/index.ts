@@ -21,7 +21,7 @@ export type Method = "curl" | "npm" | "yarn" | "pnpm" | "bun" | "brew" | "scoop"
  * Channels Olaya is actually published to. Everything else refuses to upgrade: the package
  * names are not registered yet, so `npm install -g olaya` would install whatever a stranger
  * publishes under that name, and the upstream channels would silently turn Olaya back into
- * OpenCode. Add a method here only once the package exists and is owned by the project.
+ * OpenCode. Add a method here only once the package exists and is owned by the project. (olaya-rename:keep)
  */
 export const PUBLISHED: ReadonlySet<Method> = new Set<Method>(["curl"])
 
