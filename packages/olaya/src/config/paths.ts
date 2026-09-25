@@ -13,8 +13,11 @@ export const files = Effect.fn("ConfigPaths.projectFiles")(function* (
   worktree?: string,
 ) {
   const afs = yield* FSUtil.Service
+  // A project migrating from OpenCode keeps its files. They go last in the targets so that, (olaya-rename:keep)
+  // after the reversal below, they are applied before Olaya's and lose any conflict.
+  const legacy = name === "olaya" ? ["opencode.jsonc", "opencode.json"] : [] // olaya-rename:keep
   return (yield* afs.up({
-    targets: [`${name}.jsonc`, `${name}.json`],
+    targets: [`${name}.jsonc`, `${name}.json`, ...legacy],
     start: directory,
     stop: worktree,
   })).toReversed()
@@ -26,13 +29,14 @@ export const directories = Effect.fn("ConfigPaths.directories")(function* (direc
     Global.Path.config,
     ...(!Flag.OLAYA_DISABLE_PROJECT_CONFIG
       ? yield* afs.up({
-          targets: [".olaya"],
+          // Not reversed: within a level the later entry wins, so the legacy dir goes first.
+          targets: [".opencode", ".olaya"], // olaya-rename:keep
           start: directory,
           stop: worktree,
         })
       : []),
     ...(yield* afs.up({
-      targets: [".olaya"],
+      targets: [".opencode", ".olaya"], // olaya-rename:keep
       start: Global.Path.home,
       stop: Global.Path.home,
     })),

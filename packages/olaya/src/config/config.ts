@@ -437,8 +437,9 @@ const layer = Layer.effect(
         const deps: Fiber.Fiber<void>[] = []
 
         for (const dir of directories) {
-          if (dir.endsWith(".olaya") || dir === Flag.OLAYA_CONFIG_DIR) {
-            for (const file of ["olaya.json", "olaya.jsonc"]) {
+          const legacyDir = dir.endsWith(".opencode") // olaya-rename:keep
+          if (dir.endsWith(".olaya") || legacyDir || dir === Flag.OLAYA_CONFIG_DIR) {
+            for (const file of legacyDir ? ["opencode.json", "opencode.jsonc"] : ["olaya.json", "olaya.jsonc"]) { // olaya-rename:keep
               const source = path.join(dir, file)
               yield* Effect.logDebug(`loading config from ${source}`)
               yield* merge(source, yield* loadFile(source, authEnv))

@@ -550,6 +550,43 @@ it.effect("native project MCP servers override inherited V1 disabled state", () 
   ),
 )
 
+// A project migrating from OpenCode keeps its config (olaya-rename:keep)
+const withLegacyProject = <A, E, R>(files: Record<string, object>, effect: Effect.Effect<A, E, R>) =>
+  Effect.gen(function* () {
+    const root = yield* tmpdirScoped()
+    const global = yield* tmpdirScoped()
+    const directory = path.join(root, "project")
+    for (const [name, config] of Object.entries(files)) yield* writeConfigEffect(directory, schemaConfig(config), name)
+    return yield* withGlobalConfigDir(global, withInstanceDir(directory, effect))
+  })
+
+it.effect("loads a project's legacy opencode.json when there is no olaya.json", () => // olaya-rename:keep
+  withLegacyProject(
+    { "opencode.json": { model: "legacy/model" } }, // olaya-rename:keep
+    Effect.gen(function* () {
+      expect((yield* Config.use.get()).model).toBe("legacy/model")
+    }),
+  ),
+)
+
+it.effect("olaya.json wins over a legacy opencode.json in the same project", () => // olaya-rename:keep
+  withLegacyProject(
+    { "opencode.json": { model: "legacy/model" }, "olaya.json": { model: "olaya/model" } }, // olaya-rename:keep
+    Effect.gen(function* () {
+      expect((yield* Config.use.get()).model).toBe("olaya/model")
+    }),
+  ),
+)
+
+it.effect("loads config from a legacy .opencode directory", () => // olaya-rename:keep
+  withLegacyProject(
+    { ".opencode/opencode.json": { model: "legacy/dir-model" } }, // olaya-rename:keep
+    Effect.gen(function* () {
+      expect((yield* Config.use.get()).model).toBe("legacy/dir-model")
+    }),
+  ),
+)
+
 it.effect("rejects native project permissions even with inherited V1 rules", () =>
   withConfigTree(
     {
