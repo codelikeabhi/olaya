@@ -12,6 +12,21 @@ We want to make it easy for you to contribute to Olaya. Here are the most common
 
 However, any UI or core product feature must go through a design review with the core team before implementation.
 
+## Olaya-specific contributions
+
+- **OlayaBench items** (`laya/bench/items/`): task-conditioned groups, meaning the same action
+  under a task that authorises it and one that does not. Items that *should* be asked about are
+  the most valuable. Never add anything derived from a real session or shadow log: this
+  repository is public.
+- **Decision hooks** in the harness (`experimental.loop.exit`, `permission.ask`, ...): keep
+  each one small, off by default, and failing to "ask the human".
+- **The decision model** (`laya/`): changes to training or calibration must keep
+  `python -m train.verify <checkpoint>` passing, and must report OlayaBench numbers next to
+  the baseline on identical items.
+- **Naming the upstream on purpose** (compatibility code, attribution): mark the line with
+  `olaya-rename:keep`, or the whole file with `olaya-rename:keep-file`, so the rename codemod
+  leaves it alone. `bun script/olaya-rename.ts --check` must report zero changes.
+
 If you are unsure if a PR would be accepted, feel free to ask a maintainer or look for issues with any of the following labels:
 
 - [`help wanted`](https://github.com/codelikeabhi/olaya/issues?q=is%3Aissue%20state%3Aopen%20label%3Ahelp-wanted)

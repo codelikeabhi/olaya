@@ -1,129 +1,93 @@
-<p align="center">
-  <a href="https://opencode.ai">
-    <picture>
-      <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="Olaya logo">
-    </picture>
-  </a>
-</p>
-<p align="center">The open source AI coding agent.</p>
-<p align="center">
-  <a href="https://opencode.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/olaya"><img alt="npm" src="https://img.shields.io/npm/v/olaya?style=flat-square" /></a>
-  <a href="https://github.com/codelikeabhi/olaya/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/codelikeabhi/olaya/publish.yml?style=flat-square&branch=dev" /></a>
-</p>
+<!-- olaya-rename:keep-file (this file names OpenCode and Laya on purpose: attribution) -->
 
-<p align="center">
-  <a href="README.md">English</a> |
-  <a href="README.zh.md">简体中文</a> |
-  <a href="README.zht.md">繁體中文</a> |
-  <a href="README.ko.md">한국어</a> |
-  <a href="README.de.md">Deutsch</a> |
-  <a href="README.es.md">Español</a> |
-  <a href="README.fr.md">Français</a> |
-  <a href="README.it.md">Italiano</a> |
-  <a href="README.da.md">Dansk</a> |
-  <a href="README.ja.md">日本語</a> |
-  <a href="README.pl.md">Polski</a> |
-  <a href="README.ru.md">Русский</a> |
-  <a href="README.bs.md">Bosanski</a> |
-  <a href="README.ar.md">العربية</a> |
-  <a href="README.no.md">Norsk</a> |
-  <a href="README.br.md">Português (Brasil)</a> |
-  <a href="README.th.md">ไทย</a> |
-  <a href="README.tr.md">Türkçe</a> |
-  <a href="README.uk.md">Українська</a> |
-  <a href="README.bn.md">বাংলা</a> |
-  <a href="README.gr.md">Ελληνικά</a> |
-  <a href="README.vi.md">Tiếng Việt</a>
-</p>
+# Olaya
 
-[![Olaya Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
+**An open-source AI coding harness you can leave alone.**
 
----
+Olaya is a terminal AI coding agent (CLI, TUI, desktop app, server and SDK) built on
+[OpenCode](https://github.com/sst/opencode), with a decision layer built on
+[Laya](https://github.com/NandhaKishorM/laya): a small, local, calibrated model that decides
+what the agent may do without asking you, and when a task is really done.
 
-### Installation
+> **Status: early development. Nothing is released yet.** There are no published binaries or
+> packages, and `olaya upgrade` deliberately refuses channels that do not exist yet. Build from
+> source (below). The decision layer runs in shadow mode only: it observes and logs, and never
+> changes what the agent is allowed to do.
 
-```bash
-# YOLO
-curl -fsSL https://opencode.ai/install | bash
+## Why
 
-# Package managers
-npm i -g olaya@latest        # or bun/pnpm/yarn
-scoop install olaya             # Windows
-choco install olaya             # Windows
-brew install anomalyco/tap/olaya # macOS and Linux (recommended, always up to date)
-brew install olaya              # macOS and Linux (official brew formula, updated less)
-sudo pacman -S olaya            # Arch Linux (Stable)
-paru -S olaya-bin               # Arch Linux (Latest from AUR)
-mise use -g olaya               # Any OS
-nix run nixpkgs#olaya           # or github:codelikeabhi/olaya for latest dev branch
+Coding agents fail users in two opposite ways. Ask for approval on everything and people stop
+reading the prompts. Approve everything and the agent eventually runs something it shouldn't.
+Today's answers are static allow-rules, or a frontier-LLM call per tool call (slow, costly,
+sends your transcript off the machine).
+
+Olaya puts a ~400M-parameter encoder on that decision. It runs locally in tens of
+milliseconds, judges each action against the task you asked for, and will only act on its own
+at thresholds that come with a measured bound on how often it would wrongly approve.
+
+## What has been measured so far
+
+Development numbers on OlayaBench Track A: 69 hand-written, task-conditioned items. It is a
+seed set: far too small to certify anything, and labelled by its author. They show direction
+only.
+
+| decision-maker | wrongly approved (should have asked) | auto-approved (safe) | latency |
+|---|---|---|---|
+| OpenCode's default rules (`"*": "allow"`) | 92.3% | 100% | — |
+| Laya, no fine-tuning | 25.6% | 83.3% | ~30 ms (M-series GPU) |
+| Laya, first coding fine-tune (249 synthetic rows, head only) | 20.5% | 83.3% | ~30 ms (M-series GPU) |
+| An 8B local LLM as judge (qwen3:8b) | 20.5% | 93.3% | 6.7 s |
+
+The target is a checkpoint that auto-approves a useful share of actions with a *certified*
+false-approve rate of at most 1%. Reaching it needs a human-labelled evaluation set with at
+least 300 should-ask items: below that, no 1% bound can be proven at 95% confidence, whatever
+the model.
+
+## Build from source
+
+Requirements: [Bun](https://bun.sh) 1.3+, and Python 3.12 with [uv](https://docs.astral.sh/uv/)
+for the decision layer.
+
+```sh
+git clone https://github.com/codelikeabhi/olaya && cd olaya
+bun install
+bun dev                 # run the CLI/TUI from source
+
+# decision layer (optional; shadow mode only)
+cd laya
+uv venv --python 3.12 .venv && uv pip install --python .venv -e '.[train]'
+OLAYA_LAYA_PORT=8731 .venv/bin/python service.py
+# then, in another shell:
+OLAYA_LAYA_ENABLED=1 OLAYA_LAYA_SHADOW=1 OLAYA_LAYA_URL=http://127.0.0.1:8731 bun dev
 ```
 
-> [!TIP]
-> Remove versions older than 0.1.x before installing.
+Coming from OpenCode? Olaya imports your OpenCode configuration and data once on first run
+(OpenCode's own copy is left untouched). It also reads a project's `opencode.json` and
+`.opencode/` when it has no Olaya config, and honours `OPENCODE_*` environment variables.
 
-### Desktop App (BETA)
+## Repository layout
 
-Olaya is also available as a desktop application. Download directly from the [releases page](https://github.com/codelikeabhi/olaya/releases) or [opencode.ai/download](https://opencode.ai/download).
+| path | what |
+|---|---|
+| `packages/olaya` | the CLI and agent runtime |
+| `packages/core`, `server`, `sdk`, `plugin`, `tui`, `app`, `desktop`, `ui` | harness packages inherited from OpenCode |
+| `packages/olaya/src/laya` | the decision-layer plugin: compaction, judgment, shadow logging |
+| `laya/laya` | the Laya model, vendored and modified (see `laya/laya/VENDORED.md`) |
+| `laya/service.py` | the local decision sidecar |
+| `laya/train` | data, fine-tuning on Apple Silicon, calibration, checkpoint verification, labelling |
+| `laya/bench` | OlayaBench (decision benchmark) and the Harbor adapter for end-to-end harness benchmarks |
+| `script/olaya-rename.ts` | the deterministic codemod that renamed OpenCode to Olaya, also used to port upstream fixes |
 
-| Platform              | Download                           |
-| --------------------- | ---------------------------------- |
-| macOS (Apple Silicon) | `olaya-desktop-mac-arm64.dmg`   |
-| macOS (Intel)         | `olaya-desktop-mac-x64.dmg`     |
-| Windows               | `olaya-desktop-windows-x64.exe` |
-| Linux                 | `.deb`, `.rpm`, or `.AppImage`     |
+## Contributing
 
-```bash
-# macOS (Homebrew)
-brew install --cask olaya-desktop
-# Windows (Scoop)
-scoop bucket add extras; scoop install extras/olaya-desktop
-```
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Useful places to start:
+new OlayaBench items (especially actions that *should* be asked about), decision hooks in the
+harness, and the training and evaluation pipeline.
 
-#### Installation Directory
+## License and attribution
 
-The install script respects the following priority order for the installation path:
-
-1. `$OLAYA_INSTALL_DIR` - Custom installation directory
-2. `$XDG_BIN_DIR` - XDG Base Directory Specification compliant path
-3. `$HOME/bin` - Standard user binary directory (if it exists or can be created)
-4. `$HOME/.olaya/bin` - Default fallback
-
-```bash
-# Examples
-OLAYA_INSTALL_DIR=/usr/local/bin curl -fsSL https://opencode.ai/install | bash
-XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://opencode.ai/install | bash
-```
-
-### Agents
-
-Olaya includes two built-in agents you can switch between with the `Tab` key.
-
-- **build** - Default, full-access agent for development work
-- **plan** - Read-only agent for analysis and code exploration
-  - Denies file edits by default
-  - Asks permission before running bash commands
-  - Ideal for exploring unfamiliar codebases or planning changes
-
-Also included is a **general** subagent for complex searches and multistep tasks.
-This is used internally and can be invoked using `@general` in messages.
-
-Learn more about [agents](https://opencode.ai/docs/agents).
-
-### Documentation
-
-For more info on how to configure Olaya, [**head over to our docs**](https://opencode.ai/docs).
-
-### Contributing
-
-If you're interested in contributing to Olaya, please read our [contributing docs](./CONTRIBUTING.md) before submitting a pull request.
-
-### Building on Olaya
-
-If you are working on a project that's related to Olaya and is using "olaya" as part of its name, for example "olaya-dashboard" or "olaya-mobile", please add a note to your README to clarify that it is not built by the Olaya team and is not affiliated with us in any way.
-
----
-
-**Join our community** [Discord](https://discord.gg/olaya) | [X.com](https://x.com/olaya)
+Olaya is licensed under the [Apache License 2.0](LICENSE). It includes software from the
+OpenCode project (MIT) and the Laya project (Apache-2.0); see [NOTICE](NOTICE) and
+[LICENSES/](LICENSES). Olaya is an independent project and is not affiliated with OpenCode,
+Anomaly, Convai Innovations or TypeSafe. "OpenCode Zen" remains available in Olaya as a
+third-party model provider.
