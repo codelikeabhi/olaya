@@ -1,14 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "olaya-laya-sidecar"
+name = "olaya-laya"
 version = "0.1.0"
-description = "Local decision service wrapping the Laya encoder for Olaya"
+description = "Olaya's decision layer: the vendored Laya model, its loopback sidecar, training and benchmarks"
 requires-python = ">=3.10,<3.13"
-# ponytail: stdlib http.server only - no web framework. The service is loopback-only,
-# single-consumer, and serialises inference anyway, so a framework would add deps for nothing.
+license = { text = "Apache-2.0" }
+# The model code is vendored in ./laya (see laya/VENDORED.md), so these are Laya's own
+# runtime dependencies. ponytail: stdlib http.server for the sidecar, no web framework.
 dependencies = [
-    "laya==0.3.5",
+    "torch>=2.0.0",
+    "transformers>=4.48.0",
+    "safetensors>=0.4.0",
+    "huggingface_hub>=0.20.0",
+    "numpy>=1.20.0",
 ]
 
 [project.optional-dependencies]
-# Patched Laya, when we need one (e.g. exposing truncate_left through system_one):
-#   laya @ git+https://github.com/codelikeabhi/laya@<sha>
+# Dataset replay sources for training (Hugging Face datasets).
+train = ["datasets>=3.0.0"]
+
+[tool.setuptools]
+packages = ["laya", "bench", "train"]
+py-modules = ["service"]

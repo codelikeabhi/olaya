@@ -45,3 +45,4 @@ laya/data/
 laya/cache/
 laya/checkpoints/
 laya/reports/
+*.egg-info/

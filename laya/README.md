@@ -3,7 +3,7 @@
 Loopback HTTP service wrapping `laya.Agent`. Olaya calls it to judge permission requests.
 
     uv venv --python 3.12 .venv
-    uv pip install --python .venv -e .
+    uv pip install --python .venv -e '.[train]'     # installs the vendored Laya in ./laya
     .venv/bin/python -m service            # or: OLAYA_LAYA_PORT=8731 .venv/bin/python service.py
 
 Endpoints: `GET /health`, `POST /decide`. See `service.py`.
@@ -62,6 +62,8 @@ Both reply paths produce labelled training rows:
     opencode run "..."          # auto-rejects    -> reject labels
 
 ## Tests
+
+    for t in tests/laya_upstream/test_*.py; do .venv/bin/python $t; done   # vendored Laya
 
     python test_service.py                                    # sidecar self-check, no model needed
     bun test test/laya                                        # unit tests, from packages/opencode
