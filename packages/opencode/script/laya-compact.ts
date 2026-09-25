@@ -22,17 +22,10 @@ if (process.argv.includes("--questions")) {
   process.exit(0)
 }
 
-let buffer = ""
-for await (const chunk of Bun.stdin.stream()) {
-  buffer += new TextDecoder().decode(chunk)
-  let nl: number
-  while ((nl = buffer.indexOf("\n")) >= 0) {
-    const line = buffer.slice(0, nl).trim()
-    buffer = buffer.slice(nl + 1)
-    if (line) process.stdout.write(JSON.stringify(handle(JSON.parse(line))) + "\n")
-  }
+// Bun exposes stdin as an async iterable of lines on `console`.
+for await (const line of console) {
+  if (line.trim()) process.stdout.write(JSON.stringify(handle(JSON.parse(line))) + "\n")
 }
-if (buffer.trim()) process.stdout.write(JSON.stringify(handle(JSON.parse(buffer))) + "\n")
 
 function handle(row: { id: string; request: any; context?: any; budget?: number }) {
   const req = {
