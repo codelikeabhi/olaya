@@ -16,7 +16,7 @@ Options:
       --mdns         enable mDNS service discovery (defaults hostname to 0.0.0.0)
                                                                           [boolean] [default: false]
       --mdns-domain  custom domain name for mDNS service (default: olaya.local)
-                                                                [string] [default: "olaya.local"]
+                                                                   [string] [default: "olaya.local"]
       --cors         additional domains to allow for CORS                      [array] [default: []]
       --cwd          working directory [string] [default: "<HOME>"]"
 `;
@@ -28,7 +28,7 @@ manage MCP (Model Context Protocol) servers
 
 Commands:
   olaya mcp add [name]     add an MCP server
-  olaya mcp list           list MCP servers and their status                        [aliases: ls]
+  olaya mcp list           list MCP servers and their status                           [aliases: ls]
   olaya mcp auth [name]    authenticate with an OAuth-enabled MCP server
   olaya mcp logout [name]  remove OAuth credentials for an MCP server
   olaya mcp debug <name>   debug OAuth connection for an MCP server
@@ -59,9 +59,8 @@ Options:
   -c, --continue      continue the last session                                            [boolean]
   -s, --session       session id to continue                                                [string]
       --fork          fork the session when continuing (use with --continue or --session)  [boolean]
-  -p, --password      basic auth password (defaults to OLAYA_SERVER_PASSWORD)            [string]
-  -u, --username      basic auth username (defaults to OLAYA_SERVER_USERNAME or 'olaya')
-                                                                                            [string]
+  -p, --password      basic auth password (defaults to OLAYA_SERVER_PASSWORD)               [string]
+  -u, --username      basic auth username (defaults to OLAYA_SERVER_USERNAME or 'olaya')    [string]
       --mini          start the minimal interactive interface             [boolean] [default: false]
       --no-replay     disable mini session history replay on resume and after resize       [boolean]
       --replay-limit  cap visible mini replay to the newest N messages                      [number]"
@@ -92,10 +91,9 @@ Options:
                                           [string] [choices: "default", "json"] [default: "default"]
   -f, --file         file(s) to attach to message                                            [array]
       --title        title for the session (uses truncated prompt if no value provided)     [string]
-      --attach       attach to a running olaya server (e.g., http://localhost:4096)      [string]
-  -p, --password     basic auth password (defaults to OLAYA_SERVER_PASSWORD)             [string]
-  -u, --username     basic auth username (defaults to OLAYA_SERVER_USERNAME or 'olaya')
-                                                                                            [string]
+      --attach       attach to a running olaya server (e.g., http://localhost:4096)         [string]
+  -p, --password     basic auth password (defaults to OLAYA_SERVER_PASSWORD)                [string]
+  -u, --username     basic auth username (defaults to OLAYA_SERVER_USERNAME or 'olaya')     [string]
       --dir          directory to run in, path on remote server if attaching                [string]
       --port         port for the local server (defaults to random port if no value provided)
                                                                                             [number]
@@ -141,7 +139,7 @@ exports[`olaya CLI help-text snapshots every documented command emits stable hel
 manage AI providers and credentials
 
 Commands:
-  olaya providers list               list providers and credentials                 [aliases: ls]
+  olaya providers list               list providers and credentials                    [aliases: ls]
   olaya providers login [url]        log in to a provider
   olaya providers logout [provider]  log out from a configured provider
 
@@ -221,7 +219,7 @@ Options:
       --mdns         enable mDNS service discovery (defaults hostname to 0.0.0.0)
                                                                           [boolean] [default: false]
       --mdns-domain  custom domain name for mDNS service (default: olaya.local)
-                                                                [string] [default: "olaya.local"]
+                                                                   [string] [default: "olaya.local"]
       --cors         additional domains to allow for CORS                      [array] [default: []]"
 `;
 
@@ -241,7 +239,7 @@ Options:
       --mdns         enable mDNS service discovery (defaults hostname to 0.0.0.0)
                                                                           [boolean] [default: false]
       --mdns-domain  custom domain name for mDNS service (default: olaya.local)
-                                                                [string] [default: "olaya.local"]
+                                                                   [string] [default: "olaya.local"]
       --cors         additional domains to allow for CORS                      [array] [default: []]"
 `;
 
@@ -388,7 +386,7 @@ exports[`olaya CLI help-text snapshots every documented command emits stable hel
 database tools
 
 Commands:
-  olaya db [query]     open an interactive sqlite3 shell or run a query                 [default]
+  olaya db [query]     open an interactive sqlite3 shell or run a query                    [default]
   olaya db path        print the database path
 
 Positionals:
@@ -441,7 +439,7 @@ exports[`olaya CLI help-text snapshots every documented command emits stable hel
 authenticate with an OAuth-enabled MCP server
 
 Commands:
-  olaya mcp auth list  list OAuth-capable MCP servers and their auth status         [aliases: ls]
+  olaya mcp auth list  list OAuth-capable MCP servers and their auth status            [aliases: ls]
 
 Positionals:
   name  name of the MCP server                                                              [string]
@@ -489,7 +487,7 @@ exports[`olaya CLI help-text snapshots every documented command emits stable hel
 log in to a provider
 
 Positionals:
-  url  olaya auth provider                                                               [string]
+  url  olaya auth provider                                                                  [string]
 
 Options:
   -h, --help        show help                                                              [boolean]
