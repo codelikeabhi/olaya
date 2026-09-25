@@ -1,6 +1,6 @@
-# OpenCode Desktop
+# Olaya Desktop
 
-The OpenCode Desktop app, built with Electron.
+The Olaya Desktop app, built with Electron.
 
 ## Development
 

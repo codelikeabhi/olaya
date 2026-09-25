@@ -1,17 +1,17 @@
-import type { IntegrationMethod, IntegrationOauthConnectOutput } from "@opencode-ai/client/promise"
-import { Button } from "@opencode-ai/ui/button"
-import { useDialog } from "@opencode-ai/ui/context/dialog"
-import { Dialog } from "@opencode-ai/ui/dialog"
-import { Icon } from "@opencode-ai/ui/icon"
-import { IconButton } from "@opencode-ai/ui/icon-button"
-import { List, type ListRef } from "@opencode-ai/ui/list"
-import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
-import { Spinner } from "@opencode-ai/ui/spinner"
-import { Tag } from "@opencode-ai/ui/tag"
-import { TextField } from "@opencode-ai/ui/text-field"
-import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
-import { DialogBody, DialogHeader, DialogTitle, DialogV2 } from "@opencode-ai/ui/v2/dialog-v2"
-import { TextInputV2 } from "@opencode-ai/ui/v2/text-input-v2"
+import type { IntegrationMethod, IntegrationOauthConnectOutput } from "@olaya/client/promise"
+import { Button } from "@olaya/ui/button"
+import { useDialog } from "@olaya/ui/context/dialog"
+import { Dialog } from "@olaya/ui/dialog"
+import { Icon } from "@olaya/ui/icon"
+import { IconButton } from "@olaya/ui/icon-button"
+import { List, type ListRef } from "@olaya/ui/list"
+import { ProviderIcon } from "@olaya/ui/provider-icon"
+import { Spinner } from "@olaya/ui/spinner"
+import { Tag } from "@olaya/ui/tag"
+import { TextField } from "@olaya/ui/text-field"
+import { ButtonV2 } from "@olaya/ui/v2/button-v2"
+import { DialogBody, DialogHeader, DialogTitle, DialogV2 } from "@olaya/ui/v2/dialog-v2"
+import { TextInputV2 } from "@olaya/ui/v2/text-input-v2"
 import { showToast } from "@/utils/toast"
 import {
   type Accessor,
@@ -564,7 +564,7 @@ function ProviderConnection(props: {
           if (!alive.value) return
           if (props.provider === "opencode" && platform.platform === "desktop") {
             const url = new URL(x.data.url)
-            url.searchParams.set("client_id", "opencode-desktop")
+            url.searchParams.set("client_id", "olaya-desktop")
             x.data.url = url.href
           }
           dispatch({ type: "auth.complete", authorization: x.data })

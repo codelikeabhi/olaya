@@ -26,7 +26,7 @@ from . import metrics as M
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
-BRIDGE = os.path.join(REPO, "packages", "opencode", "script", "laya-compact.ts")
+BRIDGE = os.path.join(REPO, "packages", "olaya", "script", "laya-compact.ts")
 DATA_HOME = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
 REPORTS = os.path.join(DATA_HOME, "olaya", "laya", "reports")
 
@@ -294,7 +294,7 @@ def main(argv=None):
         "alpha": args.alpha, "delta": args.delta, "budget": budget,
         "items_sha256": hashlib.sha256(open(args.items, "rb").read()).hexdigest(),
         "compactor_sha256": hashlib.sha256(
-            open(os.path.join(REPO, "packages", "opencode", "src", "laya", "state.ts"), "rb").read()).hexdigest(),
+            open(os.path.join(REPO, "packages", "olaya", "src", "laya", "state.ts"), "rb").read()).hexdigest(),
         "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
     }
     out_dir = os.path.join(args.out, "bench-" + time.strftime("%Y%m%d-%H%M%S"))

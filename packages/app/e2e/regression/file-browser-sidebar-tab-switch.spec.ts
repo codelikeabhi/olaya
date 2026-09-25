@@ -1,9 +1,9 @@
-import { base64Encode } from "@opencode-ai/core/util/encode"
+import { base64Encode } from "@olaya/core/util/encode"
 import { expect, test, type Page } from "@playwright/test"
-import { mockOpenCodeServer } from "../utils/mock-server"
+import { mockOlayaServer } from "../utils/mock-server"
 import { expectSessionTitle } from "../utils/waits"
 
-const directory = "C:/OpenCode/FileBrowserSidebar"
+const directory = "C:/Olaya/FileBrowserSidebar"
 const projectID = "proj_file_browser_sidebar"
 const sessionID = "ses_file_browser_sidebar"
 const title = "File browser sidebar"
@@ -111,7 +111,7 @@ async function setup(
   page: Page,
   findFiles?: (input: { query: string; dirs?: string; limit?: number }) => unknown | Promise<unknown>,
 ) {
-  await mockOpenCodeServer(page, {
+  await mockOlayaServer(page, {
     directory,
     project: {
       id: projectID,
@@ -124,13 +124,13 @@ async function setup(
     provider: {
       all: [
         {
-          id: "opencode",
-          name: "OpenCode",
+          id: "olaya",
+          name: "Olaya",
           models: { test: { id: "test", name: "Test", limit: { context: 200_000 } } },
         },
       ],
-      connected: ["opencode"],
-      default: { providerID: "opencode", modelID: "test" },
+      connected: ["olaya"],
+      default: { providerID: "olaya", modelID: "test" },
     },
     sessions: [
       {
@@ -163,22 +163,22 @@ async function setup(
     ({ directory, server, sessionID }) => {
       localStorage.setItem("settings.v3", JSON.stringify({ general: { newLayoutDesigns: true } }))
       localStorage.setItem(
-        "opencode.global.dat:server",
+        "olaya.global.dat:server",
         JSON.stringify({
           projects: { local: [{ worktree: directory, expanded: true }] },
           lastProject: { local: directory },
         }),
       )
       localStorage.setItem(
-        "opencode.global.dat:layout",
+        "olaya.global.dat:layout",
         JSON.stringify({ review: { diffStyle: "split", panelOpened: true } }),
       )
       localStorage.setItem(
-        "opencode.global.dat:review-panel-v2",
+        "olaya.global.dat:review-panel-v2",
         JSON.stringify({ sidebarOpened: true, sidebarWidth: 240, expandMode: "collapse" }),
       )
       localStorage.setItem(
-        "opencode.window.browser.dat:tabs",
+        "olaya.window.browser.dat:tabs",
         JSON.stringify([{ type: "session", server, sessionId: sessionID }]),
       )
     },

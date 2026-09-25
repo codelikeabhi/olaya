@@ -1,19 +1,19 @@
-import { Pty } from "@opencode-ai/core/pty"
-import { PtyProtocol } from "@opencode-ai/core/pty/protocol"
-import { PtyTicket } from "@opencode-ai/core/pty/ticket"
-import { Location } from "@opencode-ai/core/location"
+import { Pty } from "@olaya/core/pty"
+import { PtyProtocol } from "@olaya/core/pty/protocol"
+import { PtyTicket } from "@olaya/core/pty/ticket"
+import { Location } from "@olaya/core/location"
 import { Effect, Queue } from "effect"
 import { HttpServerRequest, HttpServerResponse } from "effect/unstable/http"
 import { HttpApiBuilder, HttpApiSchema } from "effect/unstable/httpapi"
 import * as Socket from "effect/unstable/socket/Socket"
 import { Api } from "../api"
 import { CorsConfig, isAllowedRequestOrigin } from "../cors"
-import { ForbiddenError, PtyNotFoundError } from "@opencode-ai/protocol/errors"
+import { ForbiddenError, PtyNotFoundError } from "@olaya/protocol/errors"
 import {
   PTY_CONNECT_TICKET_QUERY,
   PTY_CONNECT_TOKEN_HEADER,
   PTY_CONNECT_TOKEN_HEADER_VALUE,
-} from "@opencode-ai/protocol/groups/pty"
+} from "@olaya/protocol/groups/pty"
 import { response } from "../location"
 import { PtyEnvironment } from "../pty-environment"
 

@@ -1,9 +1,9 @@
-import { base64Encode } from "@opencode-ai/core/util/encode"
+import { base64Encode } from "@olaya/core/util/encode"
 import { expect, test } from "@playwright/test"
-import { mockOpenCodeServer } from "../utils/mock-server"
+import { mockOlayaServer } from "../utils/mock-server"
 import { expectSessionTitle } from "../utils/waits"
 
-const directory = "C:/OpenCode/OpenFileExpand"
+const directory = "C:/Olaya/OpenFileExpand"
 const projectID = "proj_open_file_expand"
 const sessionID = "ses_open_file_expand"
 const title = "Open file expand"
@@ -12,7 +12,7 @@ const server = `http://${process.env.PLAYWRIGHT_SERVER_HOST ?? "127.0.0.1"}:${pr
 test.use({ viewport: { width: 1440, height: 900 } })
 
 test("expands a folder whose path has a trailing Windows separator", async ({ page }) => {
-  await mockOpenCodeServer(page, {
+  await mockOlayaServer(page, {
     directory,
     project: {
       id: projectID,
@@ -25,13 +25,13 @@ test("expands a folder whose path has a trailing Windows separator", async ({ pa
     provider: {
       all: [
         {
-          id: "opencode",
-          name: "OpenCode",
+          id: "olaya",
+          name: "Olaya",
           models: { test: { id: "test", name: "Test", limit: { context: 200_000 } } },
         },
       ],
-      connected: ["opencode"],
-      default: { providerID: "opencode", modelID: "test" },
+      connected: ["olaya"],
+      default: { providerID: "olaya", modelID: "test" },
     },
     sessions: [
       {
@@ -86,22 +86,22 @@ test("expands a folder whose path has a trailing Windows separator", async ({ pa
         JSON.stringify({ general: { newLayoutDesigns: true, shouldDisplayTabsToast: false } }),
       )
       localStorage.setItem(
-        "opencode.global.dat:server",
+        "olaya.global.dat:server",
         JSON.stringify({
           projects: { local: [{ worktree: directory, expanded: true }] },
           lastProject: { local: directory },
         }),
       )
       localStorage.setItem(
-        "opencode.global.dat:layout",
+        "olaya.global.dat:layout",
         JSON.stringify({ review: { diffStyle: "split", panelOpened: true } }),
       )
       localStorage.setItem(
-        "opencode.global.dat:review-panel-v2",
+        "olaya.global.dat:review-panel-v2",
         JSON.stringify({ sidebarOpened: true, sidebarWidth: 240, expandMode: "collapse" }),
       )
       localStorage.setItem(
-        "opencode.window.browser.dat:tabs",
+        "olaya.window.browser.dat:tabs",
         JSON.stringify([{ type: "session", server, sessionId: sessionID }]),
       )
     },

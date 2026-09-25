@@ -48,7 +48,7 @@ class StubTokenizer:
         return {"input_ids": [10] * len(text.split())}
 
 
-# The production v1 question, as packages/opencode/src/laya/state.ts defines it. The
+# The production v1 question, as packages/olaya/src/laya/state.ts defines it. The
 # TypeScript parity test asserts the same expected hash, so either side drifting fails.
 V1_QUESTIONS = {
     "auto_approve": {

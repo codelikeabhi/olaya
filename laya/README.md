@@ -25,7 +25,7 @@ Everything is off by default. Enable it with environment variables:
 | `OLAYA_LAYA_STDERR` | route the sidecar's stderr to a file for diagnostics |
 | `OLAYA_LAYA_SHADOW_DIR` | override the shadow log location |
 
-Shadow records land in `$XDG_DATA_HOME/opencode/laya-shadow/` by default.
+Shadow records land in `$XDG_DATA_HOME/olaya/laya-shadow/` by default.
 
 ## Driving a real session with a local model
 
@@ -34,8 +34,8 @@ need a model that actually emits tool calls. Ollama works and needs no API key:
 
     ollama pull qwen3:8b
 
-Then point opencode at it with a project `opencode.json`. Note that upstream's `.gitignore`
-already ignores `/opencode.json`, so this file stays local and is not committed - which is
+Then point olaya at it with a project `olaya.json`. Note that upstream's `.gitignore`
+already ignores `/olaya.json`, so this file stays local and is not committed - which is
 why the config is reproduced here:
 
 ```json
@@ -53,18 +53,18 @@ why the config is reproduced here:
 ```
 
 If tool calls come back malformed, raise Ollama's context window
-(`OLLAMA_CONTEXT_LENGTH=32768`); opencode's tool schemas are large and small models
+(`OLLAMA_CONTEXT_LENGTH=32768`); olaya's tool schemas are large and small models
 truncate them at the default.
 
 Both reply paths produce labelled training rows:
 
-    opencode run --auto "..."   # replies "once"  -> approve labels
-    opencode run "..."          # auto-rejects    -> reject labels
+    olaya run --auto "..."   # replies "once"  -> approve labels
+    olaya run "..."          # auto-rejects    -> reject labels
 
 ## Tests
 
     for t in tests/laya_upstream/test_*.py; do .venv/bin/python $t; done   # vendored Laya
 
     python test_service.py                                    # sidecar self-check, no model needed
-    bun test test/laya                                        # unit tests, from packages/opencode
+    bun test test/laya                                        # unit tests, from packages/olaya
     OLAYA_LAYA_INTEGRATION=1 OLAYA_LAYA_PYTHON=... bun test test/laya/integration.test.ts

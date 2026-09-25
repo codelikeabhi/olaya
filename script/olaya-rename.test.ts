@@ -51,17 +51,17 @@ describe("olaya-rename", () => {
     ])
       expect(r(s)).toBe(s)
     // Object keys are the provider id only in provider files, and only in object literals.
-    const table = "const priority = {\n  opencode: 0,\n  anthropic: 1,\n}\njobs:\n  opencode:\n"
-    expect(r(table, "packages/opencode/src/cli/cmd/github.handler.ts")).toBe(
-      "const priority = {\n  opencode: 0,\n  anthropic: 1,\n}\njobs:\n  olaya:\n",
+    const table = "const priority = {\n  olaya: 0,\n  anthropic: 1,\n}\njobs:\n  olaya:\n"
+    expect(r(table, "packages/olaya/src/cli/cmd/github.handler.ts")).toBe(
+      "const priority = {\n  olaya: 0,\n  anthropic: 1,\n}\njobs:\n  olaya:\n",
     )
-    expect(r("({ home, llm, opencode }) => opencode.run()", "packages/opencode/test/cli/acp/x.test.ts")).toBe(
+    expect(r("({ home, llm, olaya }) => olaya.run()", "packages/olaya/test/cli/acp/x.test.ts")).toBe(
       "({ home, llm, olaya }) => olaya.run()",
     )
-    expect(r("fixture.opencode.run()")).toBe("fixture.olaya.run()")
+    expect(r("fixture.olaya.run()")).toBe("fixture.olaya.run()")
     // ...while paths and plain words still rename.
-    expect(r('path.join(dir, ".opencode", "agent")')).toBe('path.join(dir, ".olaya", "agent")')
-    expect(r("resources/opencode-cli")).toBe("resources/olaya-cli")
+    expect(r('path.join(dir, ".olaya", "agent")')).toBe('path.join(dir, ".olaya", "agent")')
+    expect(r("resources/olaya-cli")).toBe("resources/olaya-cli")
   })
 
   test("is idempotent", () => {

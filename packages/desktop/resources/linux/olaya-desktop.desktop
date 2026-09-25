@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Olaya
+Exec=/opt/Olaya/ai.olaya.desktop %U
+Terminal=false
+Type=Application
+Icon=ai.olaya.desktop
+StartupWMClass=ai.olaya.desktop
+NoDisplay=true
+Comment=Open source AI coding agent
+Categories=Development;

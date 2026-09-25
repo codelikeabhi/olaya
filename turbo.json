@@ -2,11 +2,11 @@
   "$schema": "https://v2-8-13.turborepo.dev/schema.json",
   "globalEnv": [
     "CI",
-    "OPENCODE_DISABLE_SHARE"
+    "OLAYA_DISABLE_SHARE"
   ],
   "globalPassThroughEnv": [
     "CI",
-    "OPENCODE_DISABLE_SHARE"
+    "OLAYA_DISABLE_SHARE"
   ],
   "tasks": {
     "typecheck": {},
@@ -16,7 +16,7 @@
         "dist/**"
       ]
     },
-    "opencode#test": {
+    "olaya#test": {
       "dependsOn": [
         "^build"
       ],
@@ -25,25 +25,25 @@
         "*"
       ]
     },
-    "@opencode-ai/core#test": {
+    "@olaya/core#test": {
       "dependsOn": [
         "^build"
       ],
       "outputs": []
     },
-    "@opencode-ai/app#test": {
+    "@olaya/app#test": {
       "dependsOn": [
         "^build"
       ],
       "outputs": []
     },
-    "@opencode-ai/ui#test": {
+    "@olaya/ui#test": {
       "dependsOn": [
         "^build"
       ],
       "outputs": []
     },
-    "@opencode-ai/session-ui#test": {
+    "@olaya/session-ui#test": {
       "dependsOn": [
         "^build"
       ],
