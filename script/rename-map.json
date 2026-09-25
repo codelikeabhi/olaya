@@ -70,7 +70,7 @@
     }
   ],
   "protectInFiles": {
-    "$comment": "In these files the bare literal is the models.dev provider id or a partner attribution value.",
+    "$comment": "In these files the provider id appears quoted, as an object key and as a model ref (provider/model); all of those are the models.dev id or partner attribution.",
     "files": [
       "packages/opencode/src/provider/transform.ts",
       "packages/opencode/src/provider/provider.ts",
@@ -98,7 +98,7 @@
       "packages/opencode/test/session/llm-native.test.ts",
       "packages/opencode/test/session/llm-native-recorded.test.ts"
     ],
-    "re": "([\"'`])opencode\\1|X-Title[^\\n]*|X-Cerebras-3rd-Party-Integration[^\\n]*"
+    "re": "([\"'`])opencode\\1|\\bopencode(?=\\s*:)|\\bopencode/(?=[A-Za-z0-9])|X-Title[^\\n]*|X-Cerebras-3rd-Party-Integration[^\\n]*"
   },
   "protectPaths": [
     "packages/ui/src/assets/icons/provider/opencode"
