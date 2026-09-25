@@ -65,6 +65,35 @@ function isBinary(buf: Buffer): boolean {
   return buf.subarray(0, 8192).includes(0)
 }
 
+/**
+ * A vendored npm tarball's type files import sibling packages by name, and those names are
+ * renamed, so the tarball's contents must be renamed too or its types resolve to `unknown`.
+ * Repacked in place; the path move happens with the other moves.
+ */
+function repackVendoredTarballs(tarballs: string[]) {
+  for (const rel of tarballs) {
+    const tgz = path.join(root, rel)
+    const tmp = fs.mkdtempSync(path.join(require("os").tmpdir(), "olaya-tgz-"))
+    Bun.spawnSync(["tar", "-xzf", tgz, "-C", tmp])
+    let changed = 0
+    const walk = (d: string) => {
+      for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+        const p = path.join(d, e.name)
+        if (e.isDirectory()) walk(p)
+        else {
+          const s = fs.readFileSync(p, "utf8")
+          const { out } = rename(s)
+          if (out !== s) (fs.writeFileSync(p, out), changed++)
+        }
+      }
+    }
+    walk(tmp)
+    if (changed) Bun.spawnSync(["tar", "-czf", tgz, "-C", tmp, "package"], { env: { ...process.env, COPYFILE_DISABLE: "1" } })
+    fs.rmSync(tmp, { recursive: true, force: true })
+    console.error(`repacked ${rel}: ${changed} file(s) renamed`)
+  }
+}
+
 function main() {
   const tracked = new TextDecoder()
     .decode(Bun.spawnSync(["git", "ls-files", "-z"], { cwd: root }).stdout)
@@ -93,6 +122,8 @@ function main() {
       }
     }
   }
+
+  if (mode === "apply") repackVendoredTarballs(tracked.filter((f) => f.endsWith(".tgz") && f.includes("/vendor/")))
 
   if (mode === "apply") {
     for (const [from, to] of moves) {

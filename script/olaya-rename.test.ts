@@ -5,11 +5,11 @@ const r = (s: string, file = "") => rename(s, file).out
 
 describe("olaya-rename", () => {
   test("renames the product in every case form", () => {
-    expect(r('import { x } from "@opencode-ai/plugin"')).toBe('import { x } from "@olaya/plugin"')
-    expect(r("OpenCode Opencode opencode OPENCODE_CONFIG")).toBe("Olaya Olaya olaya OLAYA_CONFIG")
-    expect(r("x-opencode-directory")).toBe("x-olaya-directory")
-    expect(r("npm i -g opencode-ai")).toBe("npm i -g olaya")
-    expect(r("https://github.com/anomalyco/opencode/releases")).toBe("https://github.com/codelikeabhi/olaya/releases")
+    expect(r('import { x } from "@olaya/plugin"')).toBe('import { x } from "@olaya/plugin"')
+    expect(r("Olaya Olaya olaya OLAYA_CONFIG")).toBe("Olaya Olaya olaya OLAYA_CONFIG")
+    expect(r("x-olaya-directory")).toBe("x-olaya-directory")
+    expect(r("npm i -g olaya")).toBe("npm i -g olaya")
+    expect(r("https://github.com/codelikeabhi/olaya/releases")).toBe("https://github.com/codelikeabhi/olaya/releases")
   })
 
   test("never touches protected upstream names", () => {
@@ -28,18 +28,20 @@ describe("olaya-rename", () => {
       "sst-dev.opencode",
       "__OPENCODE_PHOTON_WASM_PATH",
       "https://github.com/anomalyco/opencode/issues/29997",
+      "const origin = /^https:\\/\\/([a-z0-9-]+\\.)*opencode\\.ai$/",
+      'new RegExp("^https://([a-z0-9-]+\\\\.)*opencode\\\\.ai$")',
     ])
       expect(r(s)).toBe(s)
   })
 
   test("the provider id literal is protected only in provider files", () => {
-    const code = 'if (providerID === "opencode") return'
-    expect(r(code, "packages/opencode/src/provider/provider.ts")).toBe(code)
-    expect(r(code, "packages/opencode/src/other.ts")).toBe('if (providerID === "olaya") return')
+    const code = 'if (providerID === "olaya") return'
+    expect(r(code, "packages/olaya/src/provider/provider.ts")).toBe(code)
+    expect(r(code, "packages/olaya/src/other.ts")).toBe('if (providerID === "olaya") return')
   })
 
   test("is idempotent", () => {
-    const s = 'OpenCode at https://opencode.ai uses OPENCODE_API_KEY and "@opencode-ai/sdk"'
+    const s = 'Olaya at https://opencode.ai uses OPENCODE_API_KEY and "@olaya/sdk"'
     expect(r(r(s))).toBe(r(s))
     expect(rename(r(s)).hits.every((h) => h === 0)).toBe(true)
   })
