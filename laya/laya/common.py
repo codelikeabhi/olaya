@@ -102,8 +102,15 @@ class DecisionModel(nn.Module):
         self.register_buffer("temperature", torch.ones(3))
         self.head_checkpointing = False
 
-    def forward(self, input_ids, attention_mask, marker_pos, marker_mask, qtype, detach_encoder: bool = False):
-        h = self.encoder(input_ids=input_ids, attention_mask=attention_mask).last_hidden_state
+    def forward(self, input_ids, attention_mask, marker_pos, marker_mask, qtype, detach_encoder: bool = False,
+                hidden: Optional[torch.Tensor] = None):
+        # Olaya: `hidden` takes precomputed encoder states. A frozen encoder's output is fixed per
+        # input, so training the head over cached states skips the encoder entirely. Passing it
+        # through here keeps the head's logic in one place instead of copying it into the trainer.
+        if hidden is None:
+            h = self.encoder(input_ids=input_ids, attention_mask=attention_mask).last_hidden_state
+        else:
+            h = hidden
         if detach_encoder:
             h = h.detach()
         h = h + self.type_emb(qtype)[:, None, :]
