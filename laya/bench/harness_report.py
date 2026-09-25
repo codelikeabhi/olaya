@@ -32,7 +32,7 @@ def ts(value):
 
 
 def events(trial):
-    path = os.path.join(trial, "agent", "olaya.txt")
+    path = os.path.join(trial, "agent", "opencode.txt")  # Harbor's file name (olaya-rename:keep)
     if not os.path.exists(path):
         return []
     out = []

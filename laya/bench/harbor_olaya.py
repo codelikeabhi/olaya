@@ -1,13 +1,16 @@
 """Harbor agent adapter for Olaya.
 
+olaya-rename:keep-file: Harbor's own agent is named OpenCode and runs a command called `opencode`;
+those names are Harbor's contract. Olaya's build paths below use Olaya's names.
+
     PYTHONPATH=<olaya>/laya harbor run ... -a bench.harbor_olaya:Olaya \\
         --ae OLAYA_LAYA_ENABLED=1 --ae OLAYA_LAYA_SHADOW=1 \\
         --ae OLAYA_LAYA_URL=http://host.docker.internal:8731
 
-Olaya is Olaya plus a decision layer, so the adapter reuses Harbor's Olaya agent
+Olaya is OpenCode plus a decision layer, so the adapter reuses Harbor's OpenCode agent
 wholesale and changes one thing: after the stock install, it overwrites the installed
-`olaya` with our own build. Run command, flags, trajectory parsing and timeouts are
-inherited unchanged, which is what makes an Olaya-vs-Olaya comparison a clean ablation.
+`opencode` with our own build. Run command, flags, trajectory parsing and timeouts are
+inherited unchanged, which is what makes an Olaya-vs-OpenCode comparison a clean ablation.
 
 The binary comes from `packages/olaya/dist` (built with `bun run script/build.ts
 --skip-embed-web-ui`), or from $OLAYA_DIST. The decision layer is configured purely through
@@ -18,7 +21,7 @@ import os
 from pathlib import Path
 from typing import override
 
-from harbor.agents.installed.olaya import Olaya
+from harbor.agents.installed.opencode import OpenCode
 from harbor.environments.base import BaseEnvironment
 
 REPO = Path(__file__).resolve().parents[2]
@@ -43,7 +46,7 @@ def binary_for(libc: str, arch: str) -> Path:
     return path
 
 
-class Olaya(Olaya):
+class Olaya(OpenCode):
     @staticmethod
     @override
     def name() -> str:
@@ -52,7 +55,7 @@ class Olaya(Olaya):
     @override
     async def install(self, environment: BaseEnvironment) -> None:
         # Run the stock install first, then swap the binary. The stock install also puts Node
-        # on PATH; skipping it would give the agent a different toolbox than the Olaya arm
+        # on PATH; skipping it would give the agent a different toolbox than the OpenCode arm
         # and turn the comparison into an environment ablation instead of a harness one.
         await super().install(environment)
         probe = await self.exec_as_agent(
@@ -60,23 +63,23 @@ class Olaya(Olaya):
             command=(
                 "[ -f ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh; "
                 "(ldd --version 2>&1 | grep -qi musl || [ -f /etc/alpine-release ]) && echo musl || echo glibc; "
-                "uname -m; readlink -f $(command -v olaya)"
+                "uname -m; readlink -f $(command -v opencode)"
             ),
         )
         libc, arch, target = (probe.stdout or "").split()[:3]
-        # npm's `olaya` is a node launcher script around a platform package; replacing the
+        # npm's `opencode` is a node launcher script around a platform package; replacing the
         # resolved file keeps every PATH lookup pointing at our build.
-        await environment.upload_file(binary_for(libc, arch), "/tmp/olaya-olaya")
+        await environment.upload_file(binary_for(libc, arch), "/tmp/olaya-opencode")
         await self.exec_as_root(
             environment,
-            command="install -m 755 /tmp/olaya-olaya %s && rm /tmp/olaya-olaya" % target,
+            command="install -m 755 /tmp/olaya-opencode %s && rm /tmp/olaya-opencode" % target,
         )
         check = await self.exec_as_agent(
-            environment, command="[ -f ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh; olaya --version"
+            environment, command="[ -f ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh; opencode --version"
         )
         if check.return_code != 0:
             raise RuntimeError("Olaya binary failed to start: %s" % (check.stdout or check.stderr))
 
     @override
     def get_version_command(self) -> str | None:
-        return "[ -f ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh; olaya --version"
+        return "[ -f ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh; opencode --version"
