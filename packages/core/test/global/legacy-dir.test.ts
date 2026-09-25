@@ -35,3 +35,26 @@ test("does nothing without an OpenCode dir or when Olaya's already exists", asyn
   await fs.mkdir(path.join(root, "olaya2"))
   expect(await adoptLegacyDir(path.join(root, "opencode"), path.join(root, "olaya2"))).toBe(false)
 })
+
+test("imports into the empty skeleton an earlier run left behind (e.g. `olaya --version`)", async () => {
+  const root = await tmp()
+  const legacy = path.join(root, "opencode")
+  const current = path.join(root, "olaya")
+  await fs.mkdir(legacy)
+  await fs.writeFile(path.join(legacy, "opencode.json"), "{}")
+  await fs.mkdir(path.join(current, "log"), { recursive: true })
+  await fs.writeFile(path.join(current, "log", "run.log"), "x")
+  await fs.mkdir(path.join(current, "repos"), { recursive: true })
+  expect(await adoptLegacyDir(legacy, current)).toBe(true)
+  expect(await fs.readFile(path.join(current, "olaya.json"), "utf8")).toBe("{}")
+})
+
+test("does not import over real content", async () => {
+  const root = await tmp()
+  await fs.mkdir(path.join(root, "opencode"))
+  await fs.writeFile(path.join(root, "opencode", "opencode.json"), "{}")
+  await fs.mkdir(path.join(root, "olaya"))
+  await fs.writeFile(path.join(root, "olaya", "olaya.json"), '{"mine":true}')
+  expect(await adoptLegacyDir(path.join(root, "opencode"), path.join(root, "olaya"))).toBe(false)
+  expect(await fs.readFile(path.join(root, "olaya", "olaya.json"), "utf8")).toBe('{"mine":true}')
+})

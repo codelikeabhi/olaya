@@ -39,7 +39,17 @@ export const Path = paths
  */
 export async function adoptLegacyDir(legacy: string, current: string): Promise<boolean> {
   const exists = (p: string) => fs.stat(p).then(() => true, () => false)
-  if ((await exists(current)) || !(await exists(legacy))) return false
+  // "Already set up" means real content, not the empty skeleton (and logs) that any earlier
+  // run leaves behind, e.g. `olaya --version` before the first real session.
+  const hasContent = async (dir: string): Promise<boolean> => {
+    for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+      if (entry.name === "log") continue
+      if (!entry.isDirectory() || (await hasContent(path.join(dir, entry.name)))) return true
+    }
+    return false
+  }
+  if (!(await exists(legacy)) || !(await hasContent(legacy))) return false
+  if ((await exists(current)) && (await hasContent(current))) return false
   await fs.cp(legacy, current, { recursive: true })
   for (const name of await fs.readdir(current)) {
     if (!name.startsWith("opencode")) continue // olaya-rename:keep
