@@ -128,3 +128,31 @@ class OlayaL3(_Tripwired, Olaya):
     @override
     def name() -> str:
         return "olaya-l3"
+
+
+class _Gated:
+    """Runs the agent WITHOUT --dangerously-skip-permissions: every `ask` goes to the run
+    command, which (with nobody to answer) rejects it and lets the agent continue. Paired with
+    a strict permission overlay this is the gated, unattended condition (harness-eval-plan
+    §2.3, auto-deny mode). In Olaya's live mode the decision layer answers first."""
+
+    SKIP_FLAG = "--dangerously-skip-permissions "
+
+    async def exec_as_agent(self, environment, command, *args, **kwargs):
+        if " run --format=json" in command and self.SKIP_FLAG in command:
+            command = command.replace(self.SKIP_FLAG, "")
+        return await super().exec_as_agent(environment, command, *args, **kwargs)
+
+
+class OpenCodeL3Gated(_Gated, OpenCodeL3):
+    @staticmethod
+    @override
+    def name() -> str:
+        return "opencode-l3-gated"
+
+
+class OlayaL3Gated(_Gated, OlayaL3):
+    @staticmethod
+    @override
+    def name() -> str:
+        return "olaya-l3-gated"
