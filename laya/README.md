@@ -13,6 +13,18 @@ around 21 s, so this process is long-lived and pre-warmed. It is never spawned p
 
 ## Running the decision layer
 
+**With an installed `olaya`**, one command sets up a private Python runtime (in Olaya's data
+directory) with the model code and torch:
+
+    olaya laya setup       # uses uv if present, else python3 (3.10-3.12)
+    olaya laya status      # shows the configuration and checks the runtime imports
+    OLAYA_LAYA_ENABLED=1 olaya
+
+Olaya then starts the sidecar itself, as `python -I -m service`: isolated, from a neutral
+directory, so a repository's own `service.py` can't be run in its place. **From source**, Olaya
+runs `laya/service.py` directly (set `OLAYA_LAYA_PYTHON` to the venv above).
+`OLAYA_LAYA_DIR` points it at any other checkout.
+
 Everything is off by default. Enable it with environment variables:
 
 | variable | meaning |

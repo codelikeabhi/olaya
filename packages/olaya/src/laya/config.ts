@@ -1,3 +1,5 @@
+import { python as resolvePython } from "./runtime"
+
 /**
  * Configuration for the Laya decision layer.
  *
@@ -20,7 +22,7 @@ export interface LayaConfig {
   url?: string
   /** Hard ceiling on a single decision request. */
   timeoutMs: number
-  /** Python interpreter used to launch the sidecar. */
+  /** Python interpreter used to launch the sidecar: explicit, else `olaya laya setup`'s, else python3. */
   python: string
   /** Checkpoint id passed through to the sidecar. */
   checkpoint?: string
@@ -77,6 +79,7 @@ export function resolve(options: Record<string, unknown> = {}, env = process.env
       if (value !== undefined) (merged as Record<string, unknown>)[key] = value
     }
   }
+  merged.python = resolvePython((options["python"] as string | undefined) || env["OLAYA_LAYA_PYTHON"] || undefined)
   // Shadow logging is meaningless with the layer off, and enabling it alone must not
   // silently start writing records.
   if (!merged.enabled) merged.shadow = false

@@ -59,7 +59,7 @@ git clone https://github.com/codelikeabhi/olaya && cd olaya
 bun install
 bun dev                 # run the CLI/TUI from source
 
-# decision layer (optional; Observe mode)
+# decision layer (optional; Observe mode). With an installed olaya: `olaya laya setup`. From source:
 cd laya
 uv venv --python 3.12 .venv && uv pip install --python .venv -e '.[train]'
 OLAYA_LAYA_PORT=8731 .venv/bin/python service.py

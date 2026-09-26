@@ -6,6 +6,7 @@
  * returns no judgment and the permission flows to the user.
  */
 
+import { launch, sourceDir } from "./runtime"
 import os from "os"
 import path from "path"
 import type { LayaConfig } from "./config"
@@ -31,11 +32,6 @@ export class Sidecar {
   lastError?: string
 
   constructor(private readonly config: LayaConfig) {}
-
-  /** Directory holding service.py. Overridable for installs that relocate it. */
-  private serviceDir(): string {
-    return process.env["OLAYA_LAYA_DIR"] ?? path.resolve(import.meta.dir, "../../../../laya")
-  }
 
   /** Client for the running sidecar, or undefined if there is not one yet. */
   current(): LayaClient | undefined {
@@ -66,8 +62,9 @@ export class Sidecar {
 
     let proc: ReturnType<typeof Bun.spawn>
     try {
-      proc = Bun.spawn([this.config.python, "service.py"], {
-        cwd: this.serviceDir(),
+      const { argv, cwd } = launch(this.config.python, process.env, sourceDir())
+      proc = Bun.spawn(argv, {
+        cwd,
         env,
         stdout: "pipe",
         // Not inherited: this runs under a TUI, and a Python traceback written straight to the
