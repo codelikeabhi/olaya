@@ -49,6 +49,41 @@ false-approve rate of at most 1%. Reaching it needs a human-labelled evaluation 
 least 300 should-ask items: below that, no 1% bound can be proven at 95% confidence, whatever
 the model.
 
+## Long unattended runs
+
+A long task shouldn't stop because one provider ran out of quota or went down. Give Olaya a
+fallback chain, and it moves the task to the next model, **with its whole working context**,
+then returns to your model once it is available again:
+
+```jsonc
+// olaya.json (any provider/model you have configured)
+{
+  "model": "anthropic/claude-sonnet-5",
+  "failover": {
+    "models": ["openai/gpt-5", "moonshotai/kimi-k2", "ollama/qwen3-coder"],
+    "wait_for_reset": 20, // minutes: wait for your model if it's back by then
+    "max_wait": 480 // minutes: if every model is down, wait this long before giving up
+  }
+}
+```
+
+- **What triggers a switch.** Exhausted quota or usage windows (with their reset times), long
+  rate limits, overload and outages, failing credentials, and streams that stall. Short
+  throttles are simply waited out. Each provider's error shapes are classified individually,
+  because a 429 means different things at different providers.
+- **What carries over.** The full history. Tool calls that already ran are kept, not re-run.
+  Tool-call IDs and reasoning fields are rewritten for the next provider. The context is
+  compacted to fit a smaller window, on the new model, never on the one that failed.
+- **When everything is down,** Olaya waits for the earliest reset and carries on by itself.
+  Cooldowns are kept on disk, so the next `olaya run` skips a provider that is still exhausted.
+- **If the process itself dies,** `olaya run --supervise` restarts the task on the same session.
+  Restarts back off and are capped at 6 an hour.
+- **Privacy.** Every model in the chain receives the task's context, including code, when it
+  takes over. A local model keeps it on your machine. A local model needs a declared
+  `limit.context`, because local servers drop old messages silently when it is exceeded.
+
+Settings → Routing in the app, and `/failover` in the terminal, edit the chain.
+
 ## Build from source
 
 Requirements: [Bun](https://bun.sh) 1.3+, and Python 3.12 with [uv](https://docs.astral.sh/uv/)
