@@ -1,4 +1,5 @@
-"""Gate checks for Laya's three roles: permissions, model routing and context retention.
+"""Gate checks for Laya's three roles (permissions, model routing, context retention: G0-G10) and for
+provider failover (F0-F7, docs/never-stop-plan.md).
 
     python -m bench.gates G0 --docs ~/Desktop/OLaya/docs         # research memos
     python -m bench.gates G1 --workspace ~/Desktop/OLaya         # OpenSpec designs + thresholds
@@ -89,7 +90,8 @@ def run_tests(res, spec):
         for f in sorted(set(files) - set(present)):
             res.check(False, f"{pkg}/{f} exists")
         if present:
-            p = subprocess.run(["bun", "test", *present], cwd=cwd, capture_output=True, text=True)
+            # the package's own limit (its "test" script); Bun's default 5 s fails I/O-heavy tests under load
+            p = subprocess.run(["bun", "test", "--timeout", "30000", *present], cwd=cwd, capture_output=True, text=True)
             tail = (p.stdout + p.stderr).strip().splitlines()[-4:]
             res.check(p.returncode == 0, f"{pkg}: bun test {' '.join(present)}" + ("" if p.returncode == 0 else "\n      " + "\n      ".join(tail)))
     for pkg in spec.get("typecheck", []):
@@ -124,10 +126,10 @@ def check_report(res, gate, spec):
 
 def gate(name, args):
     res = Result()
-    if name == "G0":
-        gate_g0(res, os.path.expanduser(args.docs))
-    elif name == "G1":
-        gate_g1(res, os.path.expanduser(args.workspace))
+    if name in ("G0", "F0"):  # research memos (F: provider failover, never-stop-plan.md)
+        gate_g0(res, os.path.expanduser(args.docs), SPEC[name])
+    elif name in ("G1", "F1"):  # OpenSpec designs and fixed thresholds
+        gate_g1(res, os.path.expanduser(args.workspace), SPEC[name])
     else:
         spec = SPEC[name]
         run_tests(res, spec)
@@ -162,7 +164,7 @@ def demo():
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("gate", help="G0..G10, or demo")
+    ap.add_argument("gate", help="G0..G10, F0..F7, or demo")
     ap.add_argument("--docs", default="~/Desktop/OLaya/docs")
     ap.add_argument("--workspace", default="~/Desktop/OLaya")
     args = ap.parse_args(argv)

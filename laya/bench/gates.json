@@ -1,190 +1,272 @@
 {
-  "$comment": "Gates for Laya's three roles (permissions, model routing, context retention). Each gate's check lives in bench/gates.py. Thresholds were fixed at gate G1 (2026-09-26) from research memos 08 and 09 and the OpenSpec designs laya-model-routing and laya-context-retention; they don't move afterwards.",
-  "G0": {
-    "memos": [
-      "research/08-model-routing.md",
-      "research/09-context-retention.md"
-    ],
-    "sections": [
-      "Summary",
-      "Findings",
-      "Implications for Olaya",
-      "Recommended approach",
-      "Evaluation design",
-      "Risks",
-      "Sources"
-    ],
-    "min_sources": 10,
-    "min_pdfs_per_memo": 5
+ "$comment": "Gates for Laya's three roles (permissions, model routing, context retention). Each gate's check lives in bench/gates.py. Thresholds were fixed at gate G1 (2026-09-26) from research memos 08 and 09 and the OpenSpec designs laya-model-routing and laya-context-retention; they don't move afterwards.",
+ "G0": {
+  "memos": [
+   "research/08-model-routing.md",
+   "research/09-context-retention.md"
+  ],
+  "sections": [
+   "Summary",
+   "Findings",
+   "Implications for Olaya",
+   "Recommended approach",
+   "Evaluation design",
+   "Risks",
+   "Sources"
+  ],
+  "min_sources": 10,
+  "min_pdfs_per_memo": 5
+ },
+ "G1": {
+  "changes": [
+   "laya-model-routing",
+   "laya-context-retention"
+  ],
+  "gates_needing_thresholds": [
+   "G4",
+   "G6",
+   "G8",
+   "G9",
+   "G10"
+  ]
+ },
+ "G2": {
+  "tests": {
+   "packages/olaya": [
+    "test/session/model-select.test.ts",
+    "test/session/step-usage.test.ts"
+   ]
   },
-  "G1": {
-    "changes": [
-      "laya-model-routing",
-      "laya-context-retention"
-    ],
-    "gates_needing_thresholds": [
-      "G4",
-      "G6",
-      "G8",
-      "G9",
-      "G10"
-    ]
-  },
-  "G2": {
-    "tests": {
-      "packages/olaya": [
-        "test/session/model-select.test.ts",
-        "test/session/step-usage.test.ts"
-      ]
-    },
-    "typecheck": [
-      "packages/olaya",
-      "packages/plugin"
-    ]
-  },
-  "G3": {
-    "report": "track-c/latest.json"
-  },
-  "G4": {
-    "report": "router/latest.json",
-    "thresholds": {
-      "cost_reduction_vs_strongest": {
-        "min": 0.3
-      },
-      "quality_delta_lcb95": {
-        "min": -0.05
-      },
-      "route_auc_minus_heuristic_lcb95": {
-        "min": 0.0
-      },
-      "harmful_downgrade_ucb95": {
-        "max": 0.05
-      },
-      "bill_vs_low_effort_strongest": {
-        "max": 1.0
-      }
-    }
-  },
-  "G5": {
-    "tests": {
-      "packages/olaya": [
-        "test/laya/router-shadow.test.ts"
-      ]
-    },
-    "report": "router/shadow-smoke.json",
-    "thresholds": {
-      "p95_ms": {
-        "max": 150
-      },
-      "steps_with_record": {
-        "min": 1.0
-      }
-    }
-  },
-  "G6": {
-    "report": "router/live-ab.json",
-    "thresholds": {
-      "resolve_delta_lcb95": {
-        "min": -0.05
-      },
-      "cost_ratio_ucb95": {
-        "max": 0.85
-      },
-      "protocol_failures": {
-        "max": 0
-      },
-      "cache_write_share_ratio": {
-        "max": 1.5
-      }
-    }
-  },
-  "G7": {
-    "report": "track-d/latest.json"
-  },
-  "G8": {
-    "report": "retention/latest.json",
-    "thresholds": {
-      "scorer_auroc": {
-        "min": 0.8
-      },
-      "auroc_minus_recency": {
-        "min": 0.05
-      },
-      "ece": {
-        "max": 0.05
-      },
-      "pinned_retention": {
-        "min": 0.995
-      },
-      "needed_recall_at_40": {
-        "min": 0.9
-      },
-      "recall_at_40_minus_masking": {
-        "min": 0.1
-      },
-      "error_string_recall": {
-        "min": 0.95
-      },
-      "constraint_adherence": {
-        "min": 0.98
-      },
-      "first_error_recall": {
-        "min": 0.9
-      }
-    }
-  },
-  "G9": {
-    "tests": {
-      "packages/olaya": [
-        "test/laya/retention.test.ts"
-      ]
-    },
-    "report": "retention/live-ab.json",
-    "thresholds": {
-      "resolve_delta_lcb95": {
-        "min": -0.05
-      },
-      "input_token_reduction": {
-        "min": 0.3
-      },
-      "cost_reduction": {
-        "min": 0.2
-      },
-      "cost_reduction_lcb95": {
-        "min": 0.0
-      },
-      "turns_increase": {
-        "max": 0.1
-      },
-      "reacquisition_increase": {
-        "max": 0.15
-      },
-      "cache_hit_ratio_delta": {
-        "min": -0.05
-      },
-      "injected_promotions": {
-        "max": 0
-      }
-    }
-  },
-  "G10": {
-    "report": "combined/latest.json",
-    "thresholds": {
-      "resolve_delta_lcb95": {
-        "min": -0.05
-      },
-      "cost_ratio_ucb95": {
-        "max": 0.7
-      },
-      "asks_per_task": {
-        "max": 0
-      },
-      "protocol_failures": {
-        "max": 0
-      },
-      "unsafe_runs_delta": {
-        "max": 0
-      }
-    }
+  "typecheck": [
+   "packages/olaya",
+   "packages/plugin"
+  ]
+ },
+ "G3": {
+  "report": "track-c/latest.json"
+ },
+ "G4": {
+  "report": "router/latest.json",
+  "thresholds": {
+   "cost_reduction_vs_strongest": {
+    "min": 0.3
+   },
+   "quality_delta_lcb95": {
+    "min": -0.05
+   },
+   "route_auc_minus_heuristic_lcb95": {
+    "min": 0.0
+   },
+   "harmful_downgrade_ucb95": {
+    "max": 0.05
+   },
+   "bill_vs_low_effort_strongest": {
+    "max": 1.0
+   }
   }
+ },
+ "G5": {
+  "tests": {
+   "packages/olaya": [
+    "test/laya/router-shadow.test.ts"
+   ]
+  },
+  "report": "router/shadow-smoke.json",
+  "thresholds": {
+   "p95_ms": {
+    "max": 150
+   },
+   "steps_with_record": {
+    "min": 1.0
+   }
+  }
+ },
+ "G6": {
+  "report": "router/live-ab.json",
+  "thresholds": {
+   "resolve_delta_lcb95": {
+    "min": -0.05
+   },
+   "cost_ratio_ucb95": {
+    "max": 0.85
+   },
+   "protocol_failures": {
+    "max": 0
+   },
+   "cache_write_share_ratio": {
+    "max": 1.5
+   }
+  }
+ },
+ "G7": {
+  "report": "track-d/latest.json"
+ },
+ "G8": {
+  "report": "retention/latest.json",
+  "thresholds": {
+   "scorer_auroc": {
+    "min": 0.8
+   },
+   "auroc_minus_recency": {
+    "min": 0.05
+   },
+   "ece": {
+    "max": 0.05
+   },
+   "pinned_retention": {
+    "min": 0.995
+   },
+   "needed_recall_at_40": {
+    "min": 0.9
+   },
+   "recall_at_40_minus_masking": {
+    "min": 0.1
+   },
+   "error_string_recall": {
+    "min": 0.95
+   },
+   "constraint_adherence": {
+    "min": 0.98
+   },
+   "first_error_recall": {
+    "min": 0.9
+   }
+  }
+ },
+ "G9": {
+  "tests": {
+   "packages/olaya": [
+    "test/laya/retention.test.ts"
+   ]
+  },
+  "report": "retention/live-ab.json",
+  "thresholds": {
+   "resolve_delta_lcb95": {
+    "min": -0.05
+   },
+   "input_token_reduction": {
+    "min": 0.3
+   },
+   "cost_reduction": {
+    "min": 0.2
+   },
+   "cost_reduction_lcb95": {
+    "min": 0.0
+   },
+   "turns_increase": {
+    "max": 0.1
+   },
+   "reacquisition_increase": {
+    "max": 0.15
+   },
+   "cache_hit_ratio_delta": {
+    "min": -0.05
+   },
+   "injected_promotions": {
+    "max": 0
+   }
+  }
+ },
+ "G10": {
+  "report": "combined/latest.json",
+  "thresholds": {
+   "resolve_delta_lcb95": {
+    "min": -0.05
+   },
+   "cost_ratio_ucb95": {
+    "max": 0.7
+   },
+   "asks_per_task": {
+    "max": 0
+   },
+   "protocol_failures": {
+    "max": 0
+   },
+   "unsafe_runs_delta": {
+    "max": 0
+   }
+  }
+ },
+ "F0": {
+  "memos": [
+   "research/11-provider-failover.md"
+  ],
+  "sections": [
+   "Summary",
+   "Findings",
+   "Implications for Olaya",
+   "Recommended approach",
+   "Evaluation design",
+   "Risks",
+   "Sources"
+  ],
+  "min_sources": 20,
+  "min_pdfs_per_memo": 0
+ },
+ "F1": {
+  "changes": [
+   "olaya-provider-failover"
+  ],
+  "gates_needing_thresholds": [
+   "F6"
+  ]
+ },
+ "F2": {
+  "tests": {
+   "packages/olaya": [
+    "test/session/failover-classify.test.ts"
+   ]
+  }
+ },
+ "F3": {
+  "tests": {
+   "packages/olaya": [
+    "test/session/failover.test.ts"
+   ]
+  }
+ },
+ "F4": {
+  "tests": {
+   "packages/olaya": [
+    "test/session/failover-continuity.test.ts"
+   ]
+  }
+ },
+ "F5": {
+  "tests": {
+   "packages/olaya": [
+    "test/session/failover-availability.test.ts"
+   ]
+  }
+ },
+ "F6": {
+  "report": "failover/track-e.json",
+  "thresholds": {
+   "session_stops": {
+    "max": 0
+   },
+   "success_delta_lcb95": {
+    "min": -0.05
+   },
+   "duplicate_tool_calls": {
+    "max": 0
+   },
+   "lost_tool_results": {
+    "max": 0
+   },
+   "needles_after_switch": {
+    "min": 0.9
+   },
+   "failover_p95_s": {
+    "max": 180
+   }
+  }
+ },
+ "F7": {
+  "tests": {
+   "packages/app": [
+    "src/i18n/parity.test.ts"
+   ]
+  }
+ }
 }
