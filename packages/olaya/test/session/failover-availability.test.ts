@@ -63,18 +63,18 @@ it.instance(
       yield* project(undefined, undefined, { failover: { models: ["test/cheap-model"] } })
       FailoverAvailability.mark("test/test-model", {
         action: "switch-until",
-        until: Date.now() + 1_500,
+        until: Date.now() + 6_000,
         reason: "rate limited",
       })
       const { bodies } = yield* run(
         Effect.gen(function* () {
           const llm = yield* TestLLMServer
-          // the fallback's step takes longer than the cooldown
+          // the fallback's step outlasts the cooldown, with margin for a loaded machine
           yield* llm.pushMatch(
             on("cheap-model"),
             reply()
               .tool("todowrite", { todos: [{ content: "look", status: "pending", priority: "high", id: "1" }] })
-              .wait(later(2_500))
+              .wait(later(8_000))
               .item(),
           )
           yield* llm.pushMatch(on("test-model"), reply().text("done, back on the preferred model").stop().item())
@@ -93,14 +93,14 @@ it.instance(
       yield* Effect.promise(() => Bun.write(path.join(directory, "a.py"), "x = 1\n"))
       FailoverAvailability.mark("test/test-model", {
         action: "switch-until",
-        until: Date.now() + 1_500,
+        until: Date.now() + 6_000,
         reason: "rate limited",
       })
       const { bodies } = yield* run(
         Effect.gen(function* () {
           const llm = yield* TestLLMServer
           const edit = { filePath: path.join(directory, "a.py"), oldString: "x = 1", newString: "x = 2" }
-          yield* llm.pushMatch(on("cheap-model"), reply().tool("edit", edit).wait(later(2_500)).item())
+          yield* llm.pushMatch(on("cheap-model"), reply().tool("edit", edit).wait(later(8_000)).item())
           yield* llm.pushMatch(on("cheap-model"), reply().text("edited; tests next").stop().item())
         }),
       )
