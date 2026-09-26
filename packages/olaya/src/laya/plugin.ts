@@ -17,6 +17,12 @@ import type { SessionContext } from "./state"
 export const SHADOW_DIR = path.join(Global.Path.data, "laya-shadow")
 
 /**
+ * Whether permission replies in this process come from auto-approval rather than a person.
+ * Benchmark harnesses run with these flags, so every reply they log is the tool answering itself.
+ */
+const AUTO_REPLIES = ["--auto", "--yolo", "--dangerously-skip-permissions"].some((flag) => process.argv.includes(flag))
+
+/**
  * Remembers each session's originating request, fed by the `chat.message` hook.
  *
  * This deliberately does NOT call back into olaya's API. The permission.ask handler runs
@@ -84,7 +90,7 @@ export const LayaPlugin: Plugin = async (input, options) => {
       if (!shadow) return
       if (event.type !== "permission.replied") return
       const props = (event as { properties?: { requestID?: string; reply?: Reply } }).properties
-      if (props?.requestID && props.reply) await shadow.replied(props.requestID, props.reply)
+      if (props?.requestID && props.reply) await shadow.replied(props.requestID, props.reply, AUTO_REPLIES ? "auto" : "user")
     },
 
     dispose: async () => {

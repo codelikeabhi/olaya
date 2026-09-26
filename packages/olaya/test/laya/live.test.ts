@@ -87,3 +87,12 @@ describe("mode configuration", () => {
     expect(resolve({}, { OLAYA_LAYA_ENABLED: "1", OLAYA_LAYA_MODE: "LIVE!" }).mode).toBe("shadow")
   })
 })
+
+describe("who replied", () => {
+  test("an auto-approved reply is recorded as such, so it never becomes a training label", async () => {
+    log.predicted({ id: "per_9", ts: "t", state: { action: "bash" }, questions: {}, probability: 0.4, checkpoint: "c", latencyMs: 1 })
+    expect(await log.replied("per_9", "once", "auto")).toBe(true)
+    const rows = (await audit()).filter((r) => r.kind === "decision")
+    expect(rows[0].replier).toBe("auto")
+  })
+})

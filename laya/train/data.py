@@ -95,6 +95,8 @@ def rows_from_shadow(directory):
             rec = json.loads(line)
             if rec.get("kind") != "decision" or rec.get("gold") is None:
                 continue
+            if rec.get("replier") == "auto":
+                continue  # auto-approved: no person decided, so it is not a label
             gold = json.loads(rec["gold"])
             p = next(iter(gold.values()))["probabilities"]["true"]
             rows.append(dict(
@@ -152,6 +154,17 @@ def demo():
     g = gold_from_label("ask", "q")
     assert g["q"]["probabilities"] == {"true": 0.0, "false": 1.0}
     assert gold_from_label(None, "q", soft=0.8)["q"]["probabilities"]["true"] == 0.8
+    import tempfile
+    d = tempfile.mkdtemp()
+    gold = json.dumps({"q": {"probabilities": {"true": 1, "false": 0}}})
+    with open(os.path.join(d, "shadow-2026-01-01.jsonl"), "w") as f:
+        for i, replier in enumerate(["user", "auto", None]):
+            rec = {"kind": "decision", "id": "p%d" % i, "state": "{}", "questions": "{}", "gold": gold, "reply": "once"}
+            if replier:
+                rec["replier"] = replier
+            f.write(json.dumps(rec) + "\n")
+    ids = [r["id"] for r in rows_from_shadow(d)]
+    assert ids == ["p0", "p2"], ids  # the auto-approved reply is not a label; old records count as user
     print("data self-check ok")
 
 

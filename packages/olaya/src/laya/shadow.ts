@@ -98,7 +98,7 @@ export class ShadowLog {
   }
 
   /** Join the user's reply to the prediction, producing a labelled training row. */
-  async replied(id: string, reply: Reply): Promise<boolean> {
+  async replied(id: string, reply: Reply, replier: "user" | "auto" = "user"): Promise<boolean> {
     const entry = this.pending.get(id)
     if (!entry) return false
     this.pending.delete(id)
@@ -114,6 +114,9 @@ export class ShadowLog {
       // Kept distinct from `once`: "always" is a stronger approval and may be weighted
       // differently, which collapsing to a boolean would make impossible to recover.
       reply,
+      // "auto" when no human answered (e.g. `run --auto`, `--dangerously-skip-permissions`): the
+      // reply then says nothing about what a user would decide and must never become a label.
+      replier,
       probability: entry.probability,
       checkpoint: entry.checkpoint,
       latency_ms: entry.latencyMs,
