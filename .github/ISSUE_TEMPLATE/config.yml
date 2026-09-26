@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 💬 Discord Community
-    url: https://discord.gg/olaya
-    about: For support, troubleshooting, how-to questions, and real-time discussion.
+  - name: 💬 Questions and discussion
+    url: https://github.com/codelikeabhi/olaya/discussions
+    about: For support, how-to questions and ideas. Use an issue for bugs and feature requests.
+  - name: 🔒 Report a vulnerability or a wrongful auto-approval
+    url: https://github.com/codelikeabhi/olaya/security/advisories/new
+    about: Private report. Includes the decision layer granting something it should have asked about.

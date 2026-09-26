@@ -18,6 +18,24 @@ Olaya does **not** sandbox the agent. The permission system exists as a UX featu
 
 If you need true isolation, run Olaya inside a Docker container or VM.
 
+### The decision layer
+
+Olaya's decision layer (`laya/`, `packages/olaya/src/laya/`) can, in **live mode only**, turn a
+permission prompt into an automatic approval. That makes it part of Olaya's security surface:
+
+- **In scope:** live mode granting anything on the hard denylist; granting with a checkpoint
+  whose manifest has no passed gate, or below the certified threshold; granting after a failed,
+  timed-out or malformed judgment; any path by which content from a tool output, file or
+  repository steers the judge into approving (prompt injection against the decision layer);
+  the sidecar being reachable from anything but loopback; shadow logs leaving the machine or
+  retaining secrets the redaction pass should have removed.
+- **Also worth a private report, even though it is not a vulnerability in the strict sense:**
+  a certified checkpoint approving an action it should have asked about. A certified gate
+  bounds the *rate* of such false approvals, so individual cases are expected, but each one is
+  evidence for recalibration. Please report the action and the task, never real secrets.
+
+Shadow mode, the default, observes only and cannot change a permission.
+
 ### Server Mode
 
 Server mode is opt-in only. When enabled, set `OLAYA_SERVER_PASSWORD` to require HTTP Basic Auth. Without this, the server runs unauthenticated (with a warning). It is the end user's responsibility to secure the server - any functionality it provides is not a vulnerability.
@@ -44,4 +62,6 @@ The team will send a response indicating the next steps in handling your report.
 
 ## Escalation
 
-If you do not receive an acknowledgement of your report within 6 business days, you may send an email to security@anoma.ly
+If you do not receive an acknowledgement of your report within 6 business days, open a
+minimal public issue that asks the maintainer (@codelikeabhi) to check the security advisories,
+without including any details of the vulnerability.
