@@ -524,6 +524,20 @@ describe("HttpApi workspace routing middleware", () => {
     }),
   )
 
+  it.live("accepts the upstream x-opencode-directory header from older clients", () => // olaya-rename:keep
+    Effect.gen(function* () {
+      const dir = yield* tmpdirScoped()
+      const headerDir = path.join(dir, "legacy-header-target")
+      yield* serveProbe
+      const response = yield* HttpClientRequest.get("/probe").pipe(
+        HttpClientRequest.setHeader("x-opencode-directory", headerDir), // olaya-rename:keep
+        HttpClient.execute,
+      )
+      expect(response.status).toBe(200)
+      expect(yield* response.json).toEqual({ directory: headerDir, workspaceID: null })
+    }),
+  )
+
   it.live("routes local workspace requests through WorkspaceRouteContext", () =>
     Effect.gen(function* () {
       const dir = yield* tmpdirScoped({ git: true })

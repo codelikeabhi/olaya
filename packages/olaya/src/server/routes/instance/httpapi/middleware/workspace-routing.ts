@@ -84,7 +84,13 @@ function selectedV2WorkspaceID(
 }
 
 function defaultDirectory(request: HttpServerRequest.HttpServerRequest, url: URL): string {
-  return url.searchParams.get("directory") || request.headers["x-olaya-directory"] || process.cwd()
+  // Clients built on upstream's SDK (e.g. the VS Code extension) still send x-opencode-*. (olaya-rename:keep)
+  return (
+    url.searchParams.get("directory") ||
+    request.headers["x-olaya-directory"] ||
+    request.headers["x-opencode-directory"] || // olaya-rename:keep
+    process.cwd()
+  )
 }
 
 function shouldStayOnControlPlane(request: HttpServerRequest.HttpServerRequest, url: URL): boolean {

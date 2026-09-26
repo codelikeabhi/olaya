@@ -28,10 +28,16 @@ export function response<A, E, R>(data: Effect.Effect<A, E, R>) {
 
 function ref(request: HttpServerRequest.HttpServerRequest): Location.Ref {
   const query = new URL(request.url, "http://localhost").searchParams
-  const workspaceID = query.get("location[workspace]") || request.headers["x-olaya-workspace"]
+  // Clients built on upstream's SDK (e.g. the VS Code extension) still send x-opencode-*. (olaya-rename:keep)
+  const workspaceID =
+    query.get("location[workspace]") ||
+    request.headers["x-olaya-workspace"] ||
+    request.headers["x-opencode-workspace"] // olaya-rename:keep
+  const directoryHeader =
+    request.headers["x-olaya-directory"] ?? request.headers["x-opencode-directory"] // olaya-rename:keep
   const directory =
     query.get("location[directory]") ||
-    (request.headers["x-olaya-directory"] ? decode(request.headers["x-olaya-directory"]) : process.cwd())
+    (directoryHeader ? decode(directoryHeader) : process.cwd())
   return Location.Ref.make({
     directory: AbsolutePath.make(directory),
     workspaceID: workspaceID ? WorkspaceV2.ID.make(workspaceID) : undefined,

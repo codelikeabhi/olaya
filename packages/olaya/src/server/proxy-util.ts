@@ -16,6 +16,8 @@ function sanitize(out: Headers) {
   out.delete("accept-encoding")
   out.delete("x-olaya-directory")
   out.delete("x-olaya-workspace")
+  out.delete("x-opencode-directory") // olaya-rename:keep
+  out.delete("x-opencode-workspace") // olaya-rename:keep
 }
 
 export function headers(input: Request | HeadersInit | Record<string, string>, extra?: HeadersInit) {
