@@ -61,7 +61,7 @@ export const ApiKey = {
 }
 
 export const OlayaZen = {
-  render: renderConnection("olaya", [{ type: "api", label: "API key" }]),
+  render: renderConnection("opencode", [{ type: "api", label: "API key" }]),
 }
 
 export const LoginMethods = {

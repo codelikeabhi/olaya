@@ -13,7 +13,7 @@ import { useLanguage } from "@/context/language"
 import { ModelTooltip } from "./model-tooltip"
 
 type ModelState = ReturnType<typeof useLocal>["model"]
-const featuredProviders = ["olaya", "opencode-go", "openai", "anthropic", "google", "github-copilot"]
+const featuredProviders = ["opencode", "opencode-go", "openai", "anthropic", "google", "github-copilot"]
 const displayModelName = (name: string) => name.replace(/\s+(?:\(free\)|free)$/i, "")
 
 export const DialogSelectModelUnpaidV2: Component<{ model?: ModelState }> = (props) => {
@@ -30,7 +30,7 @@ export const DialogSelectModelUnpaidV2: Component<{ model?: ModelState }> = (pro
     return c ? `${c.provider.id}:${c.id}` : undefined
   })
   const isFree = (item: ReturnType<ModelState["list"]>[number]) =>
-    item.provider.id === "olaya" && (!item.cost || item.cost.input === 0)
+    item.provider.id === "opencode" && (!item.cost || item.cost.input === 0)
   const freeModels = createMemo(() => model.list().filter(isFree))
 
   const openProviders = (provider?: string) => {
@@ -146,10 +146,10 @@ export const DialogSelectModelUnpaidV2: Component<{ model?: ModelState }> = (pro
                       <ProviderIcon id={provider.id} class="mt-0.5 size-4 shrink-0 text-v2-icon-icon-base" />
                       <span class="flex min-w-0 flex-col">
                         <span class="truncate">{provider.name}</span>
-                        <Show when={provider.id === "olaya" || provider.id === "opencode-go"}>
+                        <Show when={provider.id === "opencode" || provider.id === "opencode-go"}>
                           <span class="truncate font-[440] text-v2-text-text-muted">
                             {language.t(
-                              provider.id === "olaya"
+                              provider.id === "opencode"
                                 ? "dialog.provider.opencode.tagline"
                                 : "dialog.provider.opencodeGo.tagline",
                             )}

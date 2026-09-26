@@ -133,7 +133,16 @@
       "packages/core/test/plugin/provider-zenmux.test.ts",
       "packages/core/test/plugin/provider-kilo.test.ts",
       "packages/core/test/plugin/provider-nvidia.test.ts",
-      "packages/core/test/plugin/provider-llmgateway.test.ts"
+      "packages/core/test/plugin/provider-llmgateway.test.ts",
+      "packages/tui/src/component/dialog-model.tsx",
+      "packages/app/src/components/dialog-select-model-unpaid-v2.tsx",
+      "packages/app/src/components/dialog-select-model-unpaid.tsx",
+      "packages/app/src/components/dialog-select-model.tsx",
+      "packages/app/src/components/settings-providers.tsx",
+      "packages/app/src/components/settings-v2/providers.tsx",
+      "packages/tui/src/routes/session/index.tsx",
+      "packages/app/src/components/dialog-connect-provider.stories.tsx",
+      "packages/app/src/components/dialog-select-model-unpaid-v2.stories.tsx"
     ],
     "re": "([\"'`])opencode\\1|\\bopencode/(?=[A-Za-z0-9])|(?<=[{,]\\s*)opencode(?=\\s*:)|X-Title[^\\n]*|\\bopencode-cli\\b"
   },

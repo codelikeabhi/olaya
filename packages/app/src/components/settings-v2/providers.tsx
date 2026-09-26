@@ -17,7 +17,7 @@ type ProviderSource = "env" | "api" | "config" | "custom"
 type ProviderItem = ReturnType<ReturnType<typeof useProviders>["connected"]>[number]
 
 const PROVIDER_NOTES = [
-  { match: (id: string) => id === "olaya", key: "dialog.provider.opencode.note" },
+  { match: (id: string) => id === "opencode", key: "dialog.provider.opencode.note" },
   { match: (id: string) => id === "opencode-go", key: "dialog.provider.opencodeGo.tagline" },
   { match: (id: string) => id === "anthropic", key: "dialog.provider.anthropic.note" },
   { match: (id: string) => id.startsWith("github-copilot"), key: "dialog.provider.copilot.note" },
@@ -49,7 +49,7 @@ export const SettingsProvidersV2: Component<{
   const connected = createMemo(() => {
     return providers
       .connected()
-      .filter((p) => p.id !== "olaya" || Object.values(p.models).find((m) => m.cost?.input))
+      .filter((p) => p.id !== "opencode" || Object.values(p.models).find((m) => m.cost?.input))
   })
 
   const popular = createMemo(() => {
@@ -208,7 +208,7 @@ export const SettingsProvidersV2: Component<{
                     <div class="settings-v2-provider-copy">
                       <div class="settings-v2-provider-main">
                         <span class="settings-v2-provider-name">{item.name}</span>
-                        <Show when={item.id === "olaya" || item.id === "opencode-go"}>
+                        <Show when={item.id === "opencode" || item.id === "opencode-go"}>
                           <Tag>{language.t("dialog.provider.tag.recommended")}</Tag>
                         </Show>
                       </div>
