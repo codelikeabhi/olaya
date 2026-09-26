@@ -81,7 +81,10 @@ def olaya_config(model):
     return json.dumps({
         "provider": {"ollama": {"npm": "@ai-sdk/openai-compatible", "name": "Ollama",
                                 "options": {"baseURL": "http://host.docker.internal:11434/v1"},
-                                "models": {model: {"name": model, "tools": True}}}},
+                                # qwen3 thinks by default and spends a 16k window on thinking before it edits
+                                # anything; the tiers are compared with thinking off
+                                "models": {model: {"name": model, "tools": True,
+                                                   "options": {"reasoningEffort": "none"}}}}},
     })
 
 
