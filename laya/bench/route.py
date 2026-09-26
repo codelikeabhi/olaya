@@ -13,6 +13,7 @@ cache simulator at the real tier that model stands in for (bench.cachesim.PROXY)
 """
 
 import argparse
+import glob
 import hashlib
 import json
 import os
@@ -80,14 +81,15 @@ def binary():
     return path
 
 
-def olaya_config(model, extra=None, top=None):
+def olaya_config(model, extra=None, top=None, pool=()):
+    """`pool`: further models defined alongside, for routing to choose from."""
     return json.dumps({**(top or {}),
         "provider": {"ollama": {"npm": "@ai-sdk/openai-compatible", "name": "Ollama",
                                 "options": {"baseURL": "http://host.docker.internal:11434/v1"},
                                 # qwen3 thinks by default and spends a 16k window on thinking before it edits
                                 # anything; the tiers are compared with thinking off
-                                "models": {model: {"name": model, "tools": True,
-                                                   "options": {"reasoningEffort": "none"}, **(extra or {})}}}},
+                                "models": {m: {"name": m, "tools": True, "options": {"reasoningEffort": "none"},
+                                               **(extra or {})} for m in (model, *pool)}}},
     })
 
 
@@ -120,7 +122,7 @@ def run_one(item, model, k, variant=None):
         t0 = time.time()
         cmd = ["docker", "run", "--rm", "--name", name, "--add-host", "host.docker.internal:host-gateway",
                "-v", f"{work}:/work", "-v", f"{pristine}:/pristine:ro", "-v", f"{logs}:/logs", "-v", f"{v.get('binary') or binary()}:/usr/local/bin/olaya:ro",
-               "-e", f"OLAYA_CONFIG_CONTENT={olaya_config(model, v.get('model'), v.get('config'))}", "-e", f"TASK={task_text(item)}",
+               "-e", f"OLAYA_CONFIG_CONTENT={olaya_config(model, v.get('model'), v.get('config'), v.get('pool', ()))}", "-e", f"TASK={task_text(item)}",
                *[x for key, value in v.get("env", {}).items() for x in ("-e", f"{key}={value}")],
                "-e", "OLAYA_DISABLE_AUTOUPDATE=1", IMAGE, "sh", "-c", script]
         timed_out = False
@@ -144,6 +146,10 @@ def run_one(item, model, k, variant=None):
         }
         if os.path.exists(os.path.join(logs, "events.jsonl")):
             shutil.copy(os.path.join(logs, "events.jsonl"), os.path.join(out_dir, f"{k}.events.jsonl"))
+        # Laya's shadow records, when the variant points OLAYA_LAYA_SHADOW_DIR at /logs/shadow
+        shadow = "".join(open(f).read() for f in sorted(glob.glob(os.path.join(logs, "shadow", "*.jsonl"))))
+        if shadow:
+            open(os.path.join(out_dir, f"{k}.shadow.jsonl"), "w").write(shadow)
     json.dump(record, open(out, "w"))
     return record
 
@@ -248,6 +254,39 @@ def report(tiers):
     print("->", path)
 
 
+def shadow_smoke(model, pool, binary, n=4):
+    """Gate G5's smoke run: routing in shadow on a few items. Every model step must leave a route
+    record, and deciding must stay fast (p95 in milliseconds, from the records)."""
+    items = [json.loads(l) for l in open(ITEMS)][:n]
+    v = {"name": "route-shadow", "binary": binary, "pool": pool,
+         "config": {"routing": {"enabled": True, "models": [f"ollama/{m}" for m in (model, *pool)]}},
+         "env": {"OLAYA_LAYA_ROUTING": "shadow", "OLAYA_LAYA_SHADOW_DIR": "/logs/shadow"}}
+    steps = records = 0
+    ms = []
+    for it in items:
+        r = run_one(it, model, 0, v)
+        out_dir = os.path.join(os.path.dirname(RUNS), "variants", v["name"], model, it["id"])
+        path = os.path.join(out_dir, "0.shadow.jsonl")
+        recs = [json.loads(l) for l in open(path)] if os.path.exists(path) else []
+        route_recs = [x for x in recs if x.get("kind") == "route"]
+        events = [json.loads(l) for l in open(os.path.join(out_dir, "0.events.jsonl"))] if os.path.exists(os.path.join(out_dir, "0.events.jsonl")) else []
+        n_steps = sum(1 for e in events if e.get("type") == "step_start")
+        steps += n_steps
+        records += min(len(route_recs), n_steps)
+        ms += [x["ms"] for x in route_recs]
+        print(f"{it['id']:28} steps={n_steps} route_records={len(route_recs)} passed={r['passed']}", flush=True)
+    ms.sort()
+    rep = {"gate": "G5", "generated": time.strftime("%Y-%m-%d %H:%M"), "model": model, "pool": [model, *pool],
+           "items": len(items), "steps": steps, "self_test": "pass" if self_test() else "fail", "baselines_ok": steps > 0,
+           "metrics": {"p95_ms": ms[int(0.95 * (len(ms) - 1))] if ms else None,
+                       "steps_with_record": round(records / steps, 4) if steps else None},
+           "note": "deterministic router (no routing head yet); Track C docker harness in place of Harbor"}
+    os.makedirs(os.path.join(REPORTS, "router"), exist_ok=True)
+    path = os.path.join(REPORTS, "router", "shadow-smoke.json")
+    json.dump(rep, open(path, "w"), indent=2)
+    print(json.dumps(rep, indent=2), "\n->", path)
+
+
 def self_test():
     # 3 items x 2 tiers with known answers
     tab = {"a": {0: {"p": 1.0, "cost": 1.0, "difficulty": 1}, 1: {"p": 1.0, "cost": 10.0, "difficulty": 1}},
@@ -270,6 +309,8 @@ def main(argv=None):
     b = sub.add_parser("build"); b.add_argument("--exercism", required=True); b.add_argument("--n", type=int, default=32)
     r = sub.add_parser("run"); r.add_argument("--tiers", required=True); r.add_argument("--k", type=int, default=2); r.add_argument("--only")
     p = sub.add_parser("report"); p.add_argument("--tiers", default="qwen3-0.6b-16k,qwen3-4b-16k,qwen3-8b-16k,qwen3-14b-16k")
+    sh = sub.add_parser("shadow-smoke"); sh.add_argument("--model", default="qwen3-4b-16k"); sh.add_argument("--pool", default="qwen3-0.6b-16k")
+    sh.add_argument("--binary", required=True); sh.add_argument("--n", type=int, default=4)
     sub.add_parser("demo")
     a = ap.parse_args(argv)
     if a.cmd == "build":
@@ -278,6 +319,8 @@ def main(argv=None):
         run(a.tiers.split(","), a.k, set(a.only.split(",")) if a.only else None)
     elif a.cmd == "report":
         report(a.tiers.split(","))
+    elif a.cmd == "shadow-smoke":
+        shadow_smoke(a.model, a.pool.split(","), a.binary, a.n)
     else:
         print("route self-test", "passed" if self_test() else "FAILED")
 

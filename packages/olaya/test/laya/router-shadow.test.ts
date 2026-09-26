@@ -84,16 +84,31 @@ describe("laya router", () => {
   })
 
   test("a trigger too soon after a switch waits, then fires without a second trigger", async () => {
-    const out = await steps(live, [
+    // the prompt asked for Opus, so both the start on Haiku and the step up to Sonnet are overrides
+    const opus = { providerID: "anthropic", modelID: "claude-opus-5-5" }
+    const script = [
       { step: 1 },
       { step: 3, signals: { malformed: 1 } },
       { step: 4, signals: { malformed: 1 } },
       ...quiet(6, 5),
       { step: 11 },
-    ])
-    expect(out.slice(0, 9).every((o) => !o.model)).toBe(true)
-    expect(out.at(-1)!.model?.modelID).toBe("claude-opus-5-5")
+    ]
+    const out = await steps(
+      { ...live, start: "cheapest" },
+      script.map((s) => ({ ...s, model: opus })),
+    )
+    expect(out.slice(0, 9).every((o) => o.model?.modelID === "claude-haiku-4-5")).toBe(true)
+    expect(out.at(-1)!.model?.modelID).toBe("claude-sonnet-5")
     expect(out.at(-1)!.reason).toBe("escalate: malformed-calls")
+  })
+
+  test("starting on the prompt's model is not a switch, so an early trigger escalates at once", async () => {
+    const out = await steps(live, [
+      { step: 1 },
+      { step: 2, signals: { malformed: 1 } },
+      { step: 3, signals: { malformed: 1 } },
+    ])
+    expect(out[2]!.model?.modelID).toBe("claude-opus-5-5")
   })
 
   test("no test progress over three runs escalates; progress does not", async () => {

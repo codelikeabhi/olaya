@@ -58,8 +58,11 @@ export function decide(state: State, input: Input, start: RoutingOptions["start"
   const pool = byPrice(input.routing.pool)
   if (pool.length < 2) return { reason: "pool has fewer than two models" }
   if (input.point === "start") {
-    state.lastSwitch = input.step
-    if (start === "cheapest") return { tier: (state.tier = 0), reason: "start: cheapest in pool" }
+    // only a real change of model starts the spacing between switches
+    if (start === "cheapest") {
+      if (!same(pool[0]!, input.model)) state.lastSwitch = input.step
+      return { tier: (state.tier = 0), reason: "start: cheapest in pool" }
+    }
     state.tier = pool.findIndex((m) => same(m, input.model))
     return { reason: "start: prompt's model" }
   }
@@ -99,7 +102,7 @@ export function handler(options: RoutingOptions): NonNullable<Hooks["experimenta
       const state = sessions.get(input.sessionID) ?? {
         tier: -1,
         escalations: 0,
-        lastSwitch: 0,
+        lastSwitch: -Infinity,
         malformedRun: 0,
         failures: [],
       }
