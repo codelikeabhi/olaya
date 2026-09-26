@@ -118,27 +118,24 @@ def build(n_public, n_synthetic, neg_per_pos=3, seed=0, max_rows=3000, name="ret
 
 
 # ------------------------------------------------------------------ scoring and the G8 report
-def score(sessions, checkpoint, device=None):
+def score(sessions, checkpoint, device=None, cache=None, platt=None):
     """Sets s["_scores"] (P(needed) per history item, max over blocks) and returns block-level
-    (probability, label, session) triples for calibration."""
-    from laya.agent import Agent
-    from laya.common import temp_bucket
-    from .train import featurise, pick_device, raw_logits
-
-    dev = pick_device(device)
-    agent = Agent(checkpoint, device="cpu")
-    model = agent.model.float().to(dev)
+    (probability, label, session) triples. Block probabilities are cached in `cache` (a JSON file,
+    keyed by session), and `platt` (a, b) recalibrates them."""
     per = [(s, states(s)) for s in sessions]
-    rows = [{"state": json.dumps(st), "questions": json.dumps(QUESTIONS),
-             "gold": json.dumps({"needed_later": {"probabilities": {"true": 0.0, "false": 1.0}}})}
-            for _, sts in per for _, _, st in sts]
-    t0 = time.time()
-    preds = raw_logits(model, featurise(rows, agent), agent.tok.pad_token_id, dev, cached=False)
-    print(f"scored {len(rows)} blocks in {time.time() - t0:.0f}s", flush=True)
-    probs = []
-    for qt, z, _ in preds:
-        t = agent.temperature_by_options.get(temp_bucket(qt, len(z)), agent.temperature[qt])
-        probs.append(float(torch.softmax(z / t, -1)[1]))
+    cached = json.load(open(cache)) if cache and os.path.exists(cache) else {}
+    if all(s["id"] in cached and len(cached[s["id"]]) == len(sts) for s, sts in per):
+        probs = [p for s, _ in per for p in cached[s["id"]]]
+    else:
+        probs = model_probs([st for _, sts in per for _, _, st in sts], checkpoint, device)
+        if cache:
+            k, out = 0, {}
+            for s, sts in per:
+                out[s["id"]] = probs[k:k + len(sts)]
+                k += len(sts)
+            json.dump(out, open(cache, "w"))
+    if platt:
+        probs = [recalibrate(p, *platt) for p in probs]
     blocks_out, k = [], 0
     for s, sts in per:
         item = [1.0 if it["role"] == "user" else 0.0 for it in s["items"][: s["cut"]]]
@@ -149,6 +146,68 @@ def score(sessions, checkpoint, device=None):
             k += 1
         s["_scores"] = item
     return blocks_out
+
+
+def model_probs(states_, checkpoint, device=None):
+    from laya.agent import Agent
+    from laya.common import temp_bucket
+    from .train import featurise, pick_device, raw_logits
+
+    dev = pick_device(device)
+    agent = Agent(checkpoint, device="cpu")
+    model = agent.model.float().to(dev)
+    rows = [{"state": json.dumps(st), "questions": json.dumps(QUESTIONS),
+             "gold": json.dumps({"needed_later": {"probabilities": {"true": 0.0, "false": 1.0}}})} for st in states_]
+    t0 = time.time()
+    preds = raw_logits(model, featurise(rows, agent), agent.tok.pad_token_id, dev, cached=False)
+    print(f"scored {len(rows)} blocks in {time.time() - t0:.0f}s", flush=True)
+    probs = []
+    for qt, z, _ in preds:
+        t = agent.temperature_by_options.get(temp_bucket(qt, len(z)), agent.temperature[qt])
+        probs.append(float(torch.softmax(z / t, -1)[1]))
+    return probs
+
+
+def logit(p):
+    p = min(max(p, 1e-6), 1 - 1e-6)
+    return float(np.log(p / (1 - p)))
+
+
+def recalibrate(p, a, b):
+    return float(1 / (1 + np.exp(-(a * logit(p) + b))))
+
+
+def fit_platt(probs, labels, steps=200):
+    """Platt scaling: p' = sigmoid(a * logit(p) + b), fitted by Newton's method on log loss."""
+    x = np.array([logit(p) for p in probs])
+    y = np.array(labels, dtype=float)
+    a, b = 1.0, 0.0
+    for _ in range(steps):
+        q = 1 / (1 + np.exp(-(a * x + b)))
+        g = np.array([np.sum((q - y) * x), np.sum(q - y)])
+        w = q * (1 - q) + 1e-9
+        h = np.array([[np.sum(w * x * x), np.sum(w * x)], [np.sum(w * x), np.sum(w)]]) + 1e-6 * np.eye(2)
+        step = np.linalg.solve(h, g)
+        a, b = a - step[0], b - step[1]
+        if np.abs(step).max() < 1e-8:
+            break
+    return float(a), float(b)
+
+
+def calibrate(checkpoint, device=None):
+    """Fits Platt scaling on every block of the calibration sessions: the natural mix of needed and
+    not needed, unlike the class-balanced training rows. The sessions' repositories are disjoint
+    from Track D's. Saves platt.json next to the checkpoint."""
+    sessions = [json.loads(l) for l in open(TRAIN_SESSIONS)]
+    group = lambda s: s["repo"] if s["source"] == "public" else s["id"]
+    calib = [s for s in sessions if D.split_of(group(s), calib_share=0.2, test_share=0.0) == "calib"]
+    blk = score(calib, checkpoint, device, cache=os.path.join(checkpoint, "calib-scores.json"))
+    probs, labels = [p for p, _, _ in blk], [y for _, y, _ in blk]
+    a, b = fit_platt(probs, labels)
+    out = {"a": a, "b": b, "sessions": len(calib), "blocks": len(blk), "positive_rate": round(sum(labels) / len(labels), 4),
+           "ece_before": ece(probs, labels), "ece_after": ece([recalibrate(p, a, b) for p in probs], labels)}
+    json.dump(out, open(os.path.join(checkpoint, "platt.json"), "w"), indent=1)
+    print(json.dumps(out, indent=1))
 
 
 def auroc(scores, labels):
@@ -183,7 +242,9 @@ def item_labels(s):
 
 def report(checkpoint, device=None):
     sessions = [json.loads(l) for l in open(R.SESSIONS)]
-    blk = score(sessions, checkpoint, device)
+    platt_file = os.path.join(checkpoint, "platt.json")
+    platt = (lambda d: (d["a"], d["b"]))(json.load(open(platt_file))) if os.path.exists(platt_file) else None
+    blk = score(sessions, checkpoint, device, cache=os.path.join(checkpoint, "trackd-scores.json"), platt=platt)
     scored, rec, labels, src = [], [], [], []
     for s in sessions:
         last = s["items"][s["cut"] - 1]["turn"]
@@ -209,6 +270,7 @@ def report(checkpoint, device=None):
     rep = {
         "gate": "G8", "generated": time.strftime("%Y-%m-%d %H:%M"), "checkpoint": checkpoint,
         "label_source": "hindsight (counterfactual calibration and replay gold not built yet)",
+        "calibration": "Platt scaling fitted on natural-distribution calibration sessions" if platt else "temperature only",
         "notes": {"constraint_adherence": "offline proxy: constraint needles retained at 40%, not probed adherence",
                   "synthetic": "same generator as training (other seeds): in-distribution"},
         "self_test": "pass" if self_test() and R.self_test() else "fail",
@@ -239,6 +301,12 @@ def self_test():
     assert auroc([0.9, 0.8, 0.1, 0.2], [1, 1, 0, 0]) == 1.0 and auroc([0.5, 0.5], [1, 0]) == 0.5
     assert auroc([0.1, 0.9, 0.5], [1, 0, 0]) == 0.0
     assert ece([0.0, 1.0], [0, 1]) == 0.0 and ece([0.9] * 10, [1] * 9 + [0]) == 0.0
+    # Platt scaling pulls over-confident scores toward the observed rate
+    rng = np.random.default_rng(0)
+    y = (rng.random(4000) < 0.2).astype(int)
+    p = np.clip(0.5 + 0.35 * (y - 0.5) * 2 + rng.normal(0, 0.1, 4000), 0.01, 0.99)
+    a, b = fit_platt(list(p), list(y))
+    assert ece([recalibrate(x, a, b) for x in p], list(y)) < ece(list(p), list(y))
     return True
 
 
@@ -248,12 +316,15 @@ def main(argv=None):
     b = sub.add_parser("build"); b.add_argument("--public", type=int, default=240); b.add_argument("--synthetic", type=int, default=120)
     b.add_argument("--max-rows", type=int, default=3000); b.add_argument("--name", default="retain-v1")
     r = sub.add_parser("report"); r.add_argument("--checkpoint", required=True); r.add_argument("--device")
+    c = sub.add_parser("calibrate"); c.add_argument("--checkpoint", required=True); c.add_argument("--device")
     sub.add_parser("demo")
     a = ap.parse_args(argv)
     if a.cmd == "build":
         build(a.public, a.synthetic, max_rows=a.max_rows, name=a.name)
     elif a.cmd == "report":
         report(a.checkpoint, a.device)
+    elif a.cmd == "calibrate":
+        calibrate(a.checkpoint, a.device)
     else:
         print("retain self-test", "passed" if self_test() else "FAILED")
 
