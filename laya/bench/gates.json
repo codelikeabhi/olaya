@@ -268,5 +268,12 @@
     "src/i18n/parity.test.ts"
    ]
   }
+ },
+ "F8": {
+  "tests": {
+   "packages/olaya": [
+    "test/cli/supervise.test.ts"
+   ]
+  }
  }
 }

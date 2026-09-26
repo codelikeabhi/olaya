@@ -128,7 +128,7 @@ export const RunCommand = effectCmd({
   describe: "run olaya with a message",
   // --attach connects to a remote server (no local instance needed); the
   // default path runs an in-process server and needs the project instance.
-  instance: (args) => !args.attach,
+  instance: (args) => !args.attach && !args.supervise,
   // For --dir without --attach, load instance for the resolved target dir.
   // The handler also chdirs (preserving the legacy order: chdir → file resolution).
   directory: (args) => (args.dir && !args.attach ? path.resolve(process.cwd(), args.dir) : process.cwd()),
@@ -156,6 +156,11 @@ export const RunCommand = effectCmd({
       })
       .option("fork", {
         describe: "fork the session before continuing (requires --continue or --session)",
+        type: "boolean",
+      })
+      .option("supervise", {
+        describe:
+          "keep an unattended task going: if the process crashes or exits with an error, restart it on the same session",
         type: "boolean",
       })
       .option("share", {
@@ -261,6 +266,10 @@ export const RunCommand = effectCmd({
         describe: "enable direct interactive demo slash commands; pass one as the message to run it immediately",
       }),
   handler: Effect.fn("Cli.run")(function* (args) {
+    if (args.supervise) {
+      const code = yield* Effect.promise(() => superviseRun())
+      process.exit(code)
+    }
     const { Agent } = yield* Effect.promise(() => import("@/agent/agent"))
     const { RuntimeFlags } = yield* Effect.promise(() => import("@/effect/runtime-flags"))
     const { InstanceRef } = yield* Effect.promise(() => import("@/effect/instance-ref"))
@@ -674,6 +683,8 @@ export const RunCommand = effectCmd({
           process.exit(1)
         }
         const sessionID = sess.id
+        // a supervising parent (--supervise) resumes this session if the process dies
+        if (process.env["OLAYA_RUN_SESSION_FILE"]) await Bun.write(process.env["OLAYA_RUN_SESSION_FILE"], sessionID)
 
         function emit(type: string, data: Record<string, unknown>) {
           if (args.format === "json") {
@@ -989,6 +1000,7 @@ export async function runMini(input: MiniCommandInput) {
     continue: input.continue,
     session: input.session,
     fork: input.fork,
+    supervise: undefined,
     share: undefined,
     model: input.model,
     agent: input.agent,
@@ -1012,5 +1024,39 @@ export async function runMini(input: MiniCommandInput) {
     "dangerously-skip-permissions": false,
     dangerouslySkipPermissions: false,
     demo: input.demo ?? false,
+  })
+}
+
+/** Runs this same command as a supervised child, restarting it on its session if it dies. */
+async function superviseRun() {
+  const { Supervise } = await import("../supervise")
+  const os = await import("os")
+  const fs = await import("fs")
+  const run = process.argv.indexOf("run")
+  // relaunch the same program: the executable, plus the script when running from source
+  const prefix = [
+    process.execPath,
+    ...process.argv.slice(1, run).filter((p) => !p.startsWith("/$bunfs") && !p.includes("~BUN")),
+  ]
+  const original = process.argv.slice(run).filter((a) => a !== "--supervise")
+  const file = path.join(os.tmpdir(), `olaya-run-${process.pid}.session`)
+  return Supervise.supervise(original, (session) => Supervise.resumeArgs(original, session), {
+    spawn: async (args) => {
+      const child = Bun.spawn([...prefix, ...args], {
+        stdio: ["inherit", "inherit", "inherit"],
+        env: { ...process.env, OLAYA_RUN_SESSION_FILE: file },
+      })
+      const code = await child.exited
+      return child.signalCode ? null : code
+    },
+    session: () => {
+      try {
+        return fs.readFileSync(file, "utf8").trim() || undefined
+      } catch {
+        return undefined
+      }
+    },
+    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    log: (line) => process.stderr.write(line + "\n"),
   })
 }
