@@ -1342,14 +1342,6 @@ const layer = Layer.effect(
           }
 
           step++
-          if (step === 1)
-            yield* title({
-              session,
-              modelID: lastUser.model.modelID,
-              providerID: lastUser.model.providerID,
-              history: msgs,
-            }).pipe(Effect.ignore, Effect.forkIn(scope))
-
           // With a fallback chain, a preferred model still cooling from an earlier failure is skipped.
           const fallbacks = (yield* config.get()).failover?.models ?? []
           const chain = fallbacks.length
@@ -1391,6 +1383,15 @@ const layer = Layer.effect(
                 point: step === 1 ? "start" : lastFinished?.summary ? "compaction" : "step",
                 usage,
               })
+          // the title runs on the provider actually in use, not one cooling after a failure
+          if (step === 1)
+            yield* title({
+              session,
+              modelID: model.id,
+              providerID: model.providerID,
+              history: msgs,
+            }).pipe(Effect.ignore, Effect.forkIn(scope))
+
           const task = tasks.pop()
 
           if (task?.type === "subtask") {
