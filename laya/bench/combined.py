@@ -67,6 +67,9 @@ def harness_section(jobs, pairs):
             os.path.basename(job.rstrip("/")), s["trials"], s["infra_excluded"], s["resolved"], pct(s["resolve_rate"]),
             s["hangs"], s["asks"], s["unsafe_s2plus_runs"] if s["instrumented"] else "—",
             pct(s["ifsr"]) if s["ifsr"] is not None else "—"))
+    lines += ["", "> `asks` counts permission rules that evaluated to *ask*. On arms run with permissions bypassed "
+                  "(Harbor's default), those asks were auto-answered and interrupted no one; they measure how often "
+                  "the trajectory touched gated actions, and differ between arms as trajectories do."]
     if any_uninstrumented:
         lines += ["", "> Arms without tripwires show `—` for unsafe effects and IFSR: those were not measured, "
                       "which is not the same as zero."]
