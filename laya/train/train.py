@@ -150,13 +150,13 @@ def rlcd_loss(logits, act, b, device, sigma, group=4, w_ce=1.0, weights=None):
 
 
 def sample_weights(items, always_weight):
-    """Class-balanced: approve and ask carry equal total weight; `always` replies count more."""
-    n_ask = sum(1 for it in items if it["label"] == "ask") or 1
-    n_app = sum(1 for it in items if it["label"] != "ask") or 1
-    w = []
+    """Class-balanced: each label (approve/ask, or needed/not_needed) carries equal total weight;
+    `always` replies count more."""
+    counts = {}
     for it in items:
-        base = len(items) / (2 * (n_ask if it["label"] == "ask" else n_app))
-        w.append(base * (always_weight if it.get("reply") == "always" else 1.0))
+        counts[it["label"]] = counts.get(it["label"], 0) + 1
+    w = [len(items) / (len(counts) * counts[it["label"]]) * (always_weight if it.get("reply") == "always" else 1.0)
+         for it in items]
     return torch.tensor(w, dtype=torch.float32)
 
 

@@ -57,11 +57,14 @@ SUMMARY_OUTPUT_TOKENS = 4_096
 
 def tok(s):
     """Olaya's estimate (packages/core/src/util/token.ts): 4 characters per token."""
-    return max(0, round(len(s) / 4))
+    return int(len(s) / 4 + 0.5)  # Math.round, not Python's round-half-to-even
 
 
 def size(item, how="keep"):
-    return tok(item.get("call", "")) + (tok(item["text"]) if how == "keep" else 0)
+    memo = item.setdefault("_size", {})
+    if how not in memo:
+        memo[how] = tok(text_of(item, how))
+    return memo[how]
 
 
 def cost(s, plan):
@@ -134,28 +137,103 @@ def oracle(s, budget, rng=None):
     return plan
 
 
-POLICIES = {"recency": recency, "random": random_fill, "masking": masking, "oracle": oracle}
+# ------------------------------------------------------------------ Laya's retention policy
+TEST_CMD = re.compile(r"pytest|unittest|\bnpm (?:run )?test|\bbun test|\bgo test|\bcargo (?:test|build)|\bmake\b|\btox\b|\bjest\b|\bvitest\b")
+SEARCH_CMD = re.compile(r'^(?:grep|glob|find|search|list|ls)\b|"command": "(?:grep|rg|find|ls|tree)\b')
+READ_CMD = re.compile(r'^(?:read|view|cat)\b|"command": "(?:view|cat|head|tail|sed -n)\b')
+ERROR_LINE = re.compile(r"Error|Exception|Traceback|FAILED|FAIL:|error:|failed")
+# The harness's recovery cost of losing an item (design D3): what it takes to get the text back.
+RECOVERY = {"test": 3.0, "assistant": 2.0, "search": 1.5, "bash": 1.5, "read": 1.0}
+
+
+def kind_of(item):
+    if item["role"] != "tool":
+        return item["role"]
+    call = item.get("call", "")
+    if TEST_CMD.search(call):
+        return "test"
+    if SEARCH_CMD.search(call):
+        return "search"
+    if READ_CMD.search(call):
+        return "read"
+    return "bash"
+
+
+def stub(item):
+    """What a dropped tool result leaves behind: its call, length, first and last error lines and
+    the paths it names. Extractive, so injected text cannot be reworded into an instruction."""
+    lines = item["text"].splitlines()
+    errors = [l.strip()[:200] for l in lines if ERROR_LINE.search(l)]
+    paths = list(dict.fromkeys(PATH.findall(item["text"])))[:8]
+    parts = [item.get("call", ""), f"[{len(lines)} lines]", *dict.fromkeys(errors[:1] + errors[-1:])]
+    return "\n".join(parts + (["paths: " + ", ".join(paths)] if paths else []))
+
+
+def pins(s):
+    """Never dropped, chosen by provenance (design D4): user messages, the last 3 turns, and the
+    latest output of each distinct test or build command, tail-preserved."""
+    h = s["items"][: s["cut"]]
+    last = h[-1]["turn"]
+    plan, latest = {}, {}
+    for i, it in enumerate(h):
+        if it["role"] == "user" or it["turn"] > last - 3:
+            plan[i] = "keep"
+        elif kind_of(it) == "test":
+            latest[it["call"]] = i
+    for i in latest.values():
+        plan.setdefault(i, "tail")
+    return plan
+
+
+def laya_policy(s, budget, scores=None):
+    """Pins, then items by P(needed later) x recovery cost per token, then stubs for the rest.
+    Without scores it ranks by recency, which is the pins-and-stubs ablation."""
+    h = s["items"][: s["cut"]]
+    plan = pins(s)
+    used = cost(s, plan)
+    scores = scores or [it["turn"] / max(1, h[-1]["turn"]) for it in h]
+    rest = sorted((i for i in range(len(h)) if i not in plan),
+                  key=lambda i: -scores[i] * RECOVERY[kind_of(h[i])] / max(1, size(h[i])))
+    for i in rest:
+        if used + size(h[i]) <= budget:
+            plan[i], used = "keep", used + size(h[i])
+    for i in rest:
+        if i not in plan and h[i]["role"] == "tool" and used + size(h[i], "stub") <= budget:
+            plan[i], used = "stub", used + size(h[i], "stub")
+    return plan
+
+
+POLICIES = {"recency": recency, "random": random_fill, "masking": masking, "oracle": oracle,
+            "pins_recency": lambda s, b, rng=None: laya_policy(s, b),
+            "laya": lambda s, b, rng=None: laya_policy(s, b, s["_scores"])}
+BASELINES = ("recency", "random", "masking", "oracle")
 
 
 def text_of(item, how="keep"):
-    return "\n".join(x for x in (item.get("call", ""), item["text"] if how == "keep" else "") if x)
+    if how == "keep":
+        return "\n".join(x for x in (item.get("call", ""), item["text"]) if x)
+    if how == "mask":
+        return item.get("call", "")
+    if how == "stub":
+        return stub(item)
+    return "\n".join([item.get("call", "")] + item["text"].splitlines()[-60:])  # "tail"
 
 
 # ------------------------------------------------------------------ metrics
-def hits(s):
-    """Which needles each history item holds, whole and in its call alone (computed once)."""
-    if "_hits" not in s:
-        s["_hits"] = [({j for j, n in enumerate(s["needles"]) if n["text"] in text_of(it)},
-                       {j for j, n in enumerate(s["needles"]) if n["text"] in it.get("call", "")})
-                      for it in s["items"][: s["cut"]]]
-    return s["_hits"]
+def hits(s, i, how):
+    """Which needles history item i holds in the given form (computed once)."""
+    memo = s.setdefault("_hits", {})
+    if (i, how) not in memo:
+        text = text_of(s["items"][i], how)
+        memo[(i, how)] = {j for j, n in enumerate(s["needles"]) if n["text"] in text}
+    return memo[(i, how)]
 
 
 def outcomes(s, plan, extra=""):
     """(needle, survived) for every needle: kept in a surviving item, or quoted in `extra` (a summary)."""
     got = set()
     for i, how in plan.items():
-        got |= hits(s)[i][0 if how == "keep" else 1]
+        got |= hits(s, i, how)
     got |= {j for j, n in enumerate(s["needles"]) if extra and n["text"] in extra}
     return [(n, j in got) for j, n in enumerate(s["needles"])]
 
@@ -454,7 +532,7 @@ PATH = re.compile(r"(?:/workspace/)?(?:[\w.-]+/)+[\w.-]+\.(?:py|pyi|js|ts|go|rs|
 ERROR = re.compile(r"\b[A-Z]\w*(?:Error|Exception)\b(?::[^\n]{1,120})?")
 
 
-def public(n, min_tokens=15_000, seed=0):
+def public(n, min_tokens=15_000, seed=0, exclude=()):
     import pyarrow.parquet as pq
     rows = pq.read_table(RAW, columns=["repo", "trajectory_id", "messages", "license"]).to_pylist()
     by_repo = {}
@@ -463,6 +541,8 @@ def public(n, min_tokens=15_000, seed=0):
     rng = random.Random(seed)
     out = []
     for repo in sorted(by_repo, key=lambda r: hashlib.sha1(r.encode()).hexdigest()):
+        if repo in exclude:
+            continue
         for r in by_repo[repo]:
             s = session_from(r, rng)
             if s and history_tokens(s) >= min_tokens and sum(n["needed"] for n in s["needles"]) >= 2:
@@ -560,8 +640,8 @@ def build(n_synthetic, n_public):
 # ------------------------------------------------------------------ report
 def report(model):
     sessions = [json.loads(l) for l in open(SESSIONS)]
-    curves = {p: curve(sessions, p) for p in POLICIES}
-    by_source = {src: {p: curve([s for s in sessions if s["source"] == src], p)["0.4"] for p in POLICIES}
+    curves = {p: curve(sessions, p) for p in BASELINES}
+    by_source = {src: {p: curve([s for s in sessions if s["source"] == src], p)["0.4"] for p in BASELINES}
                  for src in ("synthetic", "public")}
     comp = compaction_point(sessions, model)
     extractive = ("recency", "masking", "oracle")
@@ -578,8 +658,8 @@ def report(model):
         "budgets": BUDGETS, "self_test": "pass" if self_test() else "fail", "baselines_ok": bool(ok),
         "curves": curves, "area": {p: area(c) for p, c in curves.items()}, "at_40_by_source": by_source,
         "current_compaction": comp,
-        "metrics": {f"{p}_needed_recall_at_40": at(p, 0.4) for p in POLICIES}
-        | {f"{p}_pinned_retention_at_40": curves[p]["0.4"]["pinned_retention"] for p in POLICIES}
+        "metrics": {f"{p}_needed_recall_at_40": at(p, 0.4) for p in BASELINES}
+        | {f"{p}_pinned_retention_at_40": curves[p]["0.4"]["pinned_retention"] for p in BASELINES}
         | ({"compaction_needed_recall": comp["needed_recall"], "compaction_kept_ratio": comp["kept_ratio"]} if comp else {}),
         "heldout_repos": sorted({s["repo"] for s in sessions if s["source"] == "public"}),
         "attribution": "Public sessions: nvidia/Open-SWE-Traces, OpenHands subset (CC-BY-4.0).",
@@ -627,6 +707,17 @@ def self_test():
     # the current compaction keeps what its summary quotes: a summary naming NEED_A plus a tail
     assert rates(outcomes(s, {4: "keep"}, "summary: NEED_A"))["needed_recall"] == round(1 / 3, 4)
     assert truncate("a" * 600 + "b" * 1000 + "c" * 1400).endswith("c" * 1400)
+    # stubs keep the call, the first and last error lines and named paths, and drop the rest
+    t = {"role": "tool", "call": "bash(pytest)", "text": "ok\nE  KeyError: 'k1'\nnoise src/a/b.py\nFAILED t.py::x - KeyError: 'k1'\n" + "x\n" * 50}
+    st = stub(t)
+    assert "KeyError: 'k1'" in st and "FAILED t.py::x" in st and "src/a/b.py" in st and "noise" not in st
+    assert kind_of(t) == "test" and text_of(t, "tail").count("\n") == 54
+    # pins: the user message, the last 3 turns (2, 3, 4) and the latest test run's tail (item 3 is
+    # already pinned whole by recency), whatever the budget
+    assert pins(s) == {0: "keep", 2: "keep", 3: "keep", 4: "keep"}
+    assert set(laya_policy(s, 0)) == {0, 2, 3, 4}
+    # with room, the remaining item is kept whole; with a little room, stubbed
+    assert laya_policy(s, 54)[1] == "keep" and laya_policy(s, 42 + size(s["items"][1], "stub"))[1] == "stub"
     return True
 
 
