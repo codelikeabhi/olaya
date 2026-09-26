@@ -1,6 +1,7 @@
+// Olaya = OpenCode's "o" + Laya: the left half renders muted, the right half bright. (olaya-rename:keep)
 export const logo = {
-  left: ["                   ", "█▀▀█ █▀▀█ █▀▀█ █▀▀▄", "█__█ █__█ █^^^ █__█", "▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀~~▀"],
-  right: ["             ▄     ", "█▀▀▀ █▀▀█ █▀▀█ █▀▀█", "█___ █__█ █__█ █^^^", "▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀"],
+  left: ["    ", "█▀▀█", "█__█", "▀▀▀▀"],
+  right: ["▄                  ", "█    ▀▀▀█ █  █ ▀▀▀█", "█___ █▀▀█ ▀▀▀█ █▀▀█", "▀▀▀▀ ▀▀▀▀ ▄▄▄▀ ▀▀▀▀"],
 }
 
 export const go = {
