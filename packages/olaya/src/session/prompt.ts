@@ -1143,6 +1143,7 @@ const layer = Layer.effect(
         let exitNudges = 0
         // The latest completed step's usage, reported to plugins once and handed to model selection.
         let usage: StepUsage | undefined
+        let prefix: SessionCompaction.Prefix | undefined
         const session = yield* sessions.get(sessionID).pipe(Effect.orDie)
 
         while (true) {
@@ -1270,6 +1271,7 @@ const layer = Layer.effect(
               sessionID,
               auto: task.auto,
               overflow: task.overflow,
+              prefix,
             })
             if (result === "stop") break
             continue
@@ -1386,6 +1388,7 @@ const layer = Layer.effect(
             ]
             const format = lastUser.format ?? { type: "text" as const }
             if (format.type === "json_schema") system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
+            prefix = { user: lastUser, agent, permission: session.permission, system, tools, model }
             const result = yield* handle.process({
               user: lastUser,
               agent,

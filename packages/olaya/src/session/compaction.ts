@@ -9,6 +9,7 @@ import { Token } from "@/util/token"
 import { SessionProcessor } from "./processor"
 import { Agent } from "@/agent/agent"
 import { Plugin } from "@/plugin"
+import type { LLM } from "./llm"
 import { Config } from "@/config/config"
 import { NotFoundError } from "@/storage/storage"
 
@@ -28,6 +29,8 @@ export const Event = SessionCompactionEvent
 export const PRUNE_MINIMUM = 20_000
 export const PRUNE_PROTECT = 40_000
 const TOOL_OUTPUT_MAX_CHARS = 2_000
+// Errors and test summaries sit at the end of an output, so most of the budget goes to the tail.
+const TOOL_OUTPUT_HEAD_CHARS = 600
 const PRUNE_PROTECTED_TOOLS = ["skill"]
 const MIN_PRESERVE_RECENT_TOKENS = 2_000
 const MAX_PRESERVE_RECENT_TOKENS = 15_000
@@ -49,7 +52,9 @@ type CompletedCompaction = {
 }
 
 const truncate = (value: string) =>
-  value.length <= TOOL_OUTPUT_MAX_CHARS ? value : `${value.slice(0, TOOL_OUTPUT_MAX_CHARS)}\n[truncated]`
+  value.length <= TOOL_OUTPUT_MAX_CHARS
+    ? value
+    : `${value.slice(0, TOOL_OUTPUT_HEAD_CHARS)}\n[${value.length - TOOL_OUTPUT_MAX_CHARS} characters truncated]\n${value.slice(-(TOOL_OUTPUT_MAX_CHARS - TOOL_OUTPUT_HEAD_CHARS))}`
 
 const serialize = (message: SessionV1.WithParts) => {
   if (message.info.role === "user") {
@@ -174,6 +179,7 @@ export interface Interface {
     sessionID: SessionID
     auto: boolean
     overflow?: boolean
+    prefix?: Prefix
   }) => Effect.Effect<"continue" | "stop">
   readonly create: (input: {
     sessionID: SessionID
@@ -183,6 +189,12 @@ export interface Interface {
     overflow?: boolean
   }) => Effect.Effect<void>
 }
+
+/**
+ * The request shape of the session's latest step. When given, the summary request repeats its
+ * system prompt and tool definitions byte for byte, so the provider's prompt cache serves them.
+ */
+export type Prefix = Pick<LLM.StreamInput, "user" | "agent" | "permission" | "system" | "tools" | "model">
 
 export class Service extends Context.Service<Service, Interface>()("@olaya/SessionCompaction") {}
 
@@ -322,6 +334,7 @@ const layer = Layer.effect(
       sessionID: SessionID
       auto: boolean
       overflow?: boolean
+      prefix?: Prefix
     }) {
       const parent = input.messages.findLast((m) => m.info.id === input.parentID)
       if (!parent || parent.info.role !== "user") {
@@ -356,9 +369,12 @@ const layer = Layer.effect(
       }
 
       const agent = yield* agents.get("compaction")
+      // A compaction model of its own has a cold cache anyway, so the shared prefix would only add tokens.
+      const prefix = agent.model ? undefined : input.prefix
       const model = agent.model
         ? yield* provider.getModel(agent.model.providerID, agent.model.modelID).pipe(Effect.orDie)
-        : yield* provider.getModel(userMessage.model.providerID, userMessage.model.modelID).pipe(Effect.orDie)
+        : (prefix?.model ??
+          (yield* provider.getModel(userMessage.model.providerID, userMessage.model.modelID).pipe(Effect.orDie)))
       const cfg = yield* config.get()
       const history = compactionPart && messages.at(-1)?.info.id === input.parentID ? messages.slice(0, -1) : messages
       const prior = completedCompactions(history)
@@ -428,6 +444,17 @@ const layer = Layer.effect(
         sessionID: input.sessionID,
         tools: {},
         system: [],
+        ...(prefix && {
+          ...prefix,
+          // Same definitions, so the cached prefix matches; a call is refused rather than run.
+          // toolChoice "none" would drop the tools from Anthropic requests and miss the cache.
+          tools: Object.fromEntries(
+            Object.entries(prefix.tools).map(([name, item]) => [
+              name,
+              { ...item, execute: async () => Promise.reject(new Error("Tools are unavailable while compacting")) },
+            ]),
+          ),
+        }),
         messages: [
           {
             role: "user",
@@ -435,6 +462,7 @@ const layer = Layer.effect(
               {
                 type: "text",
                 text: [
+                  ...(prefix ? [agent.prompt, "Reply with the summary only. Do not call tools."] : []),
                   nextPrompt,
                   ...(compacting.prompt ? ["The following is the conversation history:", conversation] : []),
                 ]
