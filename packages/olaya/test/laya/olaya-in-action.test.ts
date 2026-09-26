@@ -5,7 +5,7 @@
  * handler and the real Laya checkpoint over HTTP. Nothing is stubbed except the plugin
  * transport, which forwards to the genuine handler.
  *
- * Needs a ready sidecar: OLAYA_LAYA_URL=http://127.0.0.1:8801
+ * Needs a ready sidecar: OLAYA_LAYA_URL=http://127.0.0.1:8801. Skipped when none answers.
  */
 import { expect, beforeAll, afterAll } from "bun:test"
 import fs from "fs/promises"
@@ -58,9 +58,9 @@ const env = AppNodeBuilder.build(
 )
 const it = testEffect(env)
 
-beforeAll(async () => {
-  const health = await client.health(5000)
-  if (!health?.ready) throw new Error("sidecar not ready at " + URL_ + "; start it first")
+const health = await client.health(5000)
+beforeAll(() => {
+  if (!health?.ready) return console.log(`\n  skipped: no ready sidecar at ${URL_}\n`)
   console.log(`\n  sidecar: ${health.checkpoint} on ${health.device}, ${health.state_budget} state tokens\n`)
 })
 afterAll(async () => {
@@ -92,7 +92,7 @@ const run = (command: string, patterns: string[], reply: "once" | "always" | "re
     yield* Effect.promise(() => shadow.replied(pending[0]!.id, reply))
   })
 
-it.instance(
+;(health?.ready ? it.instance : it.instance.skip)(
   "Olaya consults Laya on real permission requests, and Laya discriminates between them",
   () =>
     Effect.gen(function* () {
