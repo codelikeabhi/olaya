@@ -1118,6 +1118,22 @@ export const ConfigProvidersResult = Schema.Struct({
 })
 export type ConfigProvidersResult = Types.DeepMutable<Schema.Schema.Type<typeof ConfigProvidersResult>>
 
+/**
+ * Upstream OpenCode's own hosted services, OpenCode Zen and OpenCode Go. // olaya-rename:keep
+ * Olaya doesn't feature another company's paid gateway: they are off unless the user opts in by
+ * listing them in enabled_providers, configuring them, or logging in to them.
+ */
+export const UPSTREAM_HOSTED = ["opencode", "opencode-go"] // olaya-rename:keep
+
+/** The providers to hide: the configured list, plus upstream's hosted services unless opted in. */
+export function disabledProviders(
+  cfg: { disabled_providers?: string[]; enabled_providers?: string[]; provider?: Record<string, unknown> },
+  credentials: Record<string, unknown> = {},
+) {
+  const optedIn = (id: string) => cfg.enabled_providers?.includes(id) || id in (cfg.provider ?? {}) || id in credentials
+  return new Set([...(cfg.disabled_providers ?? []), ...UPSTREAM_HOSTED.filter((id) => !optedIn(id))])
+}
+
 export function toPublicInfo(provider: Info): Info {
   return JSON.parse(
     JSON.stringify(
@@ -1442,7 +1458,7 @@ const layer = Layer.effect(
 
         // now read config providers - includes any modifications from plugin config() hook
         const configProviders = Object.entries(cfg.provider ?? {})
-        const disabled = new Set(cfg.disabled_providers ?? [])
+        const disabled = disabledProviders(cfg, yield* auth.all().pipe(Effect.orDie))
         const enabled = cfg.enabled_providers ? new Set(cfg.enabled_providers) : null
 
         function isProviderAllowed(providerID: ProviderV2.ID): boolean {

@@ -10,6 +10,7 @@ import { map, pipe, sortBy, values } from "remeda"
 import path from "path"
 import os from "os"
 import { Config } from "@/config/config"
+import { Provider } from "@/provider/provider"
 import { Global } from "@olaya/core/global"
 import { Plugin } from "../../plugin"
 import type { Hooks } from "@olaya/plugin"
@@ -358,7 +359,7 @@ export const ProvidersLoginCommand = effectCmd({
 
     const config = yield* cfgSvc.get()
 
-    const disabled = new Set(config.disabled_providers ?? [])
+    const disabled = Provider.disabledProviders(config, yield* authSvc.all().pipe(Effect.orDie))
     const enabled = config.enabled_providers ? new Set(config.enabled_providers) : undefined
 
     const allProviders = yield* modelsDev.get()
