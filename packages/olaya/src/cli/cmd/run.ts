@@ -809,6 +809,18 @@ export const RunCommand = effectCmd({
               break
             }
 
+            // Retries, failovers and waits for a model to return, so an unattended run's log says
+            // why the task changed model or paused.
+            if (
+              event.type === "session.status" &&
+              event.properties.sessionID === sessionID &&
+              event.properties.status.type === "retry"
+            ) {
+              const status = event.properties.status
+              if (!emit("retry", { status }))
+                UI.println(UI.Style.TEXT_DIM + `⟳ ${status.message}` + UI.Style.TEXT_NORMAL)
+            }
+
             if (event.type === "permission.asked") {
               const permission = event.properties
               if (!sessions.has(permission.sessionID)) continue

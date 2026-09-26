@@ -1622,7 +1622,15 @@ const layer = Layer.effect(
                 reason: entry.reason,
                 until: entry.until,
               })
-              if (failedOver) return "continue" as const
+              if (failedOver) {
+                yield* status.set(sessionID, {
+                  type: "retry",
+                  attempt: 0,
+                  message: `Continuing on ${failedOver} (${entry.reason})`,
+                  next: Date.now(),
+                })
+                return "continue" as const
+              }
               if (handle.message.error)
                 yield* events.publish(Session.Event.Error, { sessionID, error: handle.message.error })
               return "break" as const
