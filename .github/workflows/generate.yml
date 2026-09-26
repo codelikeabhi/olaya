@@ -1,13 +1,12 @@
 name: generate
 
 on:
-  push:
-    branches:
-      - dev
+  # Commits and pushes with a bot identity, so it only runs when started by hand.
+  workflow_dispatch:
 
 jobs:
   generate:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write

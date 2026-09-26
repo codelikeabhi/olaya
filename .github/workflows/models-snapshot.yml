@@ -4,9 +4,8 @@ permissions:
   contents: write
 
 on:
+  # Commits and pushes with a bot identity, so it only runs when started by hand.
   workflow_dispatch:
-  schedule:
-    - cron: "0 12 * * *"
 
 concurrency:
   group: ${{ github.workflow }}
@@ -15,7 +14,7 @@ concurrency:
 jobs:
   refresh:
     if: github.repository == 'codelikeabhi/olaya'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository

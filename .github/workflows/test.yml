@@ -3,7 +3,7 @@ name: test
 on:
   push:
     branches:
-      - dev
+      - main
   pull_request:
   workflow_dispatch:
 
@@ -28,9 +28,9 @@ jobs:
       matrix:
         settings:
           - name: linux
-            host: blacksmith-4vcpu-ubuntu-2404
+            host: ubuntu-latest
           - name: windows
-            host: blacksmith-4vcpu-windows-2025
+            host: windows-latest
     runs-on: ${{ matrix.settings.host }}
     defaults:
       run:
@@ -51,7 +51,7 @@ jobs:
 
       - name: Configure git identity
         run: |
-          git config --global user.email "bot@opencode.ai"
+          git config --global user.email "ci@users.noreply.github.com"
           git config --global user.name "olaya"
 
       - name: Cache Turbo
@@ -86,9 +86,9 @@ jobs:
       matrix:
         settings:
           - name: linux
-            host: blacksmith-4vcpu-ubuntu-2404
+            host: ubuntu-latest
           - name: windows
-            host: blacksmith-4vcpu-windows-2025
+            host: windows-latest
     runs-on: ${{ matrix.settings.host }}
     env:
       PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.playwright-browsers
@@ -149,3 +149,50 @@ jobs:
           path: |
             packages/app/e2e/test-results
             packages/app/e2e/playwright-report
+
+  decision-layer:
+    name: decision layer (python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: laya
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install the sidecar, trainer and benchmark (CPU torch)
+        run: |
+          uv venv --python 3.12 .venv
+          uv pip install --python .venv torch --index-url https://download.pytorch.org/whl/cpu
+          uv pip install --python .venv -e .
+
+      - name: Model-free self-checks
+        env:
+          USE_TF: "0"
+        run: |
+          .venv/bin/python test_service.py
+          .venv/bin/python -m bench.metrics
+          .venv/bin/python -m bench.harness_report --demo
+          .venv/bin/python -m bench.tripwires
+          .venv/bin/python -m train.data
+          .venv/bin/python -m train.certify --demo
+          .venv/bin/python tests/laya_upstream/test_criteria.py
+          .venv/bin/python tests/laya_upstream/test_router.py
+          .venv/bin/python tests/laya_upstream/test_shortlist.py
+          .venv/bin/python tests/laya_upstream/test_email.py
+
+      - name: OlayaBench rule baselines through the production compactor
+        run: .venv/bin/python -m bench.run --out "$RUNNER_TEMP/reports"
+
+      - name: Rename codemod is idempotent
+        working-directory: .
+        run: |
+          (cd script && bun test ./olaya-rename.test.ts)
+          bun script/olaya-rename.ts --check
