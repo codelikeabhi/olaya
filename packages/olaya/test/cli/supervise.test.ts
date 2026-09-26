@@ -4,7 +4,7 @@
 import { describe, expect, test } from "bun:test"
 import { CONTINUE_MESSAGE, resumeArgs, supervise } from "../../src/cli/supervise"
 
-function harness(codes: (number | null)[], session: string | null = "ses_1") {
+function harness(codes: (number | null)[], session: string | null = "ses_1", runMs = 10 * 60_000) {
   const calls: string[][] = []
   const waits: number[] = []
   const logs: string[] = []
@@ -16,6 +16,7 @@ function harness(codes: (number | null)[], session: string | null = "ses_1") {
     deps: {
       spawn: async (args: string[]) => {
         calls.push(args)
+        clock += runMs
         return codes.length ? codes.shift()! : 0 // null (killed) must stay null
       },
       session: () => session ?? undefined,
@@ -56,7 +57,7 @@ describe("supervised runs", () => {
   })
 
   test("six restarts within an hour is the limit", async () => {
-    const h = harness(Array(20).fill(1))
+    const h = harness(Array(20).fill(1), "ses_1", 61_000) // not quick failures, and six fit in an hour
     expect(await supervise(first, (s) => resumeArgs(first, s), h.deps)).toBe(1)
     expect(h.calls).toHaveLength(7) // the first run and six restarts
     expect(h.logs.at(-1)).toContain("olaya run --session ses_1")
@@ -99,5 +100,11 @@ describe("supervised runs", () => {
       "--",
       CONTINUE_MESSAGE,
     ])
+  })
+  test("two quick failures in a row stop the restarts: a restart won't fix a bad key", async () => {
+    const h = harness([1, 1, 1], "ses_1", 5_000)
+    expect(await supervise(first, (s) => resumeArgs(first, s), h.deps)).toBe(1)
+    expect(h.calls).toHaveLength(2)
+    expect(h.logs.at(-1)).toContain("within a minute of starting, twice")
   })
 })

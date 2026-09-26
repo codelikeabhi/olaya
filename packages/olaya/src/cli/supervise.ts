@@ -13,6 +13,8 @@ export const CONTINUE_MESSAGE =
 
 const BACKOFF_MS = [15_000, 60_000, 5 * 60_000, 15 * 60_000]
 const MAX_PER_HOUR = 6
+/** A run failing this soon after starting, twice in a row, is failing for a reason a restart won't fix. */
+const QUICK_FAILURE_MS = 60_000
 
 export type Deps = {
   /** Run one child `olaya run` with these arguments; resolves with its exit code (null when killed). */
@@ -32,13 +34,22 @@ export async function supervise(first: string[], resume: (session: string) => st
   const now = deps.now ?? Date.now
   const restarts: number[] = []
   let args = first
+  let quick = 0
   while (true) {
+    const started = now()
     const code = await deps.spawn(args, {})
     if (code === 0) return 0
+    quick = now() - started < QUICK_FAILURE_MS ? quick + 1 : 0
     const session = deps.session()
     const recent = restarts.filter((t) => now() - t < 3_600_000)
     if (!session) {
       deps.log(`olaya: the run failed before it had a session (exit ${code}); not restarting`)
+      return code ?? 1
+    }
+    if (quick >= 2) {
+      deps.log(
+        `olaya: the run failed within a minute of starting, twice; a restart won't fix that (check credentials and config). Resume with: olaya run --session ${session}`,
+      )
       return code ?? 1
     }
     if (recent.length >= MAX_PER_HOUR) {
