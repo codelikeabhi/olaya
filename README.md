@@ -1,8 +1,13 @@
 <!-- olaya-rename:keep-file (this file names OpenCode and Laya on purpose: attribution) -->
 
-# Olaya
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="packages/identity/olaya-logo-dark.svg">
+    <img alt="Olaya" src="packages/identity/olaya-logo.svg" width="300">
+  </picture>
+</p>
 
-**An open-source AI coding harness you can leave alone.**
+<p align="center"><strong>An open-source AI coding harness you can leave alone.</strong></p>
 
 Olaya is a terminal AI coding agent (CLI, TUI, desktop app, server and SDK) built on
 [OpenCode](https://github.com/sst/opencode), with a decision layer built on
