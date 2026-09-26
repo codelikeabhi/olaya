@@ -7,7 +7,7 @@ import { Flock } from "./util/flock"
 import { Flag } from "./flag/flag"
 import { makeGlobalNode } from "./effect/app-node"
 
-const app = "opencode"
+const app = "olaya"
 const data = path.join(xdgData!, app)
 const cache = path.join(xdgCache!, app)
 const config = path.join(xdgConfig!, app)
@@ -16,7 +16,7 @@ const tmp = path.join(os.tmpdir(), app)
 
 const paths = {
   get home() {
-    return process.env.OPENCODE_TEST_HOME ?? os.homedir()
+    return process.env.OLAYA_TEST_HOME ?? os.homedir()
   },
   data,
   bin: path.join(cache, "bin"),
@@ -30,6 +30,46 @@ const paths = {
 
 export const Path = paths
 
+/**
+ * One-time import of an existing OpenCode install. If Olaya's directory does not exist yet and (olaya-rename:keep)
+ * OpenCode's does, copy it (never share it: a user may still run OpenCode, and two apps (olaya-rename:keep)
+ * writing one database is how state gets corrupted), rename top-level files that carry the old
+ * name (opencode.json -> olaya.json, opencode.db -> olaya.db), and leave a marker. OpenCode's (olaya-rename:keep)
+ * copy is not modified. Returns true when an import happened.
+ */
+export async function adoptLegacyDir(legacy: string, current: string): Promise<boolean> {
+  const exists = (p: string) => fs.stat(p).then(() => true, () => false)
+  // "Already set up" means real content, not the empty skeleton (and logs) that any earlier
+  // run leaves behind, e.g. `olaya --version` before the first real session.
+  const hasContent = async (dir: string): Promise<boolean> => {
+    for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+      if (entry.name === "log") continue
+      if (!entry.isDirectory() || (await hasContent(path.join(dir, entry.name)))) return true
+    }
+    return false
+  }
+  if (!(await exists(legacy)) || !(await hasContent(legacy))) return false
+  if ((await exists(current)) && (await hasContent(current))) return false
+  await fs.cp(legacy, current, { recursive: true })
+  for (const name of await fs.readdir(current)) {
+    if (!name.startsWith("opencode")) continue // olaya-rename:keep
+    const renamed = "olaya" + name.slice("opencode".length) // olaya-rename:keep
+    if (!(await exists(path.join(current, renamed)))) await fs.rename(path.join(current, name), path.join(current, renamed))
+  }
+  await fs.writeFile(path.join(current, ".imported-from-opencode"), new Date().toISOString() + "\n") // olaya-rename:keep
+  return true
+}
+
+if (!process.env.OLAYA_DISABLE_LEGACY_IMPORT) {
+  const legacy = "opencode" // olaya-rename:keep
+  const imported = await Promise.all([
+    adoptLegacyDir(path.join(xdgConfig!, legacy), config),
+    adoptLegacyDir(path.join(xdgData!, legacy), data),
+  ])
+  if (imported.some(Boolean))
+    console.error("olaya: imported your OpenCode configuration and data (OpenCode's own copy is untouched)") // olaya-rename:keep
+}
+
 Flock.setGlobal({ state })
 
 await Promise.all([
@@ -42,7 +82,7 @@ await Promise.all([
   fs.mkdir(Path.repos, { recursive: true }),
 ])
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/Global") {}
+export class Service extends Context.Service<Service, Interface>()("@olaya/Global") {}
 
 export interface Interface {
   readonly home: string
@@ -61,7 +101,7 @@ export function make(input: Partial<Interface> = {}): Interface {
     home: Path.home,
     data: Path.data,
     cache: Path.cache,
-    config: Flag.OPENCODE_CONFIG_DIR ?? Path.config,
+    config: Flag.OLAYA_CONFIG_DIR ?? Path.config,
     state: Path.state,
     tmp: Path.tmp,
     bin: Path.bin,

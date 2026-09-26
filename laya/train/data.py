@@ -18,7 +18,7 @@ import os
 from bench import run as bench
 
 DATA_HOME = os.path.join(bench.DATA_HOME, "olaya", "laya", "data")
-STATE_TS = os.path.join(bench.REPO, "packages", "opencode", "src", "laya", "state.ts")
+STATE_TS = os.path.join(bench.REPO, "packages", "olaya", "src", "laya", "state.ts")
 
 
 def sha256_file(path):

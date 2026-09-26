@@ -1,13 +1,13 @@
 import { describe, expect } from "bun:test"
 import { Cause, Deferred, Effect, Exit, Layer, Queue } from "effect"
-import { Config } from "@opencode-ai/core/config"
-import { AppNodeBuilder } from "@opencode-ai/core/effect/app-node-builder"
-import { LayerNode } from "@opencode-ai/core/effect/layer-node"
-import { EventV2 } from "@opencode-ai/core/event"
-import { Location } from "@opencode-ai/core/location"
-import { Pty } from "@opencode-ai/core/pty"
-import type { PtyID } from "@opencode-ai/core/pty/schema"
-import { AbsolutePath } from "@opencode-ai/core/schema"
+import { Config } from "@olaya/core/config"
+import { AppNodeBuilder } from "@olaya/core/effect/app-node-builder"
+import { LayerNode } from "@olaya/core/effect/layer-node"
+import { EventV2 } from "@olaya/core/event"
+import { Location } from "@olaya/core/location"
+import { Pty } from "@olaya/core/pty"
+import type { PtyID } from "@olaya/core/pty/schema"
+import { AbsolutePath } from "@olaya/core/schema"
 import { location } from "../fixture/location"
 import { testEffect } from "../lib/effect"
 
@@ -45,7 +45,7 @@ const subscribePtyEvents = Effect.fn("PtySessionTest.subscribePtyEvents")(functi
 const createPty = Effect.fn("PtySessionTest.createPty")(function* (command: string, args: string[] = []) {
   const pty = yield* Pty.Service
   return yield* Effect.acquireRelease(
-    pty.create({ command, args, cwd: "/tmp", env: { TERM: "xterm-256color", OPENCODE_TERMINAL: "1" } }),
+    pty.create({ command, args, cwd: "/tmp", env: { TERM: "xterm-256color", OLAYA_TERMINAL: "1" } }),
     (info) => pty.remove(info.id).pipe(Effect.ignore),
   )
 })

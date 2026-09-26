@@ -1,0 +1,174 @@
+{
+  "$comment": "Rules for script/olaya-rename.ts. Built from docs/research/07-rename-hazards-audit.md (planning workspace). Protected tokens are masked before any replacement and restored afterwards, so no rule can partially rename them.",
+  "exclude": [
+    "bun.lock",
+    "LICENSES/**",
+    "NOTICE",
+    "packages/ui/LICENSE",
+    "packages/http-recorder/LICENSE",
+    "patches/**",
+    "**/*.tgz",
+    "packages/opencode/test/fixtures/recordings/**",
+    "script/rename-map.json",
+    "script/olaya-rename.ts",
+    "laya/laya/**",
+    "laya/tests/**",
+    "packages/opencode/test/cli/github-remote.test.ts",
+    "packages/opencode/test/tool/fixtures/models-api.json",
+    "script/olaya-rename.test.ts"
+  ],
+  "protect": [
+    {
+      "why": "explicit escape hatch: a line carrying this marker is kept verbatim (compatibility code that must name the upstream)",
+      "re": "[^\\n]*olaya-rename:keep(?!-file)[^\\n]*"
+    },
+    {
+      "why": "upstream hosted endpoints and docs, still called or linked",
+      "re": "https?://[A-Za-z0-9.-]*opencode\\.ai[^\\s\"'`)<>\\]]*"
+    },
+    {
+      "why": "bare upstream hostnames",
+      "re": "(?<![A-Za-z0-9-])(?:[a-z0-9-]+\\.)*opencode\\.ai\\b"
+    },
+    {
+      "why": "regex-escaped upstream domains (e.g. the CORS allowlist): renaming would trust a domain we do not own",
+      "re": "opencode(?:\\\\)+\\.ai"
+    },
+    {
+      "why": "enterprise orgs host this path",
+      "re": "\\.well-known/opencode\\b"
+    },
+    {
+      "why": "models.dev provider id and its display names",
+      "re": "opencode-go\\b|OpenCode (?:Zen|Go)\\b|opencode(?:Zen|Go)\\b"
+    },
+    {
+      "why": "provider API key defined by models.dev",
+      "re": "OPENCODE_API_KEY"
+    },
+    {
+      "why": "Zen gateway request headers",
+      "re": "x-opencode-(?:session|request|client|project)\\b"
+    },
+    {
+      "why": "third-party packages",
+      "re": "(?:@gitlab/)?opencode-(?:gitlab-auth|poe-auth|gemini-auth|openai-codex-auth|copilot-auth)\\b"
+    },
+    {
+      "why": "third-party wasm assets",
+      "re": "anomalyco/tree-sitter-[a-z-]+"
+    },
+    {
+      "why": "VS Code marketplace id of the upstream extension",
+      "re": "sst-dev\\.opencode\\b"
+    },
+    {
+      "why": "name baked into a patched dependency",
+      "re": "__OPENCODE_PHOTON_WASM_PATH"
+    },
+    {
+      "why": "matched against recorded request bodies",
+      "re": "session-recorded-opencode-loop"
+    },
+    {
+      "why": "historical upstream references",
+      "re": "github\\.com/(?:anomalyco|sst)/opencode/(?:issues|pull|commit|blob)/[^\\s\"'`)<>]*"
+    },
+    {
+      "why": "the provider-id constant (ProviderV2.ID.opencode) and provider option keys (providerOptions?.opencode)",
+      "re": "(?<=\\bID\\.)opencode\\b|(?<=providerOptions\\??\\.)opencode\\b"
+    },
+    {
+      "why": "provider id inside i18n keys",
+      "re": "provider\\.opencode\\."
+    },
+    {
+      "why": "partner attribution headers and their values",
+      "re": "X-Cerebras-3rd-Party-Integration[^\\n]*|X-BILLING-INVOKE-ORIGIN[^\\n]*"
+    },
+    {
+      "why": "OAuth client id registered with the upstream console",
+      "re": "(?<=client_?[Ii][Dd]\\s*[:=]\\s*[\\\"'])opencode-cli(?=[\\\"'])"
+    },
+    {
+      "why": "upstream's console and Zen integration display names",
+      "re": "OpenCode Console|integration\\.name = \\\"OpenCode\\\""
+    }
+  ],
+  "protectInFiles": {
+    "$comment": "In these files the provider id appears quoted, as an object key and as a model ref (provider/model); all of those are the models.dev id or partner attribution.",
+    "files": [
+      "packages/opencode/src/provider/transform.ts",
+      "packages/opencode/src/provider/provider.ts",
+      "packages/opencode/src/session/llm/native-runtime.ts",
+      "packages/opencode/src/session/llm/request.ts",
+      "packages/opencode/src/tool/registry.ts",
+      "packages/opencode/src/plugin/openai/codex.ts",
+      "packages/opencode/src/plugin/xai.ts",
+      "packages/tui/src/component/dialog-provider.tsx",
+      "packages/app/src/components/dialog-connect-provider.tsx",
+      "packages/app/src/hooks/use-providers.ts",
+      "packages/app/src/pages/session/usage-exceeded-dialogs.tsx",
+      "packages/ui/src/components/provider-icons/types.ts",
+      "packages/ui/src/components/provider-icons/sprite.svg",
+      "packages/core/src/plugin/provider/opencode.ts",
+      "packages/core/src/plugin/provider/openrouter.ts",
+      "packages/core/src/plugin/provider/vercel.ts",
+      "packages/core/src/plugin/provider/zenmux.ts",
+      "packages/core/src/plugin/provider/kilo.ts",
+      "packages/core/src/plugin/provider/nvidia.ts",
+      "packages/core/src/plugin/provider/llmgateway.ts",
+      "packages/opencode/test/plugin/xai.test.ts",
+      "packages/opencode/test/provider/transform.test.ts",
+      "packages/opencode/test/provider/provider.test.ts",
+      "packages/opencode/test/session/llm-native.test.ts",
+      "packages/opencode/test/session/llm-native-recorded.test.ts",
+      "packages/schema/src/provider.ts",
+      "packages/core/test/config/provider.test.ts",
+      "packages/opencode/src/cli/cmd/github.handler.ts",
+      "packages/opencode/src/cli/cmd/providers.ts"
+    ],
+    "re": "([\"'`])opencode\\1|\\bopencode/(?=[A-Za-z0-9])|(?<=[{,]\\s*)opencode(?=\\s*:)|X-Title[^\\n]*"
+  },
+  "protectPaths": [
+    "packages/ui/src/assets/icons/provider/opencode"
+  ],
+  "replace": [
+    [
+      "@opencode-ai/",
+      "@olaya/"
+    ],
+    [
+      "opencode-ai",
+      "olaya"
+    ],
+    [
+      "anomalyco/opencode",
+      "codelikeabhi/olaya"
+    ],
+    [
+      "sst/opencode",
+      "codelikeabhi/olaya"
+    ],
+    [
+      "OpenCode",
+      "Olaya"
+    ],
+    [
+      "Opencode",
+      "Olaya"
+    ],
+    [
+      "openCode",
+      "olaya"
+    ],
+    [
+      "OPENCODE",
+      "OLAYA"
+    ],
+    [
+      "opencode",
+      "olaya"
+    ]
+  ]
+}

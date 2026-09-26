@@ -23,7 +23,7 @@ INFRA = {"AgentSetupTimeoutError", "EnvironmentBuildTimeoutError", "EnvironmentS
 
 
 def ts(value):
-    """Harbor timestamps are ISO strings; OpenCode event timestamps are epoch millis."""
+    """Harbor timestamps are ISO strings; Olaya event timestamps are epoch millis."""
     if value is None:
         return None
     if isinstance(value, (int, float)):
@@ -32,7 +32,7 @@ def ts(value):
 
 
 def events(trial):
-    path = os.path.join(trial, "agent", "opencode.txt")
+    path = os.path.join(trial, "agent", "opencode.txt")  # Harbor's file name (olaya-rename:keep)
     if not os.path.exists(path):
         return []
     out = []
@@ -47,7 +47,7 @@ def events(trial):
 
 
 def permission_counts(trial):
-    """Permission evaluations from OpenCode's own log: how often a rule said ask/allow/deny."""
+    """Permission evaluations from Olaya's own log: how often a rule said ask/allow/deny."""
     counts = {"ask": 0, "allow": 0, "deny": 0}
     for root, _, files in os.walk(os.path.join(trial, "agent")):
         for name in files:

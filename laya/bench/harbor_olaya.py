@@ -1,5 +1,8 @@
 """Harbor agent adapter for Olaya.
 
+olaya-rename:keep-file: Harbor's own agent is named OpenCode and runs a command called `opencode`;
+those names are Harbor's contract. Olaya's build paths below use Olaya's names.
+
     PYTHONPATH=<olaya>/laya harbor run ... -a bench.harbor_olaya:Olaya \\
         --ae OLAYA_LAYA_ENABLED=1 --ae OLAYA_LAYA_SHADOW=1 \\
         --ae OLAYA_LAYA_URL=http://host.docker.internal:8731
@@ -9,7 +12,7 @@ wholesale and changes one thing: after the stock install, it overwrites the inst
 `opencode` with our own build. Run command, flags, trajectory parsing and timeouts are
 inherited unchanged, which is what makes an Olaya-vs-OpenCode comparison a clean ablation.
 
-The binary comes from `packages/opencode/dist` (built with `bun run script/build.ts
+The binary comes from `packages/olaya/dist` (built with `bun run script/build.ts
 --skip-embed-web-ui`), or from $OLAYA_DIST. The decision layer is configured purely through
 agent env (`--ae`), exactly as a user would configure it.
 """
@@ -22,7 +25,7 @@ from harbor.agents.installed.opencode import OpenCode
 from harbor.environments.base import BaseEnvironment
 
 REPO = Path(__file__).resolve().parents[2]
-DIST = Path(os.environ.get("OLAYA_DIST", REPO / "packages" / "opencode" / "dist"))
+DIST = Path(os.environ.get("OLAYA_DIST", REPO / "packages" / "olaya" / "dist"))
 
 
 def binary_for(libc: str, arch: str) -> Path:
@@ -32,12 +35,12 @@ def binary_for(libc: str, arch: str) -> Path:
     Silicon, where AVX2 support is not guaranteed, and speed is irrelevant next to an LLM step.
     """
     arch = "arm64" if arch in ("aarch64", "arm64") else "x64"
-    parts = ["opencode", "linux", arch]
+    parts = ["olaya", "linux", arch]
     if arch == "x64":
         parts.append("baseline")
     if libc == "musl":
         parts.append("musl")
-    path = DIST / "-".join(parts) / "bin" / "opencode"
+    path = DIST / "-".join(parts) / "bin" / "olaya"
     if not path.exists():
         raise FileNotFoundError("no Olaya build at %s; run script/build.ts first" % path)
     return path

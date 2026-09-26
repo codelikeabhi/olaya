@@ -1,6 +1,6 @@
 import type {
   Event,
-  createOpencodeClient,
+  createOlayaClient,
   Project,
   Model,
   Provider,
@@ -9,8 +9,8 @@ import type {
   Message,
   Part,
   Config as SDKConfig,
-} from "@opencode-ai/sdk"
-import type { Provider as ProviderV2, Model as ModelV2, Auth } from "@opencode-ai/sdk/v2"
+} from "@olaya/sdk"
+import type { Provider as ProviderV2, Model as ModelV2, Auth } from "@olaya/sdk/v2"
 
 import type { BunShell } from "./shell.js"
 import { type ToolDefinition } from "./tool.js"
@@ -54,7 +54,7 @@ export type WorkspaceAdapter = {
 }
 
 export type PluginInput = {
-  client: ReturnType<typeof createOpencodeClient>
+  client: ReturnType<typeof createOlayaClient>
   project: Project
   directory: string
   worktree: string
@@ -323,6 +323,17 @@ export interface Hooks {
       overflow: boolean
     },
     output: { enabled: boolean },
+  ) => Promise<void>
+  /**
+   * Called when the agent loop is about to end: the model finished a turn without tool calls.
+   * This is where a harness decides whether the task is actually done.
+   *
+   * - `continue`: Defaults to `false`. Set to `true` to keep going: `prompt` is sent as a
+   *   synthetic user turn and the loop runs again instead of ending.
+   */
+  "experimental.loop.exit"?: (
+    input: { sessionID: string; agent: string; step: number; text: string },
+    output: { continue: boolean; prompt?: string },
   ) => Promise<void>
   "experimental.text.complete"?: (
     input: { sessionID: string; messageID: string; partID: string },

@@ -4,19 +4,19 @@ import fs from "fs/promises"
 import path from "path"
 import { eq } from "drizzle-orm"
 import { Effect } from "effect"
-import { MoveSession } from "@opencode-ai/core/control-plane/move-session"
-import { Database } from "@opencode-ai/core/database/database"
-import { AppNodeBuilder } from "@opencode-ai/core/effect/app-node-builder"
-import { LayerNode } from "@opencode-ai/core/effect/layer-node"
-import { EventV2 } from "@opencode-ai/core/event"
-import { Project } from "@opencode-ai/core/project"
-import { ProjectTable } from "@opencode-ai/core/project/sql"
-import { ProjectDirectories } from "@opencode-ai/core/project/directories"
-import { AbsolutePath } from "@opencode-ai/core/schema"
-import { SessionV2 } from "@opencode-ai/core/session"
-import { SessionProjector } from "@opencode-ai/core/session/projector"
-import { SessionTable } from "@opencode-ai/core/session/sql"
-import { SessionStore } from "@opencode-ai/core/session/store"
+import { MoveSession } from "@olaya/core/control-plane/move-session"
+import { Database } from "@olaya/core/database/database"
+import { AppNodeBuilder } from "@olaya/core/effect/app-node-builder"
+import { LayerNode } from "@olaya/core/effect/layer-node"
+import { EventV2 } from "@olaya/core/event"
+import { Project } from "@olaya/core/project"
+import { ProjectTable } from "@olaya/core/project/sql"
+import { ProjectDirectories } from "@olaya/core/project/directories"
+import { AbsolutePath } from "@olaya/core/schema"
+import { SessionV2 } from "@olaya/core/session"
+import { SessionProjector } from "@olaya/core/session/projector"
+import { SessionTable } from "@olaya/core/session/sql"
+import { SessionStore } from "@olaya/core/session/store"
 import { tmpdir } from "./fixture/tmpdir"
 import { testEffect } from "./lib/effect"
 
@@ -43,7 +43,7 @@ async function initRepo(directory: string) {
   await $`git config core.autocrlf false`.cwd(directory).quiet()
   await $`git config core.fsmonitor false`.cwd(directory).quiet()
   await $`git config commit.gpgsign false`.cwd(directory).quiet()
-  await $`git config user.email test@opencode.test`.cwd(directory).quiet()
+  await $`git config user.email test@olaya.test`.cwd(directory).quiet()
   await $`git config user.name Test`.cwd(directory).quiet()
   await fs.writeFile(path.join(directory, "tracked.txt"), "initial\n")
   await $`git add tracked.txt`.cwd(directory).quiet()

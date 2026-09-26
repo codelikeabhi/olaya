@@ -1,12 +1,12 @@
 {
-  "name": "@opencode-ai/desktop",
+  "name": "@olaya/desktop",
   "private": true,
   "version": "1.18.32",
   "type": "module",
   "license": "MIT",
   "homepage": "https://opencode.ai",
   "author": {
-    "name": "OpenCode",
+    "name": "Olaya",
     "email": "hello@opencode.ai"
   },
   "scripts": {
@@ -36,8 +36,8 @@
   "devDependencies": {
     "@actions/artifact": "4.0.0",
     "@lydell/node-pty": "catalog:",
-    "@opencode-ai/app": "workspace:*",
-    "@opencode-ai/ui": "workspace:*",
+    "@olaya/app": "workspace:*",
+    "@olaya/ui": "workspace:*",
     "@sentry/solid": "catalog:",
     "@sentry/vite-plugin": "catalog:",
     "@solid-primitives/i18n": "2.2.1",

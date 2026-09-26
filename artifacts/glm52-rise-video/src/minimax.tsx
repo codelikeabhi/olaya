@@ -74,7 +74,7 @@ export function MiniMaxClimb() {
         {/* headline (static) */}
         <div style={{ marginTop: 50 }}>
           <div style={{ fontSize: 23, fontWeight: 600, color: c.muted, letterSpacing: 2 }}>
-            OPENCODE GO · WEEKLY TOKENS
+            OLAYA GO · WEEKLY TOKENS
           </div>
           <div
             style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 24, marginTop: 14 }}

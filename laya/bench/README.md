@@ -18,7 +18,7 @@ From `laya/`:
     python -m bench.metrics                                 # metric self-check
 
 Requires `bun`. Items are compacted and denylisted by the production code
-(`packages/opencode/script/laya-compact.ts`), so a predictor is scored on exactly the state
+(`packages/olaya/script/laya-compact.ts`), so a predictor is scored on exactly the state
 Olaya would send it. Denylisted items are "ask" for every predictor except
 `always-approve`, which is the unguarded floor.
 

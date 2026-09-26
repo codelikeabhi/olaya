@@ -1,11 +1,11 @@
 {
-  "name": "@opencode-ai/ui",
+  "name": "@olaya/ui",
   "version": "1.18.32",
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/anomalyco/opencode.git",
+    "url": "git+https://github.com/codelikeabhi/olaya.git",
     "directory": "packages/ui"
   },
   "publishConfig": {

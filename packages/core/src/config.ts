@@ -4,7 +4,7 @@ import { makeLocationNode } from "./effect/app-node"
 import path from "path"
 import { type ParseError, parse } from "jsonc-parser"
 import { Context, Effect, Layer, Option, Schema } from "effect"
-import { Permission } from "@opencode-ai/schema/permission"
+import { Permission } from "@olaya/schema/permission"
 import { FSUtil } from "./fs-util"
 import { Global } from "./global"
 import { Location } from "./location"
@@ -130,7 +130,7 @@ export interface Interface {
   readonly entries: () => Effect.Effect<Entry[]>
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode/v2/Config") {}
+export class Service extends Context.Service<Service, Interface>()("@olaya/v2/Config") {}
 
 const layer = Layer.effect(
   Service,
@@ -139,7 +139,12 @@ const layer = Layer.effect(
     const global = yield* Global.Service
     const location = yield* Location.Service
     const policy = yield* Policy.Service
-    const names = ["opencode.json", "opencode.jsonc"]
+    const names = ["olaya.json", "olaya.jsonc"]
+    // Projects migrating from OpenCode keep working: their files and dir are read too, at lower (olaya-rename:keep)
+    // precedence than Olaya's at the same level (they are applied first, so Olaya's win).
+    const legacyNames = ["opencode.json", "opencode.jsonc"] // olaya-rename:keep
+    const legacyDir = ".opencode" // olaya-rename:keep
+    const configDirs = new Set([".olaya", legacyDir])
     const decodeOptions = { errors: "all", onExcessProperty: "ignore", propertyOrder: "original" } as const
     const decodeInfo = Schema.decodeUnknownOption(Info, decodeOptions)
     const decodeV1Info = Schema.decodeUnknownOption(ConfigV1.Info, decodeOptions)
@@ -162,8 +167,9 @@ const layer = Layer.effect(
     })
 
     const loadDirectory = Effect.fnUntraced(function* (directory: AbsolutePath) {
+      const files = path.basename(directory) === legacyDir ? legacyNames : names
       return [
-        ...(yield* Effect.forEach(names, (file) => loadFile(path.join(directory, file))).pipe(
+        ...(yield* Effect.forEach(files, (file) => loadFile(path.join(directory, file))).pipe(
           Effect.map((configs) => configs.filter((config): config is Document => config !== undefined)),
         )),
         new Directory({ type: "directory", path: directory }),
@@ -178,7 +184,9 @@ const layer = Layer.effect(
       ? []
       : yield* fs
           .up({
-            targets: [".opencode", ...names.toReversed()],
+            // up() lists each level's matches in target order and the results are reversed per
+            // level below, so the legacy targets go last to be applied first.
+            targets: [".olaya", ...names.toReversed(), legacyDir, ...legacyNames.toReversed()],
             start: location.directory,
             stop: location.project.directory,
           })
@@ -186,20 +194,20 @@ const layer = Layer.effect(
     const directories = [
       globalDirectory,
       ...discovered
-        .filter((item) => path.basename(item) === ".opencode")
+        .filter((item) => configDirs.has(path.basename(item)))
         .toReversed()
         .map((directory) => AbsolutePath.make(directory)),
     ]
     // A config closer to the opened directory should win over one higher up.
     // Search starts nearby, so reverse the results before applying them.
-    const directPaths = discovered.filter((item) => path.basename(item) !== ".opencode").toReversed()
+    const directPaths = discovered.filter((item) => !configDirs.has(path.basename(item))).toReversed()
     const direct = yield* Effect.forEach(directPaths, loadFile).pipe(
       Effect.orDie,
       Effect.map((configs) => configs.filter((config): config is Document => config !== undefined)),
     )
     const supplementary = yield* Effect.forEach(directories, loadDirectory).pipe(Effect.orDie)
     // Apply general settings first and more specific settings last:
-    // global config, project files, then `.opencode` files.
+    // global config, project files, then `.olaya` files.
     const configs = [...(supplementary[0] ?? []), ...direct, ...supplementary.slice(1).flat()]
     // Rules use the opposite order so a user-global rule can override a
     // repository rule. Statement order inside each file stays unchanged.
