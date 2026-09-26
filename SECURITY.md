@@ -20,10 +20,10 @@ If you need true isolation, run Olaya inside a Docker container or VM.
 
 ### The decision layer
 
-Olaya's decision layer (`laya/`, `packages/olaya/src/laya/`) can, in **live mode only**, turn a
+Olaya's decision layer (`laya/`, `packages/olaya/src/laya/`) can, in **Auto-approve mode only** (`OLAYA_LAYA_MODE=auto-approve`), turn a
 permission prompt into an automatic approval. That makes it part of Olaya's security surface:
 
-- **In scope:** live mode granting anything on the hard denylist; granting with a checkpoint
+- **In scope:** Auto-approve granting anything on the hard denylist; granting with a checkpoint
   whose manifest has no passed gate, or below the certified threshold; granting after a failed,
   timed-out or malformed judgment; any path by which content from a tool output, file or
   repository steers the judge into approving (prompt injection against the decision layer);
@@ -34,7 +34,7 @@ permission prompt into an automatic approval. That makes it part of Olaya's secu
   bounds the *rate* of such false approvals, so individual cases are expected, but each one is
   evidence for recalibration. Please report the action and the task, never real secrets.
 
-Shadow mode, the default, observes only and cannot change a permission.
+Observe mode, the default, only watches and cannot change a permission.
 
 ### Server Mode
 

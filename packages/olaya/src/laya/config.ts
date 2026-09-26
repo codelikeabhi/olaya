@@ -49,19 +49,30 @@ function int(value: string | undefined): number | undefined {
   return Number.isFinite(n) && n > 0 ? n : undefined
 }
 
+/**
+ * The mode's user-facing names are Observe and Auto-approve; `shadow` and `live` are the original
+ * spellings. Only an exact match selects a mode: anything else falls back to the default, Observe.
+ */
+export function parseMode(value: unknown): LayaConfig["mode"] | undefined {
+  if (value === "live" || value === "auto-approve") return "live"
+  if (value === "shadow" || value === "observe") return "shadow"
+  return undefined
+}
+
 /** Plugin options win over the environment, which wins over defaults. */
 export function resolve(options: Record<string, unknown> = {}, env = process.env): LayaConfig {
   const fromEnv: Partial<LayaConfig> = {
     enabled: bool(env["OLAYA_LAYA_ENABLED"]),
     shadow: bool(env["OLAYA_LAYA_SHADOW"]),
-    mode: env["OLAYA_LAYA_MODE"] === "live" ? "live" : env["OLAYA_LAYA_MODE"] === "shadow" ? "shadow" : undefined,
+    mode: parseMode(env["OLAYA_LAYA_MODE"]),
     url: env["OLAYA_LAYA_URL"] || undefined,
     timeoutMs: int(env["OLAYA_LAYA_TIMEOUT_MS"]),
     python: env["OLAYA_LAYA_PYTHON"] || undefined,
     checkpoint: env["OLAYA_LAYA_MODEL"] || undefined,
   }
   const merged = { ...DEFAULTS }
-  for (const source of [fromEnv, options as Partial<LayaConfig>]) {
+  const fromOptions = { ...options, mode: parseMode(options["mode"]) } as Partial<LayaConfig>
+  for (const source of [fromEnv, fromOptions]) {
     for (const [key, value] of Object.entries(source)) {
       if (value !== undefined) (merged as Record<string, unknown>)[key] = value
     }

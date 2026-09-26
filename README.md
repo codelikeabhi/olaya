@@ -16,8 +16,9 @@ what the agent may do without asking you, and when a task is really done.
 
 > **Status: early development. Nothing is released yet.** There are no published binaries or
 > packages, and `olaya upgrade` deliberately refuses channels that do not exist yet. Build from
-> source (below). The decision layer runs in shadow mode only: it observes and logs, and never
-> changes what the agent is allowed to do.
+> source (below). The decision layer runs in **Observe** mode by default: it watches and logs, and
+> never changes what the agent is allowed to do. **Auto-approve** exists, but it acts only on a
+> certified checkpoint, and none has been certified yet.
 
 ## Why
 
@@ -58,7 +59,7 @@ git clone https://github.com/codelikeabhi/olaya && cd olaya
 bun install
 bun dev                 # run the CLI/TUI from source
 
-# decision layer (optional; shadow mode only)
+# decision layer (optional; Observe mode)
 cd laya
 uv venv --python 3.12 .venv && uv pip install --python .venv -e '.[train]'
 OLAYA_LAYA_PORT=8731 .venv/bin/python service.py

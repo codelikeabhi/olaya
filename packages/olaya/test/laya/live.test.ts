@@ -86,6 +86,15 @@ describe("mode configuration", () => {
     expect(resolve({}, { OLAYA_LAYA_ENABLED: "1", OLAYA_LAYA_MODE: "live" }).mode).toBe("live")
     expect(resolve({}, { OLAYA_LAYA_ENABLED: "1", OLAYA_LAYA_MODE: "LIVE!" }).mode).toBe("shadow")
   })
+
+  test("the display names Observe and Auto-approve select the same modes, from env or plugin options", () => {
+    expect(resolve({}, { OLAYA_LAYA_ENABLED: "1", OLAYA_LAYA_MODE: "auto-approve" }).mode).toBe("live")
+    expect(resolve({}, { OLAYA_LAYA_ENABLED: "1", OLAYA_LAYA_MODE: "observe" }).mode).toBe("shadow")
+    expect(resolve({ mode: "auto-approve" }, { OLAYA_LAYA_ENABLED: "1" }).mode).toBe("live")
+    expect(resolve({ mode: "observe" }, { OLAYA_LAYA_ENABLED: "1", OLAYA_LAYA_MODE: "live" }).mode).toBe("shadow")
+    // an unrecognised plugin option never reaches the config: it falls back to Observe
+    expect(resolve({ mode: "yolo" }, { OLAYA_LAYA_ENABLED: "1" }).mode).toBe("shadow")
+  })
 })
 
 describe("who replied", () => {

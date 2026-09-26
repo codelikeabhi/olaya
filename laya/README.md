@@ -20,7 +20,7 @@ Everything is off by default. Enable it with environment variables:
 | `OLAYA_LAYA_ENABLED` | master switch; nothing spawns, runs or is logged without it |
 | `OLAYA_LAYA_SHADOW` | record predictions and labels (requires `ENABLED`) |
 | `OLAYA_LAYA_OBSERVE_OUTPUTS` | with shadow on, tool outputs are also scored for injection and logged locally (never modified, never awaited). Set to `0` to turn that off. |
-| `OLAYA_LAYA_MODE` | `shadow` (default) observes only. `live` may turn an `ask` into `allow`, but only on a checkpoint whose manifest carries a passed certification `gate`, at or above its certified threshold; it never denies, and every grant is audit-logged. On an uncertified checkpoint `live` behaves exactly like `shadow`. |
+| `OLAYA_LAYA_MODE` | `observe` (default) only watches. `auto-approve` may turn an `ask` into `allow`, but only on a checkpoint whose manifest carries a passed certification `gate`, at or above its certified threshold; it never denies, and every grant is audit-logged. On an uncertified checkpoint `auto-approve` behaves exactly like `observe`. The original values `shadow` and `live` still work. |
 | `OLAYA_LAYA_PYTHON` | interpreter that has `laya` installed |
 | `OLAYA_LAYA_URL` | attach to a sidecar you started yourself instead of spawning one |
 | `OLAYA_LAYA_TIMEOUT_MS` | per-decision ceiling (default 400) |
@@ -72,9 +72,9 @@ Both reply paths produce labelled training rows:
     bun test test/laya                                        # unit tests, from packages/olaya
     OLAYA_LAYA_INTEGRATION=1 OLAYA_LAYA_PYTHON=... bun test test/laya/integration.test.ts
 
-## From training to live mode
+## From training to Auto-approve
 
-Live mode lets the decision layer approve an action instead of asking you. It only acts on a
+Auto-approve lets the decision layer approve an action instead of asking you. It only acts on a
 checkpoint that passed certification: a statistical bound on how often it would approve
 something you should have been asked about. The pipeline, all local:
 
@@ -95,14 +95,14 @@ cd laya
 # 4. certify: writes a pass/fail gate into the checkpoint's manifest
 .venv/bin/python -m train.certify <checkpoint> --gold ~/.local/share/olaya/laya/gold/gold-v1.jsonl
 
-# 5. serve it; live mode acts only if the gate passed, only above its threshold
+# 5. serve it; Auto-approve acts only if the gate passed, only above its threshold
 OLAYA_LAYA_MODEL=<checkpoint> .venv/bin/python service.py
-OLAYA_LAYA_ENABLED=1 OLAYA_LAYA_MODE=live OLAYA_LAYA_URL=http://127.0.0.1:<port> olaya
+OLAYA_LAYA_ENABLED=1 OLAYA_LAYA_MODE=auto-approve OLAYA_LAYA_URL=http://127.0.0.1:<port> olaya
 ```
 
 Certification needs at least 300 should-ask items in each half of the gold set. Below 299, a
 1% false-approve bound cannot be shown at 95% confidence even with zero mistakes. Every
-approval in live mode is written to the local audit log (`kind: "auto-approved"`).
+approval in Auto-approve is written to the local audit log (`kind: "auto-approved"`).
 
 ## Benchmarks
 
