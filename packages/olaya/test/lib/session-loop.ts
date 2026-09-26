@@ -169,7 +169,10 @@ const model = (id: string) => ({
 })
 
 /** A project whose "test" provider has two models, and optionally a plugin written from `source`. */
-export const project = Effect.fn("test.project")(function* (source?: string, routing?: { models: string[] }) {
+export const project = Effect.fn("test.project")(function* (
+  source?: string,
+  routing?: { enabled?: boolean; models: string[] },
+) {
   const { directory } = yield* TestInstance
   const llm = yield* TestLLMServer
   const plugin = path.join(directory, "router.ts")

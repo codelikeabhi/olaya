@@ -104,11 +104,19 @@ function retentionItems(messages: SessionV1.WithParts[]) {
     }
     turn++
     return message.parts.flatMap((part): RetentionItem[] => {
-      if (part.type === "text") return part.text && !part.synthetic ? [{ role: "assistant", text: part.text, turn }] : []
+      if (part.type === "text")
+        return part.text && !part.synthetic ? [{ role: "assistant", text: part.text, turn }] : []
       if (part.type !== "tool") return []
       const call = `${part.tool}(${JSON.stringify(part.state.input)})`
       if (part.state.status === "completed")
-        return [{ role: "tool", call, turn, text: part.state.time.compacted ? "[Old tool result content cleared]" : part.state.output }]
+        return [
+          {
+            role: "tool",
+            call,
+            turn,
+            text: part.state.time.compacted ? "[Old tool result content cleared]" : part.state.output,
+          },
+        ]
       if (part.state.status === "error") return [{ role: "tool", call, turn, text: part.state.error }]
       return []
     })
@@ -484,42 +492,44 @@ const layer = Layer.effect(
         sessionID: input.sessionID,
         model,
       })
-      const result = retained.summary ? "continue" : yield* processor.process({
-        user: userMessage,
-        agent,
-        sessionID: input.sessionID,
-        tools: {},
-        system: [],
-        ...(prefix && {
-          ...prefix,
-          // Same definitions, so the cached prefix matches; a call is refused rather than run.
-          // toolChoice "none" would drop the tools from Anthropic requests and miss the cache.
-          tools: Object.fromEntries(
-            Object.entries(prefix.tools).map(([name, item]) => [
-              name,
-              { ...item, execute: async () => Promise.reject(new Error("Tools are unavailable while compacting")) },
-            ]),
-          ),
-        }),
-        messages: [
-          {
-            role: "user",
-            content: [
+      const result = retained.summary
+        ? "continue"
+        : yield* processor.process({
+            user: userMessage,
+            agent,
+            sessionID: input.sessionID,
+            tools: {},
+            system: [],
+            ...(prefix && {
+              ...prefix,
+              // Same definitions, so the cached prefix matches; a call is refused rather than run.
+              // toolChoice "none" would drop the tools from Anthropic requests and miss the cache.
+              tools: Object.fromEntries(
+                Object.entries(prefix.tools).map(([name, item]) => [
+                  name,
+                  { ...item, execute: async () => Promise.reject(new Error("Tools are unavailable while compacting")) },
+                ]),
+              ),
+            }),
+            messages: [
               {
-                type: "text",
-                text: [
-                  ...(prefix ? [agent.prompt, "Reply with the summary only. Do not call tools."] : []),
-                  nextPrompt,
-                  ...(compacting.prompt ? ["The following is the conversation history:", conversation] : []),
-                ]
-                  .filter(Boolean)
-                  .join("\n\n"),
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: [
+                      ...(prefix ? [agent.prompt, "Reply with the summary only. Do not call tools."] : []),
+                      nextPrompt,
+                      ...(compacting.prompt ? ["The following is the conversation history:", conversation] : []),
+                    ]
+                      .filter(Boolean)
+                      .join("\n\n"),
+                  },
+                ],
               },
             ],
-          },
-        ],
-        model,
-      })
+            model,
+          })
 
       if (result === "compact") {
         processor.message.error = new SessionV1.ContextOverflowError({

@@ -13,7 +13,16 @@ import path from "path"
 import type { Question } from "./client"
 
 export type Reply = "once" | "always" | "reject"
-export type RefusalReason = "non-english" | "denylisted" | "unavailable" | "not-ready" | "timeout" | "transport" | "malformed" | "out-of-range" | "http"
+export type RefusalReason =
+  | "non-english"
+  | "denylisted"
+  | "unavailable"
+  | "not-ready"
+  | "timeout"
+  | "transport"
+  | "malformed"
+  | "out-of-range"
+  | "http"
 
 /** A prediction awaiting the user's reply. */
 interface Pending {
@@ -41,7 +50,10 @@ const REDACTIONS: [RegExp, string][] = [
   [/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, "«redacted-jwt»"],
   [/(?<=\b(?:Authorization|Bearer)\s+)\S+/gi, "«redacted»"],
   // key=value and key: value where the key names a secret
-  [/((?:password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\s*[=:]\s*)(?:"[^"]*"|'[^']*'|\S+)/gi, "$1«redacted»"],
+  [
+    /((?:password|passwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key)\s*[=:]\s*)(?:"[^"]*"|'[^']*'|\S+)/gi,
+    "$1«redacted»",
+  ],
 ]
 
 export function redact<T>(value: T): T {
@@ -93,7 +105,13 @@ export class ShadowLog {
    * Audit record for a permission the model granted in live mode: what was allowed, at what
    * probability, above which certified threshold, by which checkpoint.
    */
-  async autoApproved(input: { id: string; action: string; probability: number; threshold: number; checkpoint: string }): Promise<void> {
+  async autoApproved(input: {
+    id: string
+    action: string
+    probability: number
+    threshold: number
+    checkpoint: string
+  }): Promise<void> {
     await this.append({ kind: "auto-approved", ts: new Date().toISOString(), ...input })
   }
 
@@ -101,8 +119,19 @@ export class ShadowLog {
    * A tool output scored for injection. Unlabelled by construction: it becomes training or
    * evaluation data only after a person labels it (train/label.py).
    */
-  async observedOutput(input: { id: string; tool: string; probability: number; checkpoint: string; state: unknown }): Promise<void> {
-    await this.append({ kind: "inject-observation", ts: new Date().toISOString(), ...input, state: JSON.stringify(input.state) })
+  async observedOutput(input: {
+    id: string
+    tool: string
+    probability: number
+    checkpoint: string
+    state: unknown
+  }): Promise<void> {
+    await this.append({
+      kind: "inject-observation",
+      ts: new Date().toISOString(),
+      ...input,
+      state: JSON.stringify(input.state),
+    })
   }
 
   /** Join the user's reply to the prediction, producing a labelled training row. */
@@ -138,6 +167,11 @@ export class ShadowLog {
    * Write everything still waiting as unlabelled. `gold` is null, which is the marker the
    * training split filters on: a prediction with no human decision is not a training example.
    */
+  /** A routing decision at a step: which model, why, and whether it was applied. */
+  async route(record: Record<string, unknown>): Promise<void> {
+    await this.append({ kind: "route", ts: new Date().toISOString(), ...record })
+  }
+
   /** A retention plan at a compaction point: counts and token sizes only, no text. */
   async retention(record: Record<string, unknown>): Promise<void> {
     await this.append({ kind: "retention", ts: new Date().toISOString(), ...record })

@@ -164,3 +164,31 @@ it.instance(
     }),
   30_000,
 )
+
+it.instance(
+  "plugins see the user's routing switch and pool, with prices",
+  () =>
+    Effect.gen(function* () {
+      const { directory } = yield* TestInstance
+      const seen = path.join(directory, "routing.json")
+      yield* project(
+        [
+          'import { writeFileSync } from "fs"',
+          "export default async () => ({",
+          '  "experimental.model.select": async (input) => {',
+          `    writeFileSync(${JSON.stringify(seen)}, JSON.stringify(input.routing))`,
+          "  },",
+          "})",
+          "",
+        ].join("\n"),
+        { enabled: true, models: ["test/cheap-model", "test/no-such-model"] },
+      )
+      yield* run(twoSteps)
+      const routing = JSON.parse(yield* Effect.promise(() => fs.readFile(seen, "utf8")))
+      expect(routing).toEqual({
+        enabled: true,
+        pool: [{ providerID: "test", modelID: "cheap-model", cost: { input: 0, output: 0, cacheRead: 0 } }],
+      })
+    }),
+  30_000,
+)

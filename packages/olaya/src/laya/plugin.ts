@@ -15,6 +15,7 @@ import { liveHandler, shadowHandler } from "./judgment"
 import { observe } from "./inject"
 import type { SessionContext } from "./state"
 import { handler as retentionHandler, recallTool } from "./retention"
+import { handler as routingHandler } from "./routing"
 
 export const SHADOW_DIR = path.join(Global.Path.data, "laya-shadow")
 /** Full text of what live retention shortened or dropped, one append-only file per session. */
@@ -75,7 +76,18 @@ export const LayaPlugin: Plugin = async (input, options) => {
           }),
           ...(config.retention === "live" && { tool: { recall: recallTool(RECALL_DIR) } }),
         }
-  if (!config.enabled) return retention
+  const routing =
+    config.routing === "off"
+      ? {}
+      : {
+          "experimental.model.select": routingHandler({
+            mode: config.routing,
+            start: config.routingStart,
+            shadow: new ShadowLog(shadowDir),
+          }),
+        }
+  const layers = { ...retention, ...routing }
+  if (!config.enabled) return layers
 
   const sidecar = new Sidecar(config)
   await sidecar.start()
@@ -98,7 +110,7 @@ export const LayaPlugin: Plugin = async (input, options) => {
   const handler = live ? liveHandler(deps) : shadowHandler(deps)
 
   return {
-    ...retention,
+    ...layers,
     "permission.ask": handler as never,
 
     // Tier 2 (shadow only): score tool outputs for injection. Scheduled, not awaited, so the
@@ -106,7 +118,12 @@ export const LayaPlugin: Plugin = async (input, options) => {
     "tool.execute.after": async (call, result) => {
       if (!config.shadow || process.env["OLAYA_LAYA_OBSERVE_OUTPUTS"] === "0") return
       void observe(
-        { tool: call.tool, callID: call.callID, output: (result as { output?: unknown })?.output ?? result, task: memory.get(call.sessionID) },
+        {
+          tool: call.tool,
+          callID: call.callID,
+          output: (result as { output?: unknown })?.output ?? result,
+          task: memory.get(call.sessionID),
+        },
         { client: () => sidecar.current(), shadow },
       )
     },
@@ -122,7 +139,8 @@ export const LayaPlugin: Plugin = async (input, options) => {
       if (!shadow) return
       if (event.type !== "permission.replied") return
       const props = (event as { properties?: { requestID?: string; reply?: Reply } }).properties
-      if (props?.requestID && props.reply) await shadow.replied(props.requestID, props.reply, AUTO_REPLIES ? "auto" : "user")
+      if (props?.requestID && props.reply)
+        await shadow.replied(props.requestID, props.reply, AUTO_REPLIES ? "auto" : "user")
     },
 
     dispose: async () => {

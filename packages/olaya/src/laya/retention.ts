@@ -26,7 +26,8 @@ export type Outcome = "keep" | "tail" | "stub"
  */
 export type Item = RetentionItem & { pinned?: boolean; reduced?: boolean }
 
-const TEST_CMD = /pytest|unittest|\bnpm (?:run )?test|\bbun test|\bgo test|\bcargo (?:test|build)|\bmake\b|\btox\b|\bjest\b|\bvitest\b/
+const TEST_CMD =
+  /pytest|unittest|\bnpm (?:run )?test|\bbun test|\bgo test|\bcargo (?:test|build)|\bmake\b|\btox\b|\bjest\b|\bvitest\b/
 const SEARCH_CMD = /^(?:grep|glob|find|search|list|ls)\b|"command":\s*"(?:grep|rg|find|ls|tree)\b/
 const READ_CMD = /^(?:read|view|cat)\b|"command":\s*"(?:view|cat|head|tail|sed -n)\b/
 const ERROR_LINE = /Error|Exception|Traceback|FAILED|FAIL:|error:|failed/
@@ -88,7 +89,10 @@ export function plan(items: Item[], budget: number, scores?: number[]) {
     const k = kind(items[i]!)
     return k === "user" ? Infinity : (-score[i]! * RECOVERY[k]) / Math.max(1, size(items[i]!))
   }
-  const rest = items.map((_, i) => i).filter((i) => !result.has(i)).sort((a, b) => value(a) - value(b))
+  const rest = items
+    .map((_, i) => i)
+    .filter((i) => !result.has(i))
+    .sort((a, b) => value(a) - value(b))
   for (const i of rest) {
     if (used + size(items[i]!) > budget) continue
     result.set(i, "keep")
@@ -137,7 +141,13 @@ export function parse(previous: string | undefined): Item[] {
   for (const line of previous.slice(HEADER.length + 1).split("\n")) {
     const m = ITEM.exec(line)
     const current = items.at(-1)
-    if (m) items.push({ role: m[1] as Item["role"], turn: Number(m[2]), text: "", ...(m[3] !== "keep" && { reduced: true }) })
+    if (m)
+      items.push({
+        role: m[1] as Item["role"],
+        turn: Number(m[2]),
+        text: "",
+        ...(m[3] !== "keep" && { reduced: true }),
+      })
     else if (current?.role === "tool" && current.call === undefined) current.call = line
     else if (current) current.text = current.text ? `${current.text}\n${line}` : line
   }
@@ -155,7 +165,10 @@ export type RetentionOptions = {
 }
 
 const handleOf = (sessionID: string, item: Item) =>
-  createHash("sha1").update(`${sessionID}\0${item.call ?? ""}\0${item.text}`).digest("hex").slice(0, 10)
+  createHash("sha1")
+    .update(`${sessionID}\0${item.call ?? ""}\0${item.text}`)
+    .digest("hex")
+    .slice(0, 10)
 const logOf = (dir: string, sessionID: string) => path.join(dir, `${sessionID.replace(/[^\w-]/g, "_")}.jsonl`)
 
 /** Reads back what live retention shortened or dropped, by the handle shown in its place. */

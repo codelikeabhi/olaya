@@ -34,6 +34,13 @@ export interface LayaConfig {
   retention: "off" | "shadow" | "live"
   /** Share of the replaced history's tokens retention keeps. */
   retentionBudget: number
+  /**
+   * Model routing within the user's pool. Independent of `enabled`. "shadow" logs decisions only;
+   * "live" applies them when the user has turned routing on. Uncertified until gate G6.
+   */
+  routing: "off" | "shadow" | "live"
+  /** Where a task starts: the prompt's model, or the cheapest in the pool (a cascade). */
+  routingStart: "default" | "cheapest"
 }
 
 const DEFAULTS: LayaConfig = {
@@ -48,6 +55,8 @@ const DEFAULTS: LayaConfig = {
   python: "python3",
   retention: "off",
   retentionBudget: 0.2,
+  routing: "off",
+  routingStart: "default",
 }
 
 function bool(value: string | undefined): boolean | undefined {
@@ -88,6 +97,8 @@ export function resolve(options: Record<string, unknown> = {}, env = process.env
     checkpoint: env["OLAYA_LAYA_MODEL"] || undefined,
     retention: (["shadow", "live"] as const).find((mode) => mode === env["OLAYA_LAYA_RETENTION"]),
     retentionBudget: fraction(env["OLAYA_LAYA_RETENTION_BUDGET"]),
+    routing: (["shadow", "live"] as const).find((mode) => mode === env["OLAYA_LAYA_ROUTING"]),
+    routingStart: env["OLAYA_LAYA_ROUTING_START"] === "cheapest" ? "cheapest" : undefined,
   }
   const merged = { ...DEFAULTS }
   const fromOptions = { ...options, mode: parseMode(options["mode"]) } as Partial<LayaConfig>

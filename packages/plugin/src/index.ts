@@ -232,6 +232,9 @@ export type RetentionItem = {
   turn: number
 }
 
+/** A model the user lets routing choose, with its price in dollars per million tokens (0 when unknown). */
+export type PoolModel = ModelRef & { cost: { input: number; output: number; cacheRead: number } }
+
 export type ModelSelectPoint = "start" | "compaction" | "step"
 
 /** One completed model step: its usage, and cheap signals of trouble counted from its tool calls. */
@@ -398,6 +401,8 @@ export interface Hooks {
       model: ModelRef
       /** The previous step's usage, when there was one. */
       usage?: StepUsage
+      /** The user's routing settings: whether routing may act, and the models it may choose from. */
+      routing: { enabled: boolean; pool: PoolModel[] }
     },
     output: { model?: ModelRef; reason?: string },
   ) => Promise<void>

@@ -627,18 +627,52 @@ const layer = Layer.effect(
      */
     const selectModel = Effect.fn("SessionPrompt.selectModel")(function* (
       resolved: Provider.Model,
-      input: { sessionID: SessionID; agent: string; step: number; point: "start" | "compaction" | "step"; usage?: StepUsage },
+      input: {
+        sessionID: SessionID
+        agent: string
+        step: number
+        point: "start" | "compaction" | "step"
+        usage?: StepUsage
+      },
     ) {
       const selection: { model?: ModelRef; reason?: string } = {}
+      const routing = (yield* config.get()).routing
+      const known = yield* Effect.forEach(routing?.models ?? [], (id) => {
+        const slash = id.indexOf("/")
+        return provider
+          .getModel(ProviderV2.ID.make(id.slice(0, slash)), ModelV2.ID.make(id.slice(slash + 1)))
+          .pipe(Effect.option)
+      })
       yield* plugin.trigger(
         "experimental.model.select",
-        { ...input, model: { providerID: resolved.providerID, modelID: resolved.id } },
+        {
+          ...input,
+          model: { providerID: resolved.providerID, modelID: resolved.id },
+          routing: {
+            enabled: routing?.enabled === true,
+            pool: known.flatMap((m) =>
+              Option.isSome(m)
+                ? [
+                    {
+                      providerID: m.value.providerID,
+                      modelID: m.value.id,
+                      cost: {
+                        input: m.value.cost.input,
+                        output: m.value.cost.output,
+                        cacheRead: m.value.cost.cache.read,
+                      },
+                    },
+                  ]
+                : [],
+            ),
+          },
+        },
         selection,
       )
       const wanted = selection.model
       if (!wanted || (wanted.providerID === resolved.providerID && wanted.modelID === resolved.id)) return resolved
       // The user's routing pool is a hard limit: a model they left out is never chosen for them.
-      const pool = (yield* config.get()).routing?.models
+      const pool = routing?.models
       if (pool && !pool.includes(`${wanted.providerID}/${wanted.modelID}`)) {
         yield* Effect.logWarning("model selection rejected: outside the routing pool", {
           "session.id": input.sessionID,
