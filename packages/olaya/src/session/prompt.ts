@@ -6,6 +6,8 @@ import os from "os"
 import { SessionID, MessageID, PartID } from "./schema"
 import { truthy } from "@olaya/core/flag/flag"
 import { MessageV2 } from "./message-v2"
+import { stepUsage } from "./step-usage"
+import type { ModelRef, StepUsage } from "@olaya/plugin"
 import { SessionRevert } from "./revert"
 import { Session } from "./session"
 import { Agent } from "../agent/agent"
@@ -618,6 +620,43 @@ const layer = Layer.effect(
       return yield* Effect.die(err)
     })
 
+    /**
+     * The model for one step: the harness's choice unless a plugin picks another. A plugin's
+     * choice is looked up quietly: an unknown model is logged and ignored, never surfaced as a
+     * session error, so a misbehaving router can't break a run.
+     */
+    const selectModel = Effect.fn("SessionPrompt.selectModel")(function* (
+      resolved: Provider.Model,
+      input: { sessionID: SessionID; agent: string; step: number; point: "start" | "compaction" | "step"; usage?: StepUsage },
+    ) {
+      const selection: { model?: ModelRef; reason?: string } = {}
+      yield* plugin.trigger(
+        "experimental.model.select",
+        { ...input, model: { providerID: resolved.providerID, modelID: resolved.id } },
+        selection,
+      )
+      const wanted = selection.model
+      if (!wanted || (wanted.providerID === resolved.providerID && wanted.modelID === resolved.id)) return resolved
+      const exit = yield* provider
+        .getModel(ProviderV2.ID.make(wanted.providerID), ModelV2.ID.make(wanted.modelID))
+        .pipe(Effect.exit)
+      if (Exit.isSuccess(exit)) {
+        yield* Effect.logInfo("model selected by plugin", {
+          "session.id": input.sessionID,
+          step: input.step,
+          from: `${resolved.providerID}/${resolved.id}`,
+          to: `${wanted.providerID}/${wanted.modelID}`,
+          reason: selection.reason,
+        })
+        return exit.value
+      }
+      yield* Effect.logWarning("model selection rejected: unknown model", {
+        "session.id": input.sessionID,
+        model: `${wanted.providerID}/${wanted.modelID}`,
+      })
+      return resolved
+    })
+
     const currentModel = Effect.fnUntraced(function* (sessionID: SessionID) {
       const current = yield* db
         .select({ model: SessionTable.model })
@@ -1093,6 +1132,8 @@ const layer = Layer.effect(
         // Verify-before-exit nudges sent in this run. Capped at one: the nudge is itself a user
         // turn, so a per-message guard would let the loop nudge its own nudge forever.
         let exitNudges = 0
+        // The latest completed step's usage, reported to plugins once and handed to model selection.
+        let usage: StepUsage | undefined
         const session = yield* sessions.get(sessionID).pipe(Effect.orDie)
 
         while (true) {
@@ -1106,6 +1147,14 @@ const layer = Layer.effect(
           const { user: lastUser, assistant: lastAssistant, finished: lastFinished, tasks } = MessageV2.latest(msgs)
 
           if (!lastUser) throw new Error("No user message found in stream. This should never happen.")
+
+          // Steps finished in this run only: a resumed session's earlier steps were reported by
+          // the run that made them.
+          const finishedMsg = step > 0 && lastFinished ? msgs.find((m) => m.info.id === lastFinished.id) : undefined
+          if (finishedMsg && usage?.messageID !== finishedMsg.info.id) {
+            usage = stepUsage(msgs, step, finishedMsg)
+            yield* plugin.trigger("experimental.step.usage", usage, {})
+          }
 
           const lastAssistantMsg = msgs.findLast(
             (msg) => msg.info.role === "assistant" && msg.info.id === lastAssistant?.id,
@@ -1188,7 +1237,16 @@ const layer = Layer.effect(
               history: msgs,
             }).pipe(Effect.ignore, Effect.forkIn(scope))
 
-          const model = yield* getModel(lastUser.model.providerID, lastUser.model.modelID, sessionID)
+          const model = yield* selectModel(
+            yield* getModel(lastUser.model.providerID, lastUser.model.modelID, sessionID),
+            {
+              sessionID,
+              agent: lastUser.agent,
+              step,
+              point: step === 1 ? "start" : lastFinished?.summary ? "compaction" : "step",
+              usage,
+            },
+          )
           const task = tasks.pop()
 
           if (task?.type === "subtask") {

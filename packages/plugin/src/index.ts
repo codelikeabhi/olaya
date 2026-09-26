@@ -219,6 +219,34 @@ export type ProviderHook = {
 /** @deprecated Use AuthOAuthResult instead. */
 export type AuthOuathResult = AuthOAuthResult
 
+export type ModelRef = { providerID: string; modelID: string }
+
+/** Where a step's model is being chosen: the first step, the first step after a compaction, or any other. */
+export type ModelSelectPoint = "start" | "compaction" | "step"
+
+/** One completed model step: its usage, and cheap signals of trouble counted from its tool calls. */
+export type StepUsage = {
+  sessionID: string
+  messageID: string
+  step: number
+  providerID: string
+  modelID: string
+  tokens: { input: number; output: number; reasoning: number; cacheRead: number; cacheWrite: number }
+  /** Absent when the provider reports none; never zero-filled. */
+  cost?: number
+  signals: {
+    toolErrors: number
+    /** Tool calls whose arguments failed validation. */
+    malformed: number
+    /** Length of the trailing run of identical calls (same tool and input); 1 means no repeat. */
+    identicalRun: number
+    /** The most edits to any one file since the last test run. */
+    sameFileEdits: number
+    /** Present only when a recognised test command ran in the step. */
+    tests?: { passed: number; failed: number }
+  }
+}
+
 export interface Hooks {
   dispose?: () => Promise<void>
   event?: (input: { event: Event }) => Promise<void>
@@ -335,6 +363,25 @@ export interface Hooks {
     input: { sessionID: string; agent: string; step: number; text: string },
     output: { continue: boolean; prompt?: string },
   ) => Promise<void>
+  /**
+   * Called where each step's model is resolved. A plugin may choose a different model for this
+   * step (a model router). Leave `model` unset to keep the harness's choice; an unknown model is
+   * rejected and the harness's choice is used.
+   */
+  "experimental.model.select"?: (
+    input: {
+      sessionID: string
+      agent: string
+      step: number
+      point: ModelSelectPoint
+      model: ModelRef
+      /** The previous step's usage, when there was one. */
+      usage?: StepUsage
+    },
+    output: { model?: ModelRef; reason?: string },
+  ) => Promise<void>
+  /** Called once per completed model step. Observation only: it cannot change the session. */
+  "experimental.step.usage"?: (input: StepUsage, output: {}) => Promise<void>
   "experimental.text.complete"?: (
     input: { sessionID: string; messageID: string; partID: string },
     output: { text: string },
