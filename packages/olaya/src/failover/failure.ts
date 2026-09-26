@@ -24,7 +24,11 @@ export function failureOf(error: SessionRetry.Err, providerID: string): Failure 
           ? "network"
           : undefined,
     }
-  return { providerID, message, kind: /timed out/i.test(message) ? "timeout" : undefined }
+  return {
+    providerID,
+    message,
+    kind: /stall/i.test(message) ? "stall" : /timed out/i.test(message) ? "timeout" : undefined,
+  }
 }
 
 export * as FailoverFailure from "./failure"

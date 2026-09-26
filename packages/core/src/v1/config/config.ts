@@ -98,6 +98,10 @@ export const Info = Schema.Struct({
         description:
           "Minutes. If a model earlier in the list becomes available again within this time, wait for it instead of moving further down (default: 0, never wait)",
       }),
+      stall_timeout: Schema.optional(NonNegativeInt).annotate({
+        description:
+          "Seconds without any response from the model, while no tool is running, before the request counts as stalled and the next model takes over (default: 300)",
+      }),
       max_wait: Schema.optional(NonNegativeInt).annotate({
         description:
           "Minutes. When every model is unavailable, how long to wait for one before ending the run (default: no limit)",

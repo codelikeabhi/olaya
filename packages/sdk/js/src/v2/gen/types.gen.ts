@@ -1941,6 +1941,7 @@ export type Config = {
   failover?: {
     models?: Array<string>
     wait_for_reset?: number
+    stall_timeout?: number
     max_wait?: number
   }
   default_agent?: string

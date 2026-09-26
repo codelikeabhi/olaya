@@ -672,6 +672,14 @@ const layer = Layer.effect(
       )
       const wanted = selection.model
       if (!wanted || (wanted.providerID === resolved.providerID && wanted.modelID === resolved.id)) return resolved
+      // A model cooling after a failure is not chosen by routing either.
+      if (!FailoverAvailability.available(`${wanted.providerID}/${wanted.modelID}`)) {
+        yield* Effect.logWarning("model selection rejected: model unavailable", {
+          "session.id": input.sessionID,
+          model: `${wanted.providerID}/${wanted.modelID}`,
+        })
+        return resolved
+      }
       // The user's routing pool is a hard limit: a model they left out is never chosen for them.
       const pool = routing?.models
       if (pool && !pool.includes(`${wanted.providerID}/${wanted.modelID}`)) {
@@ -1188,11 +1196,30 @@ const layer = Layer.effect(
          * cooling. Undefined when none can come back (all disabled) or `failover.max_wait` passes.
          */
         const nextModel = Effect.fnUntraced(function* (models: string[], reason: string) {
-          const limit = (yield* config.get()).failover?.max_wait
+          const failover = (yield* config.get()).failover
+          const limit = failover?.max_wait
+          const patience = (failover?.wait_for_reset ?? 0) * 60_000
           const started = Date.now()
           while (true) {
             const now = Date.now()
             const next = FailoverAvailability.pick(models, now)
+            // a better model coming back within `wait_for_reset` is worth waiting for
+            const sooner = next
+              ? models
+                  .slice(0, models.indexOf(next))
+                  .map((m) => FailoverAvailability.get(m))
+                  .find((entry) => entry?.state === "cooling" && entry.until - now <= patience)
+              : undefined
+            if (sooner) {
+              yield* status.set(sessionID, {
+                type: "retry",
+                attempt: 0,
+                message: `Waiting for a preferred model to return (${sooner.reason})`,
+                next: sooner.until,
+              })
+              yield* Effect.sleep(Duration.millis(Math.max(1_000, sooner.until - now)))
+              continue
+            }
             // A model with no declared window can't be protected from overflow; local servers such
             // as Ollama then drop the oldest messages silently. It is skipped until configured.
             const slash = next?.indexOf("/") ?? -1
@@ -1328,6 +1355,19 @@ const layer = Layer.effect(
           const chain = fallbacks.length
             ? FailoverAvailability.chain(`${lastUser.model.providerID}/${lastUser.model.modelID}`, fallbacks)
             : []
+          // Back to a better model once it's available, at a safe point: not while an edit waits
+          // for its test run, so a half-done change never passes between models.
+          if (failedOver && chain.length) {
+            const better = chain
+              .slice(0, Math.max(0, chain.indexOf(failedOver)))
+              .find((m) => FailoverAvailability.available(m))
+            const safe = !usage || usage.signals.sameFileEdits === 0 || usage.signals.tests !== undefined
+            if (better && safe) {
+              yield* Effect.logInfo("failover back", { "session.id": sessionID, from: failedOver, to: better })
+              failedOver = better === chain[0] ? undefined : better
+              prefix = undefined
+            }
+          }
           if (chain.length && !failedOver && !FailoverAvailability.available(chain[0]!)) {
             failedOver = yield* nextModel(chain, FailoverAvailability.get(chain[0]!)?.reason ?? "unavailable")
             if (!failedOver) {

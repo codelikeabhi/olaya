@@ -2,7 +2,7 @@ import { LayerNode } from "@olaya/core/effect/layer-node"
 import { PermissionV1 } from "@olaya/core/v1/permission"
 import { Image } from "@/image/image"
 import { SessionV1 } from "@olaya/core/v1/session"
-import { Cause, Deferred, Effect, Exit, Layer, Context, Scope, Schema } from "effect"
+import { Cause, Deferred, Duration, Effect, Exit, Layer, Context, Scope, Schema } from "effect"
 import * as Stream from "effect/Stream"
 import { Agent } from "@/agent/agent"
 import { Config } from "@/config/config"
@@ -76,6 +76,8 @@ interface ProcessorContext extends Input {
   blocked: boolean
   needsCompaction: boolean
   failure?: FailoverClassify.Verdict
+  /** When the stream last produced anything, for stall detection. */
+  progress: number
   currentText: SessionV1.TextPart | undefined
   reasoningMap: Record<string, SessionV1.ReasoningPart>
 }
@@ -115,6 +117,7 @@ const layer = Layer.effect(
         snapshot: initialSnapshot,
         blocked: false,
         needsCompaction: false,
+        progress: 0,
         currentText: undefined,
         reasoningMap: {},
       }
@@ -677,11 +680,29 @@ const layer = Layer.effect(
             yield* status.set(ctx.sessionID, { type: "busy" })
             const stream = llm.stream(streamInput)
 
-            yield* stream.pipe(
-              Stream.tap((event) => handleEvent(event)),
+            ctx.progress = Date.now()
+            const drain = stream.pipe(
+              Stream.tap((event) =>
+                Effect.suspend(() => {
+                  ctx.progress = Date.now()
+                  return handleEvent(event)
+                }),
+              ),
               Stream.takeUntil(() => ctx.needsCompaction),
               Stream.runDrain,
             )
+            // With a fallback chain, a stream that goes quiet counts as stalled, so the next model can
+            // take over. Keep-alive bytes don't count as progress (they never reach this stream), and
+            // a running tool isn't silence: tools run inside the stream and can take many minutes.
+            const stallMs = cfg.failover?.models?.length ? (cfg.failover.stall_timeout ?? 300) * 1000 : 0
+            const watchdog = Effect.gen(function* () {
+              while (true) {
+                yield* Effect.sleep(Duration.millis(Math.min(5_000, stallMs / 2)))
+                if (Object.keys(ctx.toolcalls).length === 0 && Date.now() - ctx.progress > stallMs)
+                  return yield* Effect.fail(new Error(`Stream stalled: no response for ${Math.round(stallMs / 1000)}s`))
+              }
+            })
+            yield* stallMs ? Effect.raceFirst(drain, watchdog) : drain
           }).pipe(
             Effect.onInterrupt(() =>
               Effect.gen(function* () {
