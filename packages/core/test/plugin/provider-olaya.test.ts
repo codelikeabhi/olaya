@@ -74,7 +74,7 @@ describe("OlayaPlugin", () => {
   it.effect("registers account and service account methods", () =>
     Effect.gen(function* () {
       yield* addPlugin()
-      expect((yield* (yield* Integration.Service).get(Integration.ID.make("olaya")))?.methods).toEqual([
+      expect((yield* (yield* Integration.Service).get(Integration.ID.make("opencode")))?.methods).toEqual([
         {
           id: Integration.MethodID.make("device"),
           type: "oauth",
@@ -94,7 +94,7 @@ describe("OlayaPlugin", () => {
             Response.json({
               device_code: "device",
               user_code: "user",
-              verification_uri_complete: "/console/device?user_code=user&client_id=olaya-cli",
+              verification_uri_complete: "/console/device?user_code=user&client_id=opencode-cli",
               expires_in: 60,
               interval: 60,
             }),
@@ -104,7 +104,7 @@ describe("OlayaPlugin", () => {
       yield* addPlugin(http)
       const integration = yield* Integration.Service
       const attempt = yield* integration.connection.oauth({
-        integrationID: Integration.ID.make("olaya"),
+        integrationID: Integration.ID.make("opencode"),
         methodID: Integration.MethodID.make("device"),
         inputs: {},
       })
@@ -132,7 +132,7 @@ describe("OlayaPlugin", () => {
       const integration = yield* Integration.Service
       const error = yield* integration.connection
         .oauth({
-          integrationID: Integration.ID.make("olaya"),
+          integrationID: Integration.ID.make("opencode"),
           methodID: Integration.MethodID.make("device"),
           inputs: {},
         })
@@ -201,7 +201,7 @@ describe("OlayaPlugin", () => {
             draft.model.update(ProviderV2.ID.make("remote"), ModelV2.ID.make("stale"), () => {})
           })
           yield* credentials.create({
-            integrationID: Integration.ID.make("olaya"),
+            integrationID: Integration.ID.make("opencode"),
             value: Credential.Key.make({
               type: "key",
               key: "secret",
@@ -216,12 +216,12 @@ describe("OlayaPlugin", () => {
           const provider = required(
             yield* eventually(
               catalog.provider.get(ProviderV2.ID.make("remote")),
-              (item) => item?.integrationID === Integration.ID.make("olaya"),
+              (item) => item?.integrationID === Integration.ID.make("opencode"),
             ),
           )
           expect(provider).toMatchObject({
             name: "Remote",
-            integrationID: "olaya",
+            integrationID: "opencode",
             api: {
               type: "aisdk",
               package: "@ai-sdk/openai-compatible",
@@ -370,7 +370,7 @@ describe("OlayaPlugin", () => {
         const integrations = yield* Integration.Service
         yield* integrations.transform((editor) => {
           editor.method.update({
-            integrationID: Integration.ID.make("olaya"),
+            integrationID: Integration.ID.make("opencode"),
             method: { type: "env", names: ["CUSTOM_OPENCODE_API_KEY"] },
           })
         })

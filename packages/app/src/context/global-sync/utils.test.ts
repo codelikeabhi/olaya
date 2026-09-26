@@ -122,7 +122,7 @@ describe("normalizeProviderList", () => {
 
 describe("directoryKey", () => {
   test("normalizes slashes", () => {
-    expect(String(directoryKey("C:\\Repos\\sst\\olaya"))).toBe("C:/Repos/codelikeabhi/olaya")
+    expect(String(directoryKey("C:\\Repos\\codelikeabhi\\olaya"))).toBe("C:/Repos/codelikeabhi/olaya")
     expect(String(directoryKey("C:/Repos/codelikeabhi/olaya"))).toBe("C:/Repos/codelikeabhi/olaya")
   })
 

@@ -126,9 +126,16 @@
       "packages/schema/src/provider.ts",
       "packages/core/test/config/provider.test.ts",
       "packages/opencode/src/cli/cmd/github.handler.ts",
-      "packages/opencode/src/cli/cmd/providers.ts"
+      "packages/opencode/src/cli/cmd/providers.ts",
+      "packages/core/test/plugin/provider-opencode.test.ts",
+      "packages/core/test/plugin/provider-openrouter.test.ts",
+      "packages/core/test/plugin/provider-vercel.test.ts",
+      "packages/core/test/plugin/provider-zenmux.test.ts",
+      "packages/core/test/plugin/provider-kilo.test.ts",
+      "packages/core/test/plugin/provider-nvidia.test.ts",
+      "packages/core/test/plugin/provider-llmgateway.test.ts"
     ],
-    "re": "([\"'`])opencode\\1|\\bopencode/(?=[A-Za-z0-9])|(?<=[{,]\\s*)opencode(?=\\s*:)|X-Title[^\\n]*"
+    "re": "([\"'`])opencode\\1|\\bopencode/(?=[A-Za-z0-9])|(?<=[{,]\\s*)opencode(?=\\s*:)|X-Title[^\\n]*|\\bopencode-cli\\b"
   },
   "protectPaths": [
     "packages/ui/src/assets/icons/provider/opencode"
