@@ -50,7 +50,14 @@ export async function adoptLegacyDir(legacy: string, current: string): Promise<b
   }
   if (!(await exists(legacy)) || !(await hasContent(legacy))) return false
   if ((await exists(current)) && (await hasContent(current))) return false
-  await fs.cp(legacy, current, { recursive: true })
+  // Only real state is copied: config, credentials, databases. Trees that regenerate
+  // themselves are skipped; they can be large (snapshot repos) and are pinned to OpenCode's (olaya-rename:keep)
+  // versions (node_modules installed for its plugin SDK).
+  const regenerable = new Set(["node_modules", "snapshot", "log", "repos", "bin", "cache"])
+  await fs.cp(legacy, current, {
+    recursive: true,
+    filter: (src) => !path.relative(legacy, src).split(path.sep).some((part) => regenerable.has(part)),
+  })
   for (const name of await fs.readdir(current)) {
     if (!name.startsWith("opencode")) continue // olaya-rename:keep
     const renamed = "olaya" + name.slice("opencode".length) // olaya-rename:keep

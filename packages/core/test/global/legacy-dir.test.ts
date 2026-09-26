@@ -58,3 +58,17 @@ test("does not import over real content", async () => {
   expect(await adoptLegacyDir(path.join(root, "opencode"), path.join(root, "olaya"))).toBe(false)
   expect(await fs.readFile(path.join(root, "olaya", "olaya.json"), "utf8")).toBe('{"mine":true}')
 })
+
+test("copies state, not trees that regenerate (node_modules, snapshots, logs)", async () => {
+  const root = await tmp()
+  const legacy = path.join(root, "opencode")
+  const current = path.join(root, "olaya")
+  await fs.mkdir(path.join(legacy, "node_modules", "dep"), { recursive: true })
+  await fs.writeFile(path.join(legacy, "node_modules", "dep", "index.js"), "x")
+  await fs.mkdir(path.join(legacy, "snapshot", "abc"), { recursive: true })
+  await fs.writeFile(path.join(legacy, "snapshot", "abc", "obj"), "x")
+  await fs.writeFile(path.join(legacy, "auth.json"), "{}")
+  await fs.writeFile(path.join(legacy, "opencode.db"), "db")
+  expect(await adoptLegacyDir(legacy, current)).toBe(true)
+  expect((await fs.readdir(current)).sort()).toEqual([".imported-from-opencode", "auth.json", "olaya.db"])
+})
