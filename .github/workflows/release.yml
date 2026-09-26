@@ -1,0 +1,53 @@
+name: release
+
+# Builds the olaya CLI for every platform and attaches the archives to a DRAFT GitHub
+# release. Nothing becomes public until a maintainer reviews the draft and publishes it; the
+# install script (./install) downloads from published releases only.
+#
+# Not yet covered: desktop app bundles, macOS signing and notarisation, npm / Homebrew
+# publishing (see Installation.PUBLISHED: those channels stay disabled until they exist).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the leading v (e.g. 0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  cli:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Resolve version
+        id: version
+        run: |
+          VERSION="${{ inputs.version || github.ref_name }}"
+          echo "value=${VERSION#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "v${{ steps.version.outputs.value }}" --repo "${{ github.repository }}" >/dev/null 2>&1 ||
+            gh release create "v${{ steps.version.outputs.value }}" --repo "${{ github.repository }}" \
+              --draft --generate-notes --title "Olaya ${{ steps.version.outputs.value }}"
+
+      - name: Build every target and upload the archives
+        working-directory: packages/olaya
+        env:
+          OLAYA_VERSION: ${{ steps.version.outputs.value }}
+          OLAYA_RELEASE: "1"
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: bun run script/build.ts
