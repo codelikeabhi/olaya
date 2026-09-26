@@ -138,7 +138,7 @@ function getConfig() {
         appId,
         productName: "Olaya Beta",
         protocols: { name: "Olaya Beta", schemes: ["olaya"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "olaya-beta", channel: "latest" },
+        publish: { provider: "github", owner: "codelikeabhi", repo: "olaya-beta", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "olaya-beta", fpm: [metainfoFpm(appId)] },
       }
@@ -149,7 +149,7 @@ function getConfig() {
         appId,
         productName: "Olaya",
         protocols: { name: "Olaya", schemes: ["olaya"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "olaya", channel: "latest" },
+        publish: { provider: "github", owner: "codelikeabhi", repo: "olaya", channel: "latest" },
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
         rpm: { packageName: "olaya", fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
       }

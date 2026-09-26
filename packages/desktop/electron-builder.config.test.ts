@@ -89,3 +89,19 @@ for (const channel of ["beta", "prod"] as const) {
     })
   })
 }
+
+// The auto-updater installs whatever the publish target serves. It must point at a repository
+// this project controls, never at another organisation, where anyone who owned that name could
+// ship "updates" to every Olaya desktop install.
+for (const channel of ["beta", "prod"]) {
+  test(`${channel} updates come from the Olaya repository owner`, async () => {
+    const previous = process.env.OLAYA_CHANNEL
+    process.env.OLAYA_CHANNEL = channel
+    const module = await import(`./electron-builder.config.ts?publish=${channel}`)
+    if (previous === undefined) delete process.env.OLAYA_CHANNEL
+    else process.env.OLAYA_CHANNEL = previous
+    const publish = (module.default as Configuration).publish as { provider: string; owner: string }
+    expect(publish.provider).toBe("github")
+    expect(publish.owner).toBe("codelikeabhi")
+  })
+}
