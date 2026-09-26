@@ -1103,6 +1103,21 @@ export const dict = {
     "{{count}} model seçilib. Marşrutlaşdırma heç vaxt bu siyahıdan kənar model istifadə etmir.",
   "settings.routing.price": "1M token üçün giriş {{input}}, çıxış {{output}}",
   "settings.routing.price.none": "Qiymət göstərilməyib",
+  "settings.failover.title": "Provayder sıradan çıxanda",
+  "settings.failover.description":
+    "Model kvotasını tükətsə, uzun müddət sorğu limitinə düşsə, xəta versə və ya cavab verməyi dayandırsa, Olaya tapşırığı bütün konteksti ilə birlikdə bu siyahıdakı növbəti modelə köçürür və modeliniz yenidən əlçatan olanda ona qayıdır.",
+  "settings.failover.up": "Yuxarı köçür",
+  "settings.failover.remove": "Sil",
+  "settings.failover.add.title": "Ehtiyat model əlavə et",
+  "settings.failover.add.description": "Modellər tapşırıq üçün seçilmiş modeldən sonra bu ardıcıllıqla sınanır.",
+  "settings.failover.add.placeholder": "Model seç",
+  "settings.failover.wait.title": "Modelinizi gözləyin",
+  "settings.failover.wait.description":
+    "Modeliniz bu müddət ərzində yenidən əlçatan olacaqsa, siyahıda növbəti modelə keçmək əvəzinə o gözlənilir.",
+  "settings.failover.wait.never": "Gözləmə",
+  "settings.failover.wait.minutes": "{{count}} dəqiqəyə qədər",
+  "settings.failover.privacy":
+    "Bu siyahıdakı hər model tapşırığı öz üzərinə götürəndə kod da daxil olmaqla tapşırığın iş kontekstini alır. Yerli model onu bu maşında saxlayır.",
   "settings.agents.title": "Agentlər",
   "settings.agents.description": "Agent tənzimləmələri burada konfiqurasiya edilə biləcək.",
   "settings.commands.title": "Əmrlər",

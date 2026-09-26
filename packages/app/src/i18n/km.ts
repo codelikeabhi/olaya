@@ -1084,6 +1084,22 @@ export const dict = {
   "settings.routing.selected": "បានជ្រើសរើសម៉ូដែល {{count}}។ ការកំណត់ផ្លូវមិនដែលប្រើម៉ូដែលក្រៅបញ្ជីនេះទេ។",
   "settings.routing.price": "ធាតុចូល {{input}}, ធាតុចេញ {{output}} ក្នុងមួយ 1M Token",
   "settings.routing.price.none": "មិនមានតម្លៃបញ្ជាក់",
+  "settings.failover.title": "នៅពេលអ្នកផ្តល់សេវាមានបញ្ហា",
+  "settings.failover.description":
+    "ប្រសិនបើម៉ូដែលអស់កូតា ត្រូវបានកំណត់អត្រាយូរ បរាជ័យ ឬឈប់ឆ្លើយតប Olaya នឹងផ្ទេរកិច្ចការទៅម៉ូដែលបន្ទាប់ក្នុងបញ្ជីនេះ ជាមួយបរិបទទាំងមូលរបស់វា ហើយត្រឡប់មកម៉ូដែលរបស់អ្នកវិញ នៅពេលវាអាចប្រើបានម្តងទៀត។",
+  "settings.failover.up": "ផ្លាស់ទីឡើងលើ",
+  "settings.failover.remove": "យកចេញ",
+  "settings.failover.add.title": "បន្ថែមម៉ូដែលបម្រុង",
+  "settings.failover.add.description":
+    "ម៉ូដែលត្រូវបានសាកល្បងតាមលំដាប់នេះ បន្ទាប់ពីម៉ូដែលដែលបានជ្រើសរើសសម្រាប់កិច្ចការ។",
+  "settings.failover.add.placeholder": "ជ្រើសរើសម៉ូដែល",
+  "settings.failover.wait.title": "រង់ចាំម៉ូដែលរបស់អ្នក",
+  "settings.failover.wait.description":
+    "ប្រសិនបើម៉ូដែលរបស់អ្នកនឹងអាចប្រើបានម្តងទៀតក្នុងរយៈពេលនេះ វានឹងត្រូវបានរង់ចាំ ជំនួសឱ្យការប្តូរទៅម៉ូដែលបន្ទាប់ក្នុងបញ្ជី។",
+  "settings.failover.wait.never": "កុំរង់ចាំ",
+  "settings.failover.wait.minutes": "រហូតដល់ {{count}} នាទី",
+  "settings.failover.privacy":
+    "ម៉ូដែលនីមួយៗក្នុងបញ្ជីនេះទទួលបានបរិបទការងាររបស់កិច្ចការ រួមទាំងកូដ នៅពេលវាទទួលបន្ត។ ម៉ូដែលក្នុងស្រុករក្សាវានៅលើម៉ាស៊ីននេះ។",
   "settings.agents.title": "ភ្នាក់ងារ",
   "settings.agents.description": "ការកំណត់ភ្នាក់ងារនឹងអាចកំណត់បាននៅទីនេះ។",
   "settings.commands.title": "ពាក្យបញ្ជា",

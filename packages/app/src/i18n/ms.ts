@@ -1091,6 +1091,21 @@ export const dict = {
     "{{count}} model dipilih. Penghalaan tidak sekali-kali menggunakan model di luar senarai ini.",
   "settings.routing.price": "Input {{input}}, output {{output}} bagi setiap 1M token",
   "settings.routing.price.none": "Tiada harga disenaraikan",
+  "settings.failover.title": "Apabila penyedia gagal",
+  "settings.failover.description":
+    "Jika kuota model habis, model dihadkan kadarnya untuk tempoh lama, gagal atau berhenti bertindak balas, Olaya memindahkan tugas ke model seterusnya dalam senarai ini bersama seluruh konteksnya, dan kembali ke model anda apabila model itu tersedia semula.",
+  "settings.failover.up": "Alih ke atas",
+  "settings.failover.remove": "Buang",
+  "settings.failover.add.title": "Tambah model sandaran",
+  "settings.failover.add.description": "Model dicuba mengikut susunan ini, selepas model yang dipilih untuk tugas.",
+  "settings.failover.add.placeholder": "Pilih model",
+  "settings.failover.wait.title": "Tunggu model anda",
+  "settings.failover.wait.description":
+    "Jika model anda akan tersedia semula dalam tempoh ini, ia akan ditunggu dan bukannya beralih ke model seterusnya dalam senarai.",
+  "settings.failover.wait.never": "Jangan tunggu",
+  "settings.failover.wait.minutes": "Sehingga {{count}} minit",
+  "settings.failover.privacy":
+    "Setiap model dalam senarai ini menerima konteks kerja tugas, termasuk kod, apabila mengambil alih. Model setempat menyimpannya pada mesin ini.",
   "settings.agents.title": "Ejen",
   "settings.agents.description": "Tetapan ejen boleh dikonfigurasi di sini.",
   "settings.commands.title": "Arahan",

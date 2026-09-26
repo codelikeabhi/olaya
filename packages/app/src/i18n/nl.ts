@@ -1103,6 +1103,22 @@ export const dict = {
   "settings.routing.selected": "{{count}} modellen geselecteerd. Routering gebruikt nooit een model buiten deze lijst.",
   "settings.routing.price": "{{input}} invoer, {{output}} uitvoer per 1M tokens",
   "settings.routing.price.none": "Geen prijs vermeld",
+  "settings.failover.title": "Als een aanbieder uitvalt",
+  "settings.failover.description":
+    "Als een model door zijn quotum heen is, langdurig een rate limit krijgt, faalt of niet meer reageert, zet Olaya de taak met de volledige context voort op het volgende model in deze lijst en keert terug naar je model zodra dat weer beschikbaar is.",
+  "settings.failover.up": "Omhoog",
+  "settings.failover.remove": "Verwijderen",
+  "settings.failover.add.title": "Reservemodel toevoegen",
+  "settings.failover.add.description":
+    "Modellen worden in deze volgorde geprobeerd, na het model dat voor de taak is gekozen.",
+  "settings.failover.add.placeholder": "Kies een model",
+  "settings.failover.wait.title": "Wachten op je model",
+  "settings.failover.wait.description":
+    "Als je model binnen deze tijd weer beschikbaar is, wordt erop gewacht in plaats van verder te gaan in de lijst.",
+  "settings.failover.wait.never": "Niet wachten",
+  "settings.failover.wait.minutes": "Tot {{count}} minuten",
+  "settings.failover.privacy":
+    "Elk model in deze lijst ontvangt de werkcontext van de taak, inclusief code, wanneer het de taak overneemt. Een lokaal model houdt die op deze machine.",
   "settings.agents.title": "Agenten",
   "settings.agents.description": "Agentinstellingen kunnen hier worden geconfigureerd.",
   "settings.commands.title": "Commando's",

@@ -993,6 +993,21 @@ export const dict = {
     "Valittuja malleja: {{count}}. Reititys ei koskaan käytä mallia, joka ei ole tällä listalla.",
   "settings.routing.price": "Syöte {{input}}, tuloste {{output}} 1M tokenia kohden",
   "settings.routing.price.none": "Hintaa ei ilmoitettu",
+  "settings.failover.title": "Kun palveluntarjoaja pettää",
+  "settings.failover.description":
+    "Jos mallin kiintiö loppuu, sitä rajoitetaan pitkään pyyntörajoilla, se epäonnistuu tai lakkaa vastaamasta, Olaya siirtää tehtävän koko kontekstinsa kanssa tämän listan seuraavalle mallille ja palaa malliisi, kun se on taas käytettävissä.",
+  "settings.failover.up": "Siirrä ylös",
+  "settings.failover.remove": "Poista",
+  "settings.failover.add.title": "Lisää varamalli",
+  "settings.failover.add.description": "Malleja kokeillaan tässä järjestyksessä tehtävälle valitun mallin jälkeen.",
+  "settings.failover.add.placeholder": "Valitse malli",
+  "settings.failover.wait.title": "Odota malliasi",
+  "settings.failover.wait.description":
+    "Jos mallisi on taas käytettävissä tämän ajan kuluessa, sitä odotetaan sen sijaan, että siirryttäisiin listalla eteenpäin.",
+  "settings.failover.wait.never": "Älä odota",
+  "settings.failover.wait.minutes": "Enintään {{count}} minuuttia",
+  "settings.failover.privacy":
+    "Jokainen tämän listan malli saa tehtävän työkontekstin koodi mukaan lukien, kun se ottaa tehtävän hoitaakseen. Paikallinen malli pitää sen tällä koneella.",
   "settings.agents.title": "Agentit",
   "settings.agents.description": "Agentin asetukset voidaan määrittää täällä.",
   "settings.commands.title": "Komennot",

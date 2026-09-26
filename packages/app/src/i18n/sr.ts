@@ -1094,6 +1094,21 @@ export const dict = {
   "settings.routing.selected": "Изабрани модели: {{count}}. Рутирање никада не користи модел ван ове листе.",
   "settings.routing.price": "Улаз {{input}}, излаз {{output}} по 1M токена",
   "settings.routing.price.none": "Цена није наведена",
+  "settings.failover.title": "Када добављач закаже",
+  "settings.failover.description":
+    "Ако модел потроши квоту, дуго је ограничен бројем захтева, не успе или престане да одговара, Olaya премешта задатак са целим контекстом на следећи модел са ове листе и враћа се на ваш модел када поново буде доступан.",
+  "settings.failover.up": "Помери нагоре",
+  "settings.failover.remove": "Уклони",
+  "settings.failover.add.title": "Додајте резервни модел",
+  "settings.failover.add.description": "Модели се испробавају овим редоследом, после модела изабраног за задатак.",
+  "settings.failover.add.placeholder": "Изаберите модел",
+  "settings.failover.wait.title": "Сачекајте свој модел",
+  "settings.failover.wait.description":
+    "Ако ће ваш модел поново бити доступан у овом року, чека се на њега уместо преласка на следећи модел са листе.",
+  "settings.failover.wait.never": "Не чекај",
+  "settings.failover.wait.minutes": "До {{count}} мин",
+  "settings.failover.privacy":
+    "Сваки модел са ове листе добија радни контекст задатка, укључујући код, када га преузме. Локални модел га задржава на овој машини.",
   "settings.agents.title": "Агенти",
   "settings.agents.description": "Овде ће се моћи конфигурисати подешавања агента.",
   "settings.commands.title": "команде",

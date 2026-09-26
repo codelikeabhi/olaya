@@ -1087,6 +1087,21 @@ export const dict: Record<string, string> = {
     "තෝරාගත් ආකෘති: {{count}}. මාර්ගකරණය කිසිවිටෙක මෙම ලැයිස්තුවෙන් පිටත ආකෘතියක් භාවිත නොකරයි.",
   "settings.routing.price": "ටෝකන 1M කට ආදානය {{input}}, ප්‍රතිදානය {{output}}",
   "settings.routing.price.none": "මිලක් ලැයිස්තුගත කර නැත",
+  "settings.failover.title": "සපයන්නෙකු අසාර්ථක වූ විට",
+  "settings.failover.description":
+    "ආකෘතියක කෝටාව අවසන් වුවහොත්, දිගු කලක් අනුපාත සීමාවකට ලක් වුවහොත්, අසාර්ථක වුවහොත් හෝ ප්‍රතිචාර දැක්වීම නැවැත්වුවහොත්, Olaya කාර්යය එහි සම්පූර්ණ සන්දර්භය සමඟ මෙම ලැයිස්තුවේ ඊළඟ ආකෘතියට ගෙන යන අතර, ඔබේ ආකෘතිය නැවත ලබා ගත හැකි වූ විට එයට ආපසු යයි.",
+  "settings.failover.up": "ඉහළට ගෙන යන්න",
+  "settings.failover.remove": "ඉවත් කරන්න",
+  "settings.failover.add.title": "උපස්ථ ආකෘතියක් එක් කරන්න",
+  "settings.failover.add.description": "කාර්යය සඳහා තෝරාගත් ආකෘතියෙන් පසුව, ආකෘති මෙම අනුපිළිවෙළින් උත්සාහ කරනු ලැබේ.",
+  "settings.failover.add.placeholder": "ආකෘතියක් තෝරන්න",
+  "settings.failover.wait.title": "ඔබේ ආකෘතිය එනතුරු රැඳී සිටින්න",
+  "settings.failover.wait.description":
+    "ඔබේ ආකෘතිය මෙම කාලය තුළ නැවත ලබා ගත හැකි වන්නේ නම්, ලැයිස්තුවේ ඊළඟ ආකෘතියට යනවා වෙනුවට එය එනතුරු රැඳී සිටියි.",
+  "settings.failover.wait.never": "රැඳී නොසිටින්න",
+  "settings.failover.wait.minutes": "මිනිත්තු {{count}} දක්වා",
+  "settings.failover.privacy":
+    "මෙම ලැයිස්තුවේ සෑම ආකෘතියක්ම කාර්යය භාර ගන්නා විට කේතය ද ඇතුළුව කාර්යයේ වැඩ සන්දර්භය ලබා ගනී. දේශීය ආකෘතියක් එය මෙම යන්ත්‍රයේම තබා ගනී.",
   "settings.agents.title": "නියෝජිතයන්",
   "settings.agents.description": "නියෝජිත සැකසුම් මෙහි වින්‍යාස කළ හැක.",
   "settings.commands.title": "විධාන",

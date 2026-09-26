@@ -1057,6 +1057,20 @@ export const dict = {
   "settings.routing.selected": "已选择 {{count}} 个模型。路由绝不会使用此列表以外的模型。",
   "settings.routing.price": "每 1M token 输入 {{input}}，输出 {{output}}",
   "settings.routing.price.none": "未列出价格",
+  "settings.failover.title": "当提供商出现故障时",
+  "settings.failover.description":
+    "如果某个模型配额用尽、长时间受到速率限制、出错或停止响应，Olaya 会将任务连同完整上下文转移到此列表中的下一个模型，并在你的模型恢复可用后切回。",
+  "settings.failover.up": "上移",
+  "settings.failover.remove": "移除",
+  "settings.failover.add.title": "添加备用模型",
+  "settings.failover.add.description": "在为任务选择的模型之后，按此顺序尝试这些模型。",
+  "settings.failover.add.placeholder": "选择模型",
+  "settings.failover.wait.title": "等待你的模型",
+  "settings.failover.wait.description": "如果你的模型会在此时间内恢复可用，则等待它，而不是切换到列表中的下一个模型。",
+  "settings.failover.wait.never": "不等待",
+  "settings.failover.wait.minutes": "最多 {{count}} 分钟",
+  "settings.failover.privacy":
+    "此列表中的每个模型在接手时都会收到任务的工作上下文，包括代码。本地模型会将其保留在这台设备上。",
 
   "settings.agents.title": "智能体",
   "settings.agents.description": "可在此处配置智能体设置。",

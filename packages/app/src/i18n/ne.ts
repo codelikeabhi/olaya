@@ -1090,6 +1090,21 @@ export const dict: Record<string, string> = {
   "settings.routing.selected": "{{count}} मोडेल चयन गरिए। राउटिङले यो सूचीबाहिरको मोडेल कहिल्यै प्रयोग गर्दैन।",
   "settings.routing.price": "प्रति 1M टोकन इनपुट {{input}}, आउटपुट {{output}}",
   "settings.routing.price.none": "मूल्य सूचीबद्ध छैन",
+  "settings.failover.title": "प्रदायक असफल हुँदा",
+  "settings.failover.description":
+    "कुनै मोडेलको कोटा सकियो, लामो समयसम्म दर-सीमामा पर्‍यो, असफल भयो वा जवाफ दिन छोड्यो भने Olaya ले कार्यलाई यसको पूरा सन्दर्भसहित यो सूचीको अर्को मोडेलमा सार्छ र तपाईंको मोडेल फेरि उपलब्ध भएपछि त्यसमै फर्कन्छ।",
+  "settings.failover.up": "माथि सार्नुहोस्",
+  "settings.failover.remove": "हटाउनुहोस्",
+  "settings.failover.add.title": "ब्याकअप मोडेल थप्नुहोस्",
+  "settings.failover.add.description": "कार्यका लागि छानिएको मोडेलपछि मोडेलहरू यही क्रममा प्रयास गरिन्छन्।",
+  "settings.failover.add.placeholder": "मोडेल छान्नुहोस्",
+  "settings.failover.wait.title": "आफ्नो मोडेलको प्रतीक्षा गर्नुहोस्",
+  "settings.failover.wait.description":
+    "तपाईंको मोडेल यो समयभित्र फेरि उपलब्ध हुने भए सूचीको अर्को मोडेलमा जानुको सट्टा त्यसको प्रतीक्षा गरिन्छ।",
+  "settings.failover.wait.never": "प्रतीक्षा नगर्नुहोस्",
+  "settings.failover.wait.minutes": "{{count}} मिनेटसम्म",
+  "settings.failover.privacy":
+    "यो सूचीको प्रत्येक मोडेलले कार्य सम्हाल्दा कोडसहित कार्यको कार्य-सन्दर्भ प्राप्त गर्छ। स्थानीय मोडेलले यसलाई यही मेसिनमा राख्छ।",
   "settings.agents.title": "एजेन्टहरू",
   "settings.agents.description": "एजेन्ट सेटिङहरू यहाँ कन्फिगर योग्य हुनेछ।",
   "settings.commands.title": "आदेशहरू",

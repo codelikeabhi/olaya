@@ -998,6 +998,21 @@ export const dict = {
     "{{count}} 個のモデルが選択されています。ルーティングでこのリスト外のモデルが使われることはありません。",
   "settings.routing.price": "1M トークンあたり入力 {{input}}、出力 {{output}}",
   "settings.routing.price.none": "価格の記載なし",
+  "settings.failover.title": "プロバイダーに障害が起きたとき",
+  "settings.failover.description":
+    "モデルのクォータが尽きた場合、長時間レート制限を受けた場合、失敗した場合、または応答しなくなった場合、Olayaはタスクをコンテキストごとこのリストの次のモデルに移し、元のモデルが再び利用可能になるとそのモデルに戻ります。",
+  "settings.failover.up": "上へ移動",
+  "settings.failover.remove": "削除",
+  "settings.failover.add.title": "フォールバックモデルを追加",
+  "settings.failover.add.description": "タスクに選択したモデルの後、この順番でモデルを試します。",
+  "settings.failover.add.placeholder": "モデルを選択",
+  "settings.failover.wait.title": "元のモデルを待つ",
+  "settings.failover.wait.description":
+    "この時間内に元のモデルが再び利用可能になる場合は、リストの次のモデルに移らずに待機します。",
+  "settings.failover.wait.never": "待たない",
+  "settings.failover.wait.minutes": "最大 {{count}} 分",
+  "settings.failover.privacy":
+    "このリストのモデルは、タスクを引き継ぐ際にコードを含むタスクの作業コンテキストを受け取ります。ローカルモデルの場合、コンテキストはこのマシン内にとどまります。",
   "settings.agents.title": "エージェント",
   "settings.agents.description": "エージェント設定は今後ここで構成できるようになります。",
   "settings.commands.title": "コマンド",

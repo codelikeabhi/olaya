@@ -1093,6 +1093,21 @@ export const dict = {
   "settings.routing.selected": "{{count}} model seçildi. Yönlendirme bu listenin dışındaki bir modeli asla kullanmaz.",
   "settings.routing.price": "1M token başına girdi {{input}}, çıktı {{output}}",
   "settings.routing.price.none": "Fiyat belirtilmemiş",
+  "settings.failover.title": "Bir sağlayıcı arızalandığında",
+  "settings.failover.description":
+    "Bir modelin kotası dolarsa, uzun süre hız sınırına takılırsa, hata verirse veya yanıt vermeyi bırakırsa Olaya görevi tüm bağlamıyla birlikte bu listedeki sonraki modele taşır ve modeliniz yeniden kullanılabilir olduğunda ona geri döner.",
+  "settings.failover.up": "Yukarı taşı",
+  "settings.failover.remove": "Kaldır",
+  "settings.failover.add.title": "Yedek model ekle",
+  "settings.failover.add.description": "Modeller, görev için seçilen modelden sonra bu sırayla denenir.",
+  "settings.failover.add.placeholder": "Bir model seçin",
+  "settings.failover.wait.title": "Modelinizi bekleyin",
+  "settings.failover.wait.description":
+    "Modeliniz bu süre içinde yeniden kullanılabilir olacaksa, listede sonraki modele geçmek yerine o beklenir.",
+  "settings.failover.wait.never": "Bekleme",
+  "settings.failover.wait.minutes": "En fazla {{count}} dakika",
+  "settings.failover.privacy":
+    "Bu listedeki her model, görevi devraldığında kod dahil görevin çalışma bağlamını alır. Yerel bir model bunu bu makinede tutar.",
   "settings.agents.title": "Ajanlar",
   "settings.agents.description": "Ajan ayarları burada yapılandırılabilecek.",
   "settings.commands.title": "Komutlar",

@@ -1092,6 +1092,21 @@ export const dict = {
   "settings.routing.selected": "{{count}} model saýlandy. Ugrukdyrma bu sanawyň daşyndaky modeli hiç haçan ulanmaýar.",
   "settings.routing.price": "1M belgi üçin giriş {{input}}, çykyş {{output}}",
   "settings.routing.price.none": "Baha görkezilmedi",
+  "settings.failover.title": "Üpjün ediji näsaz bolanda",
+  "settings.failover.description":
+    "Eger modeliň kwotasy gutarsa, ol uzak wagtlap haýyş çägine düşse, şowsuz bolsa ýa-da jogap bermesini bes etse, Olaya işi ähli konteksti bilen bu sanawdaky indiki modele geçirýär we modeliňiz ýene elýeterli bolanda oňa gaýdyp gelýär.",
+  "settings.failover.up": "Ýokary geçir",
+  "settings.failover.remove": "Aýyr",
+  "settings.failover.add.title": "Ätiýaçlyk model goşuň",
+  "settings.failover.add.description": "Modeller iş üçin saýlanan modelden soň şu tertipde synanyşylýar.",
+  "settings.failover.add.placeholder": "Model saýlaň",
+  "settings.failover.wait.title": "Modeliňize garaşyň",
+  "settings.failover.wait.description":
+    "Modeliňiz şu wagtyň içinde ýene elýeterli boljak bolsa, sanawdaky indiki modele geçmegiň ýerine oňa garaşylýar.",
+  "settings.failover.wait.never": "Garaşma",
+  "settings.failover.wait.minutes": "{{count}} minuda çenli",
+  "settings.failover.privacy":
+    "Bu sanawdaky her model işi öz üstüne alanda, kody hem goşmak bilen, işiň iş kontekstini alýar. Ýerli model ony şu enjamda saklaýar.",
   "settings.agents.title": "Agentler",
   "settings.agents.description": "Agent sazlamalary bu ýerde düzülip bilner.",
   "settings.commands.title": "Buýruklar",

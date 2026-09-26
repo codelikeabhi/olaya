@@ -1085,6 +1085,21 @@ export const dict = {
     "Valitud mudeleid: {{count}}. Marsruutimine ei kasuta kunagi mudelit, mis pole selles loendis.",
   "settings.routing.price": "Sisend {{input}}, väljund {{output}} 1M tokeni kohta",
   "settings.routing.price.none": "Hind puudub",
+  "settings.failover.title": "Kui pakkuja tõrgub",
+  "settings.failover.description":
+    "Kui mudeli kvoot saab otsa, see on pikalt päringupiirangu all, ebaõnnestub või lakkab vastamast, viib Olaya ülesande koos kogu kontekstiga selle loendi järgmisele mudelile ja naaseb teie mudeli juurde, kui see on jälle saadaval.",
+  "settings.failover.up": "Liiguta üles",
+  "settings.failover.remove": "Eemalda",
+  "settings.failover.add.title": "Lisa varumudel",
+  "settings.failover.add.description": "Mudeleid proovitakse selles järjekorras pärast ülesande jaoks valitud mudelit.",
+  "settings.failover.add.placeholder": "Valige mudel",
+  "settings.failover.wait.title": "Oota oma mudelit",
+  "settings.failover.wait.description":
+    "Kui teie mudel on selle aja jooksul jälle saadaval, oodatakse seda, selle asemel et loendis edasi liikuda.",
+  "settings.failover.wait.never": "Ära oota",
+  "settings.failover.wait.minutes": "Kuni {{count}} minutit",
+  "settings.failover.privacy":
+    "Iga selle loendi mudel saab ülesande üle võttes selle töökonteksti, sealhulgas koodi. Kohalik mudel hoiab seda selles masinas.",
   "settings.agents.title": "Agendid",
   "settings.agents.description": "Agendi seadeid saab siin konfigureerida.",
   "settings.commands.title": "Käsud",

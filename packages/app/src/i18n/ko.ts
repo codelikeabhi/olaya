@@ -722,6 +722,21 @@ export const dict = {
   "settings.routing.selected": "모델 {{count}}개 선택됨. 라우팅은 이 목록 밖의 모델을 절대 사용하지 않습니다.",
   "settings.routing.price": "1M 토큰당 입력 {{input}}, 출력 {{output}}",
   "settings.routing.price.none": "가격 정보 없음",
+  "settings.failover.title": "공급자에 장애가 있을 때",
+  "settings.failover.description":
+    "모델의 할당량이 소진되거나, 오랫동안 속도 제한에 걸리거나, 실패하거나, 응답하지 않으면 Olaya가 작업을 전체 컨텍스트와 함께 이 목록의 다음 모델로 옮기고, 원래 모델을 다시 사용할 수 있게 되면 그 모델로 돌아갑니다.",
+  "settings.failover.up": "위로 이동",
+  "settings.failover.remove": "제거",
+  "settings.failover.add.title": "대체 모델 추가",
+  "settings.failover.add.description": "작업에 선택된 모델 다음으로 이 순서대로 모델을 시도합니다.",
+  "settings.failover.add.placeholder": "모델 선택",
+  "settings.failover.wait.title": "원래 모델 기다리기",
+  "settings.failover.wait.description":
+    "이 시간 안에 원래 모델을 다시 사용할 수 있게 되면 목록의 다음 모델로 넘어가지 않고 기다립니다.",
+  "settings.failover.wait.never": "기다리지 않음",
+  "settings.failover.wait.minutes": "최대 {{count}}분",
+  "settings.failover.privacy":
+    "이 목록의 모든 모델은 작업을 넘겨받을 때 코드를 포함한 작업 컨텍스트를 받습니다. 로컬 모델은 이를 이 컴퓨터에만 보관합니다.",
   "settings.agents.title": "에이전트",
   "settings.agents.description": "에이전트 설정은 여기서 구성할 수 있습니다.",
   "settings.commands.title": "명령어",

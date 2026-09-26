@@ -1015,6 +1015,21 @@ export const dict = {
   "settings.routing.selected": "{{count}} modelos selecionados. O roteamento nunca usa um modelo fora desta lista.",
   "settings.routing.price": "{{input}} de entrada, {{output}} de saída por 1M de tokens",
   "settings.routing.price.none": "Nenhum preço informado",
+  "settings.failover.title": "Quando um provedor falha",
+  "settings.failover.description":
+    "Se um modelo esgotar a cota, ficar limitado por taxa por muito tempo, falhar ou parar de responder, o Olaya passa a tarefa para o próximo modelo desta lista, com todo o contexto, e volta para o seu modelo quando ele estiver disponível de novo.",
+  "settings.failover.up": "Mover para cima",
+  "settings.failover.remove": "Remover",
+  "settings.failover.add.title": "Adicionar modelo reserva",
+  "settings.failover.add.description": "Os modelos são tentados nesta ordem, depois do modelo escolhido para a tarefa.",
+  "settings.failover.add.placeholder": "Escolher um modelo",
+  "settings.failover.wait.title": "Aguardar seu modelo",
+  "settings.failover.wait.description":
+    "Se o seu modelo voltar a ficar disponível dentro desse prazo, o Olaya espera por ele em vez de passar para o próximo da lista.",
+  "settings.failover.wait.never": "Não aguardar",
+  "settings.failover.wait.minutes": "Até {{count}} minutos",
+  "settings.failover.privacy":
+    "Todo modelo desta lista recebe o contexto de trabalho da tarefa, incluindo o código, quando assume. Um modelo local mantém isso neste computador.",
   "settings.agents.title": "Agentes",
   "settings.agents.description": "Configurações de agentes estarão disponíveis aqui.",
   "settings.commands.title": "Comandos",

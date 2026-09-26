@@ -1067,6 +1067,21 @@ export const dict = {
   "settings.routing.selected": "เลือกแล้ว {{count}} โมเดล การกำหนดเส้นทางจะไม่ใช้โมเดลนอกรายการนี้เลย",
   "settings.routing.price": "อินพุต {{input}}, เอาต์พุต {{output}} ต่อ 1M โทเค็น",
   "settings.routing.price.none": "ไม่มีราคาระบุ",
+  "settings.failover.title": "เมื่อผู้ให้บริการขัดข้อง",
+  "settings.failover.description":
+    "หากโมเดลใช้โควตาหมด ถูกจำกัดอัตราเป็นเวลานาน ล้มเหลว หรือหยุดตอบสนอง Olaya จะย้ายงานพร้อมบริบททั้งหมดไปยังโมเดลถัดไปในรายการนี้ และกลับมาใช้โมเดลของคุณเมื่อโมเดลนั้นพร้อมใช้งานอีกครั้ง",
+  "settings.failover.up": "เลื่อนขึ้น",
+  "settings.failover.remove": "ลบ",
+  "settings.failover.add.title": "เพิ่มโมเดลสำรอง",
+  "settings.failover.add.description": "ระบบจะลองใช้โมเดลตามลำดับนี้ ต่อจากโมเดลที่เลือกไว้สำหรับงาน",
+  "settings.failover.add.placeholder": "เลือกโมเดล",
+  "settings.failover.wait.title": "รอโมเดลของคุณ",
+  "settings.failover.wait.description":
+    "หากโมเดลของคุณจะกลับมาพร้อมใช้งานภายในเวลานี้ ระบบจะรอโมเดลนั้นแทนการเลื่อนไปยังโมเดลถัดไปในรายการ",
+  "settings.failover.wait.never": "ไม่รอ",
+  "settings.failover.wait.minutes": "สูงสุด {{count}} นาที",
+  "settings.failover.privacy":
+    "ทุกโมเดลในรายการนี้จะได้รับบริบทการทำงานของงาน รวมถึงโค้ด เมื่อรับช่วงต่อ โมเดลในเครื่องจะเก็บข้อมูลนี้ไว้บนเครื่องนี้",
   "settings.agents.title": "เอเจนต์",
   "settings.agents.description": "การตั้งค่าเอเจนต์จะสามารถกำหนดค่าได้ที่นี่",
   "settings.commands.title": "คำสั่ง",

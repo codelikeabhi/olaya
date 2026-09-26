@@ -1087,6 +1087,22 @@ export const dict = {
   "settings.routing.selected": "{{count}} modell vald. Routing brúkar ongantíð eitt modell uttan fyri hendan listan.",
   "settings.routing.price": "{{input}} inn, {{output}} út fyri hvørji 1M merki",
   "settings.routing.price.none": "Eingin prísur upplýstur",
+  "settings.failover.title": "Tá ið ein veitari svíkur",
+  "settings.failover.description":
+    "Um eitt modell hevur brúkt kvotuna, er avmarkað í longri tíð, miseydnast ella gevst at svara, flytur Olaya uppgávuna til næsta modell á hesum listanum saman við øllum samanhanginum og fer aftur til títt modell, tá ið tað er tøkt aftur.",
+  "settings.failover.up": "Flyt upp",
+  "settings.failover.remove": "Strika",
+  "settings.failover.add.title": "Legg eitt varamodell til",
+  "settings.failover.add.description":
+    "Modellini verða roynd í hesi raðfylgju, eftir modellinum, sum er valt til uppgávuna.",
+  "settings.failover.add.placeholder": "Vel eitt modell",
+  "settings.failover.wait.title": "Bíða eftir tínum modelli",
+  "settings.failover.wait.description":
+    "Um títt modell verður tøkt aftur innan hesa tíðina, verður bíðað eftir tí heldur enn at fara víðari niður eftir listanum.",
+  "settings.failover.wait.never": "Bíða ikki",
+  "settings.failover.wait.minutes": "Upp til {{count}} minuttir",
+  "settings.failover.privacy":
+    "Hvørt modell á hesum listanum fær arbeiðssamanhangin hjá uppgávuni, íroknað kotu, tá ið tað tekur við. Eitt lokalt modell varðveitir hann á hesi maskinuni.",
   "settings.agents.title": "Agentar",
   "settings.agents.description": "Agentinnstillingar verða stillaðar her.",
   "settings.commands.title": "Skipanir",

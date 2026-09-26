@@ -1016,6 +1016,21 @@ export const dict = {
   "settings.routing.selected": "Wybrane modele: {{count}}. Routing nigdy nie używa modelu spoza tej listy.",
   "settings.routing.price": "Wejście {{input}}, wyjście {{output}} za 1M tokenów",
   "settings.routing.price.none": "Brak podanej ceny",
+  "settings.failover.title": "Gdy dostawca zawiedzie",
+  "settings.failover.description":
+    "Jeśli model wyczerpie limit, długo podlega ograniczeniu liczby zapytań, zwraca błędy lub przestaje odpowiadać, Olaya przenosi zadanie wraz z całym kontekstem do następnego modelu z tej listy i wraca do pierwotnego modelu, gdy znów będzie dostępny.",
+  "settings.failover.up": "Przenieś wyżej",
+  "settings.failover.remove": "Usuń",
+  "settings.failover.add.title": "Dodaj model zapasowy",
+  "settings.failover.add.description": "Modele są próbowane w tej kolejności, po modelu wybranym dla zadania.",
+  "settings.failover.add.placeholder": "Wybierz model",
+  "settings.failover.wait.title": "Czekaj na swój model",
+  "settings.failover.wait.description":
+    "Jeśli pierwotny model będzie znów dostępny w tym czasie, Olaya na niego zaczeka zamiast przechodzić do kolejnego modelu z listy.",
+  "settings.failover.wait.never": "Nie czekaj",
+  "settings.failover.wait.minutes": "Do {{count}} min",
+  "settings.failover.privacy":
+    "Każdy model z tej listy otrzymuje kontekst roboczy zadania, w tym kod, gdy je przejmuje. Model lokalny zachowuje go na tym komputerze.",
   "settings.agents.title": "Agenci",
   "settings.agents.description": "Ustawienia agentów będą tutaj konfigurowalne.",
   "settings.commands.title": "Polecenia",

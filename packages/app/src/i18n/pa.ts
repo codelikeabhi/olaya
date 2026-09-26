@@ -1094,6 +1094,21 @@ export const dict = {
   "settings.routing.selected": "{{count}} ماڈل چنے گئے۔ روٹنگ کدے وی ایس لسٹ توں باہر دا ماڈل نئیں ورتدی۔",
   "settings.routing.price": "ہر 1M ٹوکن لئی ان پٹ {{input}}، آؤٹ پٹ {{output}}",
   "settings.routing.price.none": "کوئی قیمت درج نئیں",
+  "settings.failover.title": "جدوں کوئی پرووائیڈر فیل ہو جاوے",
+  "settings.failover.description":
+    "جے کسے ماڈل دا کوٹا مک جاوے، اوہ لمے ویلے تک ریٹ لمٹ وچ رہوے، فیل ہو جاوے یا جواب دینا بند کر دیوے، تاں Olaya کم نوں اوہدے پورے تناظر سمیت ایس لسٹ دے اگلے ماڈل تے لے جاندا اے، تے تہاڈا ماڈل مڑ دستیاب ہون تے اوہدے ول پرت آؤندا اے۔",
+  "settings.failover.up": "اُتے لے جاؤ",
+  "settings.failover.remove": "ہٹا دیو",
+  "settings.failover.add.title": "بیک اپ ماڈل شامل کرو",
+  "settings.failover.add.description": "کم لئی چنے گئے ماڈل توں بعد، ماڈل ایسے ترتیب نال آزمائے جاندے نیں۔",
+  "settings.failover.add.placeholder": "ماڈل چنو",
+  "settings.failover.wait.title": "اپنے ماڈل دی اڈیک کرو",
+  "settings.failover.wait.description":
+    "جے تہاڈا ماڈل ایس ویلے دے اندر مڑ دستیاب ہو جاوے، تاں لسٹ دے اگلے ماڈل تے جان دی بجائے اوہدی اڈیک کیتی جاندی اے۔",
+  "settings.failover.wait.never": "اڈیک نہ کرو",
+  "settings.failover.wait.minutes": "{{count}} منٹ تک",
+  "settings.failover.privacy":
+    "ایس لسٹ دا ہر ماڈل کم سنبھالن ویلے کوڈ سمیت کم دا تناظر حاصل کردا اے۔ مقامی ماڈل ایہنوں ایسے مشین تے رکھدا اے۔",
   "settings.agents.title": "ایجنٹاں",
   "settings.agents.description": "Agent ترتیبات ایتھے ترتیب دے قابل ہون گیاں۔",
   "settings.commands.title": "کمانڈز",

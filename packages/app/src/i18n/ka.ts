@@ -1090,6 +1090,21 @@ export const dict = {
     "არჩეულია {{count}} მოდელი. მარშრუტიზაცია არასოდეს იყენებს ამ სიის გარეთ არსებულ მოდელს.",
   "settings.routing.price": "შეყვანა {{input}}, გამოტანა {{output}} ყოველ 1M ტოკენზე",
   "settings.routing.price.none": "ფასი მითითებული არ არის",
+  "settings.failover.title": "როცა პროვაიდერი მწყობრიდან გამოდის",
+  "settings.failover.description":
+    "თუ მოდელს კვოტა ამოეწურა, დიდხანს ექვემდებარება მოთხოვნების ლიმიტს, შეცდომით სრულდება ან აღარ პასუხობს, Olaya დავალებას მთელ კონტექსტთან ერთად ამ სიის შემდეგ მოდელზე გადაიტანს და თქვენს მოდელს დაუბრუნდება, როცა ის ისევ ხელმისაწვდომი გახდება.",
+  "settings.failover.up": "ზემოთ გადატანა",
+  "settings.failover.remove": "ამოღება",
+  "settings.failover.add.title": "სარეზერვო მოდელის დამატება",
+  "settings.failover.add.description": "მოდელები ამ თანმიმდევრობით იცდება დავალებისთვის არჩეული მოდელის შემდეგ.",
+  "settings.failover.add.placeholder": "აირჩიე მოდელი",
+  "settings.failover.wait.title": "თქვენი მოდელის ლოდინი",
+  "settings.failover.wait.description":
+    "თუ თქვენი მოდელი ამ დროში ისევ ხელმისაწვდომი გახდება, სიის შემდეგ მოდელზე გადასვლის ნაცვლად მას დაელოდება.",
+  "settings.failover.wait.never": "ლოდინის გარეშე",
+  "settings.failover.wait.minutes": "მაქსიმუმ {{count}} წუთი",
+  "settings.failover.privacy":
+    "ამ სიის ყველა მოდელი დავალების გადაბარებისას იღებს მის სამუშაო კონტექსტს, კოდის ჩათვლით. ადგილობრივი მოდელი მას ამ მოწყობილობაზე ინახავს.",
   "settings.agents.title": "აგენტები",
   "settings.agents.description": "აგენტის პარამეტრების კონფიგურაცია იქნება აქ.",
   "settings.commands.title": "ბრძანებები",

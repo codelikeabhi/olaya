@@ -1079,6 +1079,21 @@ export const dict = {
   "settings.routing.selected": "{{count}} models selected. Routing never uses a model outside this list.",
   "settings.routing.price": "{{input}} in, {{output}} out per 1M tokens",
   "settings.routing.price.none": "No price listed",
+  "settings.failover.title": "When a provider fails",
+  "settings.failover.description":
+    "If a model runs out of quota, is rate-limited for long, fails or stops responding, Olaya moves the task to the next model in this list, with its whole context, and returns to your model when it is available again.",
+  "settings.failover.up": "Move up",
+  "settings.failover.remove": "Remove",
+  "settings.failover.add.title": "Add a fallback model",
+  "settings.failover.add.description": "Models are tried in this order, after the model chosen for the task.",
+  "settings.failover.add.placeholder": "Choose a model",
+  "settings.failover.wait.title": "Wait for your model",
+  "settings.failover.wait.description":
+    "If your model will be available again within this time, wait for it instead of moving down the list.",
+  "settings.failover.wait.never": "Don't wait",
+  "settings.failover.wait.minutes": "Up to {{count}} minutes",
+  "settings.failover.privacy":
+    "Every model in this list receives the task's working context, including code, when it takes over. A local model keeps it on this machine.",
   "settings.agents.title": "Agents",
   "settings.agents.description": "Agent settings will be configurable here.",
   "settings.commands.title": "Commands",

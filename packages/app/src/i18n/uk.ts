@@ -1196,6 +1196,21 @@ export const dict = {
     "Вибрано моделей: {{count}}. Маршрутизація ніколи не використовує моделі поза цим списком.",
   "settings.routing.price": "Вхід {{input}}, вихід {{output}} за 1M токенів",
   "settings.routing.price.none": "Ціну не вказано",
+  "settings.failover.title": "Коли провайдер недоступний",
+  "settings.failover.description":
+    "Якщо в моделі закінчилася квота, вона надовго вперлася в ліміт запитів, повертає помилки або перестала відповідати, Olaya переносить задачу з усім її контекстом на наступну модель у цьому списку й повертається до вашої моделі, коли та знову стане доступною.",
+  "settings.failover.up": "Перемістити вгору",
+  "settings.failover.remove": "Видалити",
+  "settings.failover.add.title": "Додати резервну модель",
+  "settings.failover.add.description": "Моделі перебираються в цьому порядку після моделі, вибраної для задачі.",
+  "settings.failover.add.placeholder": "Виберіть модель",
+  "settings.failover.wait.title": "Очікування вашої моделі",
+  "settings.failover.wait.description":
+    "Якщо ваша модель знову стане доступною протягом цього часу, Olaya дочекається її, а не перейде до наступної моделі в списку.",
+  "settings.failover.wait.never": "Не чекати",
+  "settings.failover.wait.minutes": "До {{count}} хв",
+  "settings.failover.privacy":
+    "Кожна модель у цьому списку, переймаючи задачу, отримує її робочий контекст, зокрема код. Локальна модель зберігає його на цьому комп'ютері.",
   "settings.agents.title": "Агенти",
   "settings.agents.description": "Налаштування агентів будуть доступні тут.",
   "settings.commands.title": "Команди",

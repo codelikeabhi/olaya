@@ -1096,6 +1096,21 @@ export const dict = {
   "settings.routing.selected": "Izbrani modeli: {{count}}. Usmerjanje nikoli ne uporabi modela zunaj tega seznama.",
   "settings.routing.price": "Vhod {{input}}, izhod {{output}} na 1M žetonov",
   "settings.routing.price.none": "Cena ni navedena",
+  "settings.failover.title": "Ko ponudnik odpove",
+  "settings.failover.description":
+    "Če model porabi kvoto, je dlje časa omejen s številom zahtev, ne uspe ali se preneha odzivati, Olaya prenese opravilo z vsem kontekstom na naslednji model s tega seznama in se vrne k vašemu modelu, ko je ta spet na voljo.",
+  "settings.failover.up": "Premakni gor",
+  "settings.failover.remove": "Odstrani",
+  "settings.failover.add.title": "Dodaj rezervni model",
+  "settings.failover.add.description": "Modeli se preizkušajo v tem vrstnem redu, po modelu, izbranem za opravilo.",
+  "settings.failover.add.placeholder": "Izberite model",
+  "settings.failover.wait.title": "Počakaj na svoj model",
+  "settings.failover.wait.description":
+    "Če bo vaš model v tem času spet na voljo, se nanj počaka, namesto da se preide na naslednji model s seznama.",
+  "settings.failover.wait.never": "Ne čakaj",
+  "settings.failover.wait.minutes": "Do {{count}} min",
+  "settings.failover.privacy":
+    "Vsak model s tega seznama ob prevzemu prejme delovni kontekst opravila, vključno s kodo. Lokalni model ga obdrži na tej napravi.",
   "settings.agents.title": "Agenti",
   "settings.agents.description": "Tukaj je mogoče konfigurirati nastavitve agenta.",
   "settings.commands.title": "Ukazi",

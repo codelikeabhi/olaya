@@ -1007,6 +1007,21 @@ export const dict = {
   "settings.routing.selected": "النماذج المحددة: {{count}}. لا يستخدم التوجيه أبدًا نموذجًا من خارج هذه القائمة.",
   "settings.routing.price": "{{input}} للإدخال، {{output}} للإخراج لكل 1M من الرموز المميزة",
   "settings.routing.price.none": "لا يوجد سعر مدرج",
+  "settings.failover.title": "عند تعطّل أحد الموفرين",
+  "settings.failover.description":
+    "إذا استنفد نموذج حصته، أو خضع لتقييد المعدل مدة طويلة، أو فشل، أو توقف عن الاستجابة، ينقل Olaya المهمة بسياقها الكامل إلى النموذج التالي في هذه القائمة، ثم يعود إلى نموذجك عندما يُتاح مجددًا.",
+  "settings.failover.up": "نقل لأعلى",
+  "settings.failover.remove": "إزالة",
+  "settings.failover.add.title": "إضافة نموذج احتياطي",
+  "settings.failover.add.description": "تُجرَّب النماذج بهذا الترتيب، بعد النموذج المختار للمهمة.",
+  "settings.failover.add.placeholder": "اختيار نموذج",
+  "settings.failover.wait.title": "انتظار نموذجك",
+  "settings.failover.wait.description":
+    "إذا كان نموذجك سيُتاح مجددًا خلال هذه المدة، فسيتم انتظاره بدلًا من الانتقال إلى التالي في القائمة.",
+  "settings.failover.wait.never": "بدون انتظار",
+  "settings.failover.wait.minutes": "حتى {{count}} د",
+  "settings.failover.privacy":
+    "يتلقى كل نموذج في هذه القائمة سياق عمل المهمة، بما في ذلك الشيفرة، عندما يتولاها. أما النموذج المحلي فيُبقيه على هذا الجهاز.",
   "settings.agents.title": "الوكلاء",
   "settings.agents.description": "ستكون إعدادات الوكيل قابلة للتكوين هنا.",
   "settings.commands.title": "الأوامر",

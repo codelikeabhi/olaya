@@ -1106,6 +1106,22 @@ export const dict = {
     "Επιλεγμένα μοντέλα: {{count}}. Η δρομολόγηση δεν χρησιμοποιεί ποτέ μοντέλο εκτός αυτής της λίστας.",
   "settings.routing.price": "{{input}} εισόδου, {{output}} εξόδου ανά 1M διακριτικά",
   "settings.routing.price.none": "Δεν αναφέρεται τιμή",
+  "settings.failover.title": "Όταν αποτυγχάνει ένας πάροχος",
+  "settings.failover.description":
+    "Αν ένα μοντέλο εξαντλήσει την ποσόστωσή του, περιοριστεί για πολύ από όριο αιτημάτων, αποτύχει ή σταματήσει να αποκρίνεται, το Olaya μεταφέρει την εργασία με όλο το πλαίσιό της στο επόμενο μοντέλο αυτής της λίστας και επιστρέφει στο μοντέλο σας όταν γίνει ξανά διαθέσιμο.",
+  "settings.failover.up": "Μετακίνηση πάνω",
+  "settings.failover.remove": "Κατάργηση",
+  "settings.failover.add.title": "Προσθήκη εφεδρικού μοντέλου",
+  "settings.failover.add.description":
+    "Τα μοντέλα δοκιμάζονται με αυτή τη σειρά, μετά το μοντέλο που επιλέχθηκε για την εργασία.",
+  "settings.failover.add.placeholder": "Επιλογή μοντέλου",
+  "settings.failover.wait.title": "Αναμονή για το μοντέλο σας",
+  "settings.failover.wait.description":
+    "Αν το μοντέλο σας θα είναι ξανά διαθέσιμο μέσα σε αυτό το διάστημα, γίνεται αναμονή αντί για μετάβαση στο επόμενο της λίστας.",
+  "settings.failover.wait.never": "Χωρίς αναμονή",
+  "settings.failover.wait.minutes": "Έως {{count}} λεπτά",
+  "settings.failover.privacy":
+    "Κάθε μοντέλο αυτής της λίστας λαμβάνει το πλαίσιο της εργασίας, μαζί με τον κώδικα, όταν την αναλαμβάνει. Ένα τοπικό μοντέλο το κρατά σε αυτό το μηχάνημα.",
   "settings.agents.title": "Πράκτορες",
   "settings.agents.description": "Οι ρυθμίσεις πρακτόρων μπορούν να διαμορφωθούν εδώ.",
   "settings.commands.title": "Εντολές",

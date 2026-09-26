@@ -959,6 +959,22 @@ export const dict = {
   "settings.routing.selected": "{{count}} modeller valgt. Routing bruger aldrig en model uden for denne liste.",
   "settings.routing.price": "{{input}} input, {{output}} output pr. 1M tokens",
   "settings.routing.price.none": "Ingen pris angivet",
+  "settings.failover.title": "Når en udbyder svigter",
+  "settings.failover.description":
+    "Hvis en model løber tør for kvote, er rate-begrænset i længere tid, fejler eller holder op med at svare, flytter Olaya opgaven med hele dens kontekst til den næste model på listen og vender tilbage til din model, når den er tilgængelig igen.",
+  "settings.failover.up": "Flyt op",
+  "settings.failover.remove": "Fjern",
+  "settings.failover.add.title": "Tilføj en reservemodel",
+  "settings.failover.add.description":
+    "Modellerne prøves i denne rækkefølge efter den model, der er valgt til opgaven.",
+  "settings.failover.add.placeholder": "Vælg en model",
+  "settings.failover.wait.title": "Vent på din model",
+  "settings.failover.wait.description":
+    "Hvis din model bliver tilgængelig igen inden for denne tid, ventes der på den i stedet for at gå videre ned ad listen.",
+  "settings.failover.wait.never": "Vent ikke",
+  "settings.failover.wait.minutes": "Op til {{count}} minutter",
+  "settings.failover.privacy":
+    "Hver model på denne liste modtager opgavens arbejdskontekst, inklusive kode, når den overtager. En lokal model beholder den på denne maskine.",
   "settings.agents.title": "Agenter",
   "settings.agents.description": "Agentindstillinger vil kunne konfigureres her.",
   "settings.commands.title": "Kommandoer",

@@ -1094,6 +1094,21 @@ export const dict = {
   "settings.routing.selected": "{{count}} modeller valda. Routning använder aldrig en modell utanför den här listan.",
   "settings.routing.price": "{{input}} indata, {{output}} utdata per 1M tokens",
   "settings.routing.price.none": "Inget pris angivet",
+  "settings.failover.title": "När en leverantör fallerar",
+  "settings.failover.description":
+    "Om en modell får slut på kvot, är hastighetsbegränsad länge, misslyckas eller slutar svara flyttar Olaya uppgiften med hela dess kontext till nästa modell i den här listan och går tillbaka till din modell när den är tillgänglig igen.",
+  "settings.failover.up": "Flytta upp",
+  "settings.failover.remove": "Ta bort",
+  "settings.failover.add.title": "Lägg till en reservmodell",
+  "settings.failover.add.description": "Modellerna prövas i den här ordningen, efter modellen som valts för uppgiften.",
+  "settings.failover.add.placeholder": "Välj en modell",
+  "settings.failover.wait.title": "Vänta på din modell",
+  "settings.failover.wait.description":
+    "Om din modell blir tillgänglig igen inom den här tiden väntas den in i stället för att gå vidare nedåt i listan.",
+  "settings.failover.wait.never": "Vänta inte",
+  "settings.failover.wait.minutes": "Upp till {{count}} minuter",
+  "settings.failover.privacy":
+    "Varje modell i den här listan får uppgiftens arbetskontext, inklusive kod, när den tar över. En lokal modell behåller den på den här maskinen.",
   "settings.agents.title": "Agenter",
   "settings.agents.description": "Agentinställningar kommer att kunna konfigureras här.",
   "settings.commands.title": "Kommandon",

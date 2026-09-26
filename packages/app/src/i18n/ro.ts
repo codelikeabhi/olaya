@@ -1096,6 +1096,21 @@ export const dict = {
     "{{count}} modele selectate. Rutarea nu folosește niciodată un model din afara acestei liste.",
   "settings.routing.price": "{{input}} intrare, {{output}} ieșire per 1M de tokenuri",
   "settings.routing.price.none": "Niciun preț afișat",
+  "settings.failover.title": "Când un furnizor cade",
+  "settings.failover.description":
+    "Dacă un model își epuizează cota, este limitat mult timp ca rată de cereri, eșuează sau nu mai răspunde, Olaya mută sarcina, cu tot contextul ei, la următorul model din această listă și revine la modelul tău când acesta este din nou disponibil.",
+  "settings.failover.up": "Mută în sus",
+  "settings.failover.remove": "Elimină",
+  "settings.failover.add.title": "Adaugă un model de rezervă",
+  "settings.failover.add.description": "Modelele sunt încercate în această ordine, după modelul ales pentru sarcină.",
+  "settings.failover.add.placeholder": "Alege un model",
+  "settings.failover.wait.title": "Așteaptă modelul tău",
+  "settings.failover.wait.description":
+    "Dacă modelul tău va fi din nou disponibil în acest interval, este așteptat în loc să se treacă la următorul din listă.",
+  "settings.failover.wait.never": "Nu aștepta",
+  "settings.failover.wait.minutes": "Până la {{count}} min",
+  "settings.failover.privacy":
+    "Fiecare model din această listă primește contextul de lucru al sarcinii, inclusiv codul, când preia sarcina. Un model local îl păstrează pe acest calculator.",
   "settings.agents.title": "Agenți",
   "settings.agents.description": "Setările agenților vor putea fi configurate aici.",
   "settings.commands.title": "Comenzi",

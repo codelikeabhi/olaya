@@ -907,6 +907,22 @@ export const dict = {
   "settings.routing.selected": "{{count}} Modelle ausgewählt. Routing verwendet nie ein Modell außerhalb dieser Liste.",
   "settings.routing.price": "{{input}} Eingabe, {{output}} Ausgabe pro 1M Token",
   "settings.routing.price.none": "Kein Preis angegeben",
+  "settings.failover.title": "Wenn ein Anbieter ausfällt",
+  "settings.failover.description":
+    "Wenn ein Modell sein Kontingent aufbraucht, länger durch Rate-Limits gebremst wird, fehlschlägt oder nicht mehr antwortet, übergibt Olaya die Aufgabe mit ihrem gesamten Kontext an das nächste Modell dieser Liste und kehrt zu Ihrem Modell zurück, sobald es wieder verfügbar ist.",
+  "settings.failover.up": "Nach oben",
+  "settings.failover.remove": "Entfernen",
+  "settings.failover.add.title": "Ausweichmodell hinzufügen",
+  "settings.failover.add.description":
+    "Modelle werden in dieser Reihenfolge versucht, nach dem für die Aufgabe gewählten Modell.",
+  "settings.failover.add.placeholder": "Modell wählen",
+  "settings.failover.wait.title": "Auf Ihr Modell warten",
+  "settings.failover.wait.description":
+    "Ist Ihr Modell innerhalb dieser Zeit wieder verfügbar, wird darauf gewartet, statt zum nächsten Modell der Liste zu wechseln.",
+  "settings.failover.wait.never": "Nicht warten",
+  "settings.failover.wait.minutes": "Bis zu {{count}} Minuten",
+  "settings.failover.privacy":
+    "Jedes Modell in dieser Liste erhält beim Übernehmen den Arbeitskontext der Aufgabe, einschließlich Code. Ein lokales Modell behält ihn auf diesem Computer.",
   "settings.agents.title": "Agenten",
   "settings.agents.description": "Agenteneinstellungen können hier konfiguriert werden.",
   "settings.commands.title": "Befehle",

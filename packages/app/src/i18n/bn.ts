@@ -1085,6 +1085,21 @@ export const dict: Record<string, string> = {
   "settings.routing.selected": "{{count}}টি মডেল নির্বাচিত। রাউটিং কখনও এই তালিকার বাইরের কোনো মডেল ব্যবহার করে না।",
   "settings.routing.price": "প্রতি 1M টোকেনে ইনপুট {{input}}, আউটপুট {{output}}",
   "settings.routing.price.none": "কোনো মূল্য তালিকাভুক্ত নেই",
+  "settings.failover.title": "কোনো প্রদানকারী ব্যর্থ হলে",
+  "settings.failover.description":
+    "কোনো মডেলের কোটা শেষ হলে, দীর্ঘ সময় রেট লিমিটে আটকে থাকলে, ব্যর্থ হলে বা সাড়া দেওয়া বন্ধ করলে Olaya কাজটি তার সম্পূর্ণ প্রসঙ্গসহ এই তালিকার পরের মডেলে সরিয়ে নেয় এবং আপনার মডেল আবার উপলব্ধ হলে সেটিতে ফিরে যায়।",
+  "settings.failover.up": "উপরে সরান",
+  "settings.failover.remove": "সরান",
+  "settings.failover.add.title": "বিকল্প মডেল যোগ করুন",
+  "settings.failover.add.description": "কাজের জন্য বেছে নেওয়া মডেলের পরে মডেলগুলো এই ক্রমে চেষ্টা করা হয়।",
+  "settings.failover.add.placeholder": "একটি মডেল নির্বাচন করুন",
+  "settings.failover.wait.title": "আপনার মডেলের জন্য অপেক্ষা",
+  "settings.failover.wait.description":
+    "আপনার মডেল এই সময়ের মধ্যে আবার উপলব্ধ হলে তালিকার পরের মডেলে না গিয়ে সেটির জন্য অপেক্ষা করা হয়।",
+  "settings.failover.wait.never": "অপেক্ষা করবেন না",
+  "settings.failover.wait.minutes": "সর্বোচ্চ {{count}} মিনিট",
+  "settings.failover.privacy":
+    "এই তালিকার প্রতিটি মডেল কাজটি হাতে নেওয়ার সময় কোডসহ কাজের প্রসঙ্গ পায়। একটি স্থানীয় মডেল এটি এই মেশিনেই রাখে।",
   "settings.agents.title": "এজেন্ট",
   "settings.agents.description": "এজেন্ট সেটিংস এখানে কনফিগারযোগ্য হবে।",
   "settings.commands.title": "কমান্ড",

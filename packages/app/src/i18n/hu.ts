@@ -1101,6 +1101,22 @@ export const dict = {
   "settings.routing.selected": "{{count}} modell kiválasztva. Az útválasztás soha nem használ a listán kívüli modellt.",
   "settings.routing.price": "Bemenet {{input}}, kimenet {{output}} 1M tokenenként",
   "settings.routing.price.none": "Nincs megadott ár",
+  "settings.failover.title": "Ha egy szolgáltató leáll",
+  "settings.failover.description":
+    "Ha egy modell kimeríti a kvótáját, hosszan sebességkorlát alá kerül, hibát ad vagy nem válaszol, az Olaya a feladatot a teljes kontextusával együtt átadja a lista következő modelljének, és visszatér az Ön modelljéhez, amint az ismét elérhető.",
+  "settings.failover.up": "Feljebb",
+  "settings.failover.remove": "Eltávolítás",
+  "settings.failover.add.title": "Tartalékmodell hozzáadása",
+  "settings.failover.add.description":
+    "A rendszer ebben a sorrendben próbálja ki a modelleket, a feladathoz választott modell után.",
+  "settings.failover.add.placeholder": "Válasszon modellt",
+  "settings.failover.wait.title": "Várakozás az Ön modelljére",
+  "settings.failover.wait.description":
+    "Ha az Ön modellje ezen időn belül ismét elérhető lesz, a rendszer megvárja, ahelyett hogy a lista következő modelljére lépne.",
+  "settings.failover.wait.never": "Nincs várakozás",
+  "settings.failover.wait.minutes": "Legfeljebb {{count}} perc",
+  "settings.failover.privacy":
+    "A lista minden modellje megkapja a feladat munkakontextusát, a kódot is beleértve, amikor átveszi a feladatot. Egy helyi modell ezen a gépen tartja.",
   "settings.agents.title": "Ügynökök",
   "settings.agents.description": "Az ügynök beállításai itt konfigurálhatók.",
   "settings.commands.title": "Parancsok",

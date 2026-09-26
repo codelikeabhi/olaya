@@ -1104,6 +1104,21 @@ export const dict = {
     "{{count}} ta model tanlangan. Marshrutlash hech qachon ushbu ro'yxatdan tashqaridagi modelni ishlatmaydi.",
   "settings.routing.price": "1M token uchun kirish {{input}}, chiqish {{output}}",
   "settings.routing.price.none": "Narx ko'rsatilmagan",
+  "settings.failover.title": "Provayder ishdan chiqqanda",
+  "settings.failover.description":
+    "Agar model kvotasi tugasa, uzoq vaqt so'rovlar limitiga tushsa, xato bersa yoki javob berishni to'xtatsa, Olaya vazifani butun konteksti bilan ushbu ro'yxatdagi keyingi modelga o'tkazadi va modelingiz yana mavjud bo'lganda unga qaytadi.",
+  "settings.failover.up": "Yuqoriga ko'chirish",
+  "settings.failover.remove": "Olib tashlash",
+  "settings.failover.add.title": "Zaxira model qo'shing",
+  "settings.failover.add.description": "Modellar vazifa uchun tanlangan modeldan keyin shu tartibda sinab ko'riladi.",
+  "settings.failover.add.placeholder": "Modelni tanlang",
+  "settings.failover.wait.title": "Modelingizni kuting",
+  "settings.failover.wait.description":
+    "Agar modelingiz shu vaqt ichida yana mavjud bo'lsa, ro'yxatdagi keyingi modelga o'tish o'rniga u kutiladi.",
+  "settings.failover.wait.never": "Kutmaslik",
+  "settings.failover.wait.minutes": "{{count}} daqiqagacha",
+  "settings.failover.privacy":
+    "Ushbu ro'yxatdagi har bir model vazifani o'z zimmasiga olganda, kod bilan birga vazifaning ish kontekstini oladi. Mahalliy model uni shu mashinada saqlaydi.",
   "settings.agents.title": "Agentlar",
   "settings.agents.description": "Bu yerda agent sozlamalari sozlanishi mumkin.",
   "settings.commands.title": "Buyruqlar",

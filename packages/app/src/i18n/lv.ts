@@ -1095,6 +1095,21 @@ export const dict = {
   "settings.routing.selected": "Izvēlētie modeļi: {{count}}. Maršrutēšana nekad neizmanto modeli ārpus šī saraksta.",
   "settings.routing.price": "Ievade {{input}}, izvade {{output}} par 1M žetonu",
   "settings.routing.price.none": "Cena nav norādīta",
+  "settings.failover.title": "Kad pakalpojumu sniedzējs atteic",
+  "settings.failover.description":
+    "Ja modelim beidzas kvota, tas ilgi ir pieprasījumu ierobežots, rodas kļūme vai tas pārstāj atbildēt, Olaya pārceļ uzdevumu ar visu tā kontekstu uz nākamo šī saraksta modeli un atgriežas pie jūsu modeļa, kad tas atkal ir pieejams.",
+  "settings.failover.up": "Pārvietot uz augšu",
+  "settings.failover.remove": "Noņemt",
+  "settings.failover.add.title": "Pievienot rezerves modeli",
+  "settings.failover.add.description": "Modeļi tiek izmēģināti šādā secībā pēc uzdevumam izvēlētā modeļa.",
+  "settings.failover.add.placeholder": "Izvēlēties modeli",
+  "settings.failover.wait.title": "Gaidīt jūsu modeli",
+  "settings.failover.wait.description":
+    "Ja jūsu modelis šajā laikā atkal būs pieejams, tas tiek gaidīts, nevis notiek pāreja uz nākamo saraksta modeli.",
+  "settings.failover.wait.never": "Negaidīt",
+  "settings.failover.wait.minutes": "Līdz {{count}} min",
+  "settings.failover.privacy":
+    "Katrs šī saraksta modelis, pārņemot uzdevumu, saņem tā darba kontekstu, arī kodu. Lokāls modelis to patur šajā datorā.",
   "settings.agents.title": "Aģenti",
   "settings.agents.description": "Šeit varēs konfigurēt aģentu iestatījumus.",
   "settings.commands.title": "Komandas",

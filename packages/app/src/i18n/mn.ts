@@ -1102,6 +1102,21 @@ export const dict = {
     "{{count}} загвар сонгогдсон. Чиглүүлэлт энэ жагсаалтаас гадуурх загварыг хэзээ ч ашиглахгүй.",
   "settings.routing.price": "1M токен тутамд оролт {{input}}, гаралт {{output}}",
   "settings.routing.price.none": "Үнэ заагаагүй",
+  "settings.failover.title": "Үйлчилгээ үзүүлэгч доголдоход",
+  "settings.failover.description":
+    "Загварын квот дуусах, удаан хугацаанд хүсэлтийн хязгаарт орох, алдаа гарах эсвэл хариу өгөхөө болих үед Olaya даалгаврыг бүх контексттэй нь хамт энэ жагсаалтын дараагийн загвар руу шилжүүлж, таны загвар дахин боломжтой болоход түүн рүү буцна.",
+  "settings.failover.up": "Дээш зөөх",
+  "settings.failover.remove": "Арилгах",
+  "settings.failover.add.title": "Нөөц загвар нэмэх",
+  "settings.failover.add.description": "Даалгаварт сонгосон загварын дараа загваруудыг энэ дарааллаар туршина.",
+  "settings.failover.add.placeholder": "Загвар сонгох",
+  "settings.failover.wait.title": "Өөрийн загварыг хүлээх",
+  "settings.failover.wait.description":
+    "Таны загвар энэ хугацаанд дахин боломжтой болох бол жагсаалтын дараагийн загвар руу шилжихийн оронд түүнийг хүлээнэ.",
+  "settings.failover.wait.never": "Хүлээхгүй",
+  "settings.failover.wait.minutes": "{{count}} минут хүртэл",
+  "settings.failover.privacy":
+    "Энэ жагсаалтын загвар бүр даалгаврыг хүлээн авахдаа кодыг оролцуулан ажлын контекстыг авна. Дотоод загвар үүнийг энэ машин дээр хадгална.",
   "settings.agents.title": "Агентууд",
   "settings.agents.description": "Агентын тохиргоог энд хийх боломжтой.",
   "settings.commands.title": "Тушаалууд",

@@ -1103,6 +1103,21 @@ export const dict = {
     "Избрани модели: {{count}}. Маршрутизирането никога не използва модел извън този списък.",
   "settings.routing.price": "{{input}} вход, {{output}} изход за 1M токена",
   "settings.routing.price.none": "Няма посочена цена",
+  "settings.failover.title": "Когато доставчик откаже",
+  "settings.failover.description":
+    "Ако даден модел изчерпа квотата си, бъде ограничен по честота на заявките за дълго, даде грешка или спре да отговаря, Olaya прехвърля задачата към следващия модел в този списък заедно с целия ѝ контекст и се връща към вашия модел, когато той отново е наличен.",
+  "settings.failover.up": "Преместване нагоре",
+  "settings.failover.remove": "Премахване",
+  "settings.failover.add.title": "Добавяне на резервен модел",
+  "settings.failover.add.description": "Моделите се опитват в този ред след модела, избран за задачата.",
+  "settings.failover.add.placeholder": "Изберете модел",
+  "settings.failover.wait.title": "Изчакване на вашия модел",
+  "settings.failover.wait.description":
+    "Ако вашият модел ще бъде наличен отново в рамките на това време, той се изчаква, вместо да се преминава надолу по списъка.",
+  "settings.failover.wait.never": "Без изчакване",
+  "settings.failover.wait.minutes": "До {{count}} минути",
+  "settings.failover.privacy":
+    "Всеки модел в този списък получава работния контекст на задачата, включително кода, когато я поеме. Локалният модел го запазва на тази машина.",
   "settings.agents.title": "Агенти",
   "settings.agents.description": "Настройките на агента ще могат да се конфигурират тук.",
   "settings.commands.title": "Команди",

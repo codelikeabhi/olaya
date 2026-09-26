@@ -1097,6 +1097,21 @@ export const dict = {
     "Modele të zgjedhura: {{count}}. Rrugëzimi nuk përdor kurrë një model jashtë kësaj liste.",
   "settings.routing.price": "Hyrje {{input}}, dalje {{output}} për 1M shenja",
   "settings.routing.price.none": "Nuk ka çmim të shënuar",
+  "settings.failover.title": "Kur një ofrues dështon",
+  "settings.failover.description":
+    "Nëse një modeli i mbaron kuota, kufizohet gjatë nga numri i kërkesave, dështon ose nuk përgjigjet më, Olaya e kalon detyrën me gjithë kontekstin e saj te modeli tjetër në këtë listë dhe kthehet te modeli juaj kur ai të jetë sërish i disponueshëm.",
+  "settings.failover.up": "Lëviz lart",
+  "settings.failover.remove": "Hiq",
+  "settings.failover.add.title": "Shto një model rezervë",
+  "settings.failover.add.description": "Modelet provohen sipas kësaj radhe, pas modelit të zgjedhur për detyrën.",
+  "settings.failover.add.placeholder": "Zgjidhni një model",
+  "settings.failover.wait.title": "Prisni modelin tuaj",
+  "settings.failover.wait.description":
+    "Nëse modeli juaj do të jetë sërish i disponueshëm brenda kësaj kohe, ai pritet në vend që të kalohet te modeli tjetër i listës.",
+  "settings.failover.wait.never": "Mos prit",
+  "settings.failover.wait.minutes": "Deri në {{count}} minuta",
+  "settings.failover.privacy":
+    "Çdo model në këtë listë merr kontekstin e punës së detyrës, përfshirë kodin, kur e merr përsipër. Një model lokal e mban atë në këtë makinë.",
   "settings.agents.title": "Agjentët",
   "settings.agents.description": "Cilësimet e agjentit do të konfigurohen këtu.",
   "settings.commands.title": "Komandat",

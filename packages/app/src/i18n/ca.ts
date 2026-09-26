@@ -1106,6 +1106,21 @@ export const dict = {
     "{{count}} models seleccionats. L'encaminament mai no fa servir un model fora d'aquesta llista.",
   "settings.routing.price": "{{input}} d'entrada, {{output}} de sortida per 1M de fitxes",
   "settings.routing.price.none": "No hi ha cap preu indicat",
+  "settings.failover.title": "Quan un proveïdor falla",
+  "settings.failover.description":
+    "Si un model esgota la quota, queda limitat per freqüència durant molt de temps, falla o deixa de respondre, Olaya passa la tasca al següent model d'aquesta llista, amb tot el context, i torna al vostre model quan torna a estar disponible.",
+  "settings.failover.up": "Mou amunt",
+  "settings.failover.remove": "Elimina",
+  "settings.failover.add.title": "Afegeix un model de reserva",
+  "settings.failover.add.description": "Els models es proven en aquest ordre, després del model triat per a la tasca.",
+  "settings.failover.add.placeholder": "Tria un model",
+  "settings.failover.wait.title": "Esperar el vostre model",
+  "settings.failover.wait.description":
+    "Si el vostre model tornarà a estar disponible dins d'aquest temps, s'espera en lloc de passar al següent de la llista.",
+  "settings.failover.wait.never": "No esperar",
+  "settings.failover.wait.minutes": "Fins a {{count}} minuts",
+  "settings.failover.privacy":
+    "Cada model d'aquesta llista rep el context de treball de la tasca, inclòs el codi, quan pren el relleu. Un model local el manté en aquesta màquina.",
   "settings.agents.title": "Agents",
   "settings.agents.description": "La configuració de l'agent es podrà configurar aquí.",
   "settings.commands.title": "Ordres",

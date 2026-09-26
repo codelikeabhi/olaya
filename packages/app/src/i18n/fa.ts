@@ -1088,6 +1088,21 @@ export const dict = {
   "settings.routing.selected": "{{count}} مدل انتخاب شده است. مسیریابی هرگز از مدلی خارج از این فهرست استفاده نمی‌کند.",
   "settings.routing.price": "ورودی {{input}}، خروجی {{output}} به ازای هر 1M توکن",
   "settings.routing.price.none": "قیمتی درج نشده است",
+  "settings.failover.title": "وقتی یک ارائه دهنده از کار می‌افتد",
+  "settings.failover.description":
+    "اگر سهمیه یک مدل تمام شود، مدت طولانی با محدودیت نرخ درخواست روبه‌رو شود، خطا دهد یا دیگر پاسخ ندهد، Olaya کار را با کل زمینه‌اش به مدل بعدی این فهرست منتقل می‌کند و وقتی مدل شما دوباره در دسترس باشد به آن برمی‌گردد.",
+  "settings.failover.up": "انتقال به بالا",
+  "settings.failover.remove": "حذف",
+  "settings.failover.add.title": "اضافه کردن مدل جایگزین",
+  "settings.failover.add.description": "مدل‌ها پس از مدلی که برای کار انتخاب شده، به همین ترتیب امتحان می‌شوند.",
+  "settings.failover.add.placeholder": "یک مدل انتخاب کنید",
+  "settings.failover.wait.title": "انتظار برای مدل شما",
+  "settings.failover.wait.description":
+    "اگر مدل شما در این مدت دوباره در دسترس شود، به‌جای رفتن به مدل بعدی فهرست، منتظر آن می‌ماند.",
+  "settings.failover.wait.never": "بدون انتظار",
+  "settings.failover.wait.minutes": "تا {{count}} دقیقه",
+  "settings.failover.privacy":
+    "هر مدل این فهرست هنگام در دست گرفتن کار، زمینه کاری آن را، از جمله کد، دریافت می‌کند. مدل محلی آن را روی همین دستگاه نگه می‌دارد.",
   "settings.agents.title": "عوامل",
   "settings.agents.description": "تنظیمات عامل در اینجا قابل تنظیم خواهد بود.",
   "settings.commands.title": "دستورات",

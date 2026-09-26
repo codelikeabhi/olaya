@@ -1098,6 +1098,22 @@ export const dict = {
     "{{count}} модел интихоб шудааст. Масирёбӣ ҳеҷ гоҳ модели берун аз ин рӯйхатро истифода намебарад.",
   "settings.routing.price": "Барои ҳар 1M токен: вуруд {{input}}, баромад {{output}}",
   "settings.routing.price.none": "Нарх нишон дода нашудааст",
+  "settings.failover.title": "Вақте ки таъминкунанда аз кор мемонад",
+  "settings.failover.description":
+    "Агар квотаи модел тамом шавад, муддати дароз зери маҳдудияти дархостҳо монад, хато диҳад ё ҷавоб доданро бас кунад, Olaya вазифаро бо тамоми контексташ ба модели навбатии ин рӯйхат интиқол медиҳад ва вақте ки модели шумо боз дастрас шавад, ба он бармегардад.",
+  "settings.failover.up": "Ба боло",
+  "settings.failover.remove": "Хориҷ кардан",
+  "settings.failover.add.title": "Илова кардани модели эҳтиётӣ",
+  "settings.failover.add.description":
+    "Моделҳо пас аз модели барои вазифа интихобшуда бо ҳамин тартиб санҷида мешаванд.",
+  "settings.failover.add.placeholder": "Моделро интихоб кунед",
+  "settings.failover.wait.title": "Интизории модели шумо",
+  "settings.failover.wait.description":
+    "Агар модели шумо дар давоми ин вақт боз дастрас шавад, ба ҷои гузаштан ба модели навбатии рӯйхат онро интизор мешавад.",
+  "settings.failover.wait.never": "Интизор нашудан",
+  "settings.failover.wait.minutes": "То {{count}} дақиқа",
+  "settings.failover.privacy":
+    "Ҳар модели ин рӯйхат ҳангоми ба ӯҳда гирифтани вазифа контексти кории онро, аз ҷумла кодро, мегирад. Модели маҳаллӣ онро дар ҳамин мошин нигоҳ медорад.",
   "settings.agents.title": "Агентҳо",
   "settings.agents.description": "Танзимоти агент дар ин ҷо танзим карда мешавад.",
   "settings.commands.title": "Фармонҳо",

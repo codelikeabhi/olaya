@@ -1105,6 +1105,21 @@ export const dict = {
     "Pasirinkta modelių: {{count}}. Maršrutizavimas niekada nenaudoja modelio, kurio nėra šiame sąraše.",
   "settings.routing.price": "Įvestis {{input}}, išvestis {{output}} už 1M žetonų",
   "settings.routing.price.none": "Kaina nenurodyta",
+  "settings.failover.title": "Kai teikėjas sutrinka",
+  "settings.failover.description":
+    "Jei modeliui baigiasi kvota, jis ilgai ribojamas dėl užklausų dažnio, patiria klaidą arba nustoja atsakyti, Olaya perkelia užduotį su visu jos kontekstu į kitą šio sąrašo modelį ir grįžta prie jūsų modelio, kai jis vėl tampa pasiekiamas.",
+  "settings.failover.up": "Perkelti aukštyn",
+  "settings.failover.remove": "Pašalinti",
+  "settings.failover.add.title": "Pridėti atsarginį modelį",
+  "settings.failover.add.description": "Modeliai bandomi šia tvarka po užduočiai pasirinkto modelio.",
+  "settings.failover.add.placeholder": "Pasirinkite modelį",
+  "settings.failover.wait.title": "Laukti jūsų modelio",
+  "settings.failover.wait.description":
+    "Jei jūsų modelis per šį laiką vėl taps pasiekiamas, jo bus laukiama, užuot perėjus prie kito sąrašo modelio.",
+  "settings.failover.wait.never": "Nelaukti",
+  "settings.failover.wait.minutes": "Iki {{count}} min.",
+  "settings.failover.privacy":
+    "Kiekvienas šio sąrašo modelis, perimdamas užduotį, gauna jos darbinį kontekstą, įskaitant kodą. Vietinis modelis jį laiko šiame įrenginyje.",
   "settings.agents.title": "Agentai",
   "settings.agents.description": "Agento nustatymus bus galima konfigūruoti čia.",
   "settings.commands.title": "Komandos",

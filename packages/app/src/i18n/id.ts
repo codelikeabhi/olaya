@@ -1179,6 +1179,21 @@ export const dict = {
   "settings.routing.selected": "{{count}} model dipilih. Perutean tidak pernah menggunakan model di luar daftar ini.",
   "settings.routing.price": "Masukan {{input}}, keluaran {{output}} per 1M token",
   "settings.routing.price.none": "Harga tidak tercantum",
+  "settings.failover.title": "Saat penyedia gagal",
+  "settings.failover.description":
+    "Jika kuota model habis, model terkena batas laju dalam waktu lama, gagal, atau berhenti merespons, Olaya memindahkan tugas ke model berikutnya dalam daftar ini beserta seluruh konteksnya, lalu kembali ke model Anda saat model itu tersedia lagi.",
+  "settings.failover.up": "Pindahkan ke atas",
+  "settings.failover.remove": "Hapus",
+  "settings.failover.add.title": "Tambah model cadangan",
+  "settings.failover.add.description": "Model dicoba sesuai urutan ini, setelah model yang dipilih untuk tugas.",
+  "settings.failover.add.placeholder": "Pilih model",
+  "settings.failover.wait.title": "Tunggu model Anda",
+  "settings.failover.wait.description":
+    "Jika model Anda akan tersedia lagi dalam waktu ini, model itu ditunggu alih-alih berpindah ke model berikutnya dalam daftar.",
+  "settings.failover.wait.never": "Jangan tunggu",
+  "settings.failover.wait.minutes": "Hingga {{count}} menit",
+  "settings.failover.privacy":
+    "Setiap model dalam daftar ini menerima konteks kerja tugas, termasuk kode, saat mengambil alih. Model lokal menyimpannya di komputer ini.",
   "settings.agents.title": "Agen",
   "settings.agents.description": "Pengaturan agen akan dapat dikonfigurasi di sini.",
   "settings.commands.title": "Perintah",

@@ -1097,6 +1097,22 @@ export const dict = {
   "settings.routing.selected": "Ընտրված է {{count}} մոդել։ Երթուղավորումը երբեք չի օգտագործում այս ցանկից դուրս մոդել։",
   "settings.routing.price": "Մուտք՝ {{input}}, ելք՝ {{output}} յուրաքանչյուր 1M թոքենի համար",
   "settings.routing.price.none": "Գինը նշված չէ",
+  "settings.failover.title": "Երբ մատակարարը ձախողվում է",
+  "settings.failover.description":
+    "Եթե մոդելի քվոտան սպառվում է, այն երկար ժամանակ ենթարկվում է հարցումների սահմանափակման, ձախողվում է կամ դադարում է պատասխանել, Olaya-ն առաջադրանքն իր ամբողջ համատեքստով տեղափոխում է այս ցանկի հաջորդ մոդելին և վերադառնում է ձեր մոդելին, երբ այն կրկին հասանելի լինի։",
+  "settings.failover.up": "Տեղափոխել վեր",
+  "settings.failover.remove": "Հեռացնել",
+  "settings.failover.add.title": "Ավելացնել պահուստային մոդել",
+  "settings.failover.add.description":
+    "Մոդելները փորձարկվում են այս հերթականությամբ՝ առաջադրանքի համար ընտրված մոդելից հետո։",
+  "settings.failover.add.placeholder": "Ընտրեք մոդել",
+  "settings.failover.wait.title": "Սպասել ձեր մոդելին",
+  "settings.failover.wait.description":
+    "Եթե ձեր մոդելը այս ժամանակահատվածում կրկին հասանելի լինի, սպասել դրան՝ ցանկի հաջորդ մոդելին անցնելու փոխարեն։",
+  "settings.failover.wait.never": "Չսպասել",
+  "settings.failover.wait.minutes": "Մինչև {{count}} րոպե",
+  "settings.failover.privacy":
+    "Այս ցանկի յուրաքանչյուր մոդել, երբ ստանձնում է առաջադրանքը, ստանում է դրա աշխատանքային համատեքստը՝ ներառյալ կոդը։ Տեղական մոդելը այն պահում է այս մեքենայում։",
   "settings.agents.title": "Գործակալներ",
   "settings.agents.description": "Գործակալի կարգավորումները կկարգավորվեն այստեղ։",
   "settings.commands.title": "Հրամաններ",

@@ -1098,6 +1098,21 @@ export const dict = {
   "settings.routing.selected": "{{count}} ماڈلز منتخب ہیں۔ روٹنگ کبھی بھی اس فہرست سے باہر کا ماڈل استعمال نہیں کرتی۔",
   "settings.routing.price": "فی 1M ٹوکنز ان پٹ {{input}}، آؤٹ پٹ {{output}}",
   "settings.routing.price.none": "کوئی قیمت درج نہیں",
+  "settings.failover.title": "جب کوئی فراہم کنندہ ناکام ہو جائے",
+  "settings.failover.description":
+    "اگر کسی ماڈل کا کوٹا ختم ہو جائے، وہ طویل عرصے تک ریٹ لمٹ کا شکار رہے، ناکام ہو جائے یا جواب دینا بند کر دے، تو Olaya کام کو اس کے پورے سیاق و سباق کے ساتھ اس فہرست کے اگلے ماڈل پر منتقل کر دیتا ہے اور آپ کا ماڈل دوبارہ دستیاب ہونے پر اسی پر واپس آ جاتا ہے۔",
+  "settings.failover.up": "اوپر لے جائیں",
+  "settings.failover.remove": "ہٹائیں",
+  "settings.failover.add.title": "بیک اپ ماڈل شامل کریں",
+  "settings.failover.add.description": "کام کے لیے منتخب ماڈل کے بعد، ماڈلز اسی ترتیب سے آزمائے جاتے ہیں۔",
+  "settings.failover.add.placeholder": "ماڈل منتخب کریں",
+  "settings.failover.wait.title": "اپنے ماڈل کا انتظار کریں",
+  "settings.failover.wait.description":
+    "اگر آپ کا ماڈل اس وقت کے اندر دوبارہ دستیاب ہونے والا ہو، تو فہرست کے اگلے ماڈل پر جانے کے بجائے اس کا انتظار کیا جاتا ہے۔",
+  "settings.failover.wait.never": "انتظار نہ کریں",
+  "settings.failover.wait.minutes": "زیادہ سے زیادہ {{count}} منٹ",
+  "settings.failover.privacy":
+    "اس فہرست کا ہر ماڈل کام سنبھالتے وقت کوڈ سمیت کام کا سیاق و سباق وصول کرتا ہے۔ مقامی ماڈل اسے اسی مشین پر رکھتا ہے۔",
   "settings.agents.title": "ایجنٹس",
   "settings.agents.description": "ایجنٹ کی ترتیبات یہاں قابل ترتیب ہوں گی۔",
   "settings.commands.title": "کمانڈز",

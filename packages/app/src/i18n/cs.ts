@@ -1096,6 +1096,21 @@ export const dict = {
   "settings.routing.selected": "Vybrané modely: {{count}}. Směrování nikdy nepoužije model mimo tento seznam.",
   "settings.routing.price": "Vstup {{input}}, výstup {{output}} za 1M tokenů",
   "settings.routing.price.none": "Cena není uvedena",
+  "settings.failover.title": "Když poskytovatel selže",
+  "settings.failover.description":
+    "Pokud model vyčerpá kvótu, je dlouho omezen limitem požadavků, selže nebo přestane odpovídat, Olaya přesune úlohu i s celým kontextem na další model v tomto seznamu a vrátí se k vašemu modelu, jakmile bude znovu dostupný.",
+  "settings.failover.up": "Posunout nahoru",
+  "settings.failover.remove": "Odebrat",
+  "settings.failover.add.title": "Přidat záložní model",
+  "settings.failover.add.description": "Modely se zkoušejí v tomto pořadí, po modelu zvoleném pro úlohu.",
+  "settings.failover.add.placeholder": "Vyberte model",
+  "settings.failover.wait.title": "Čekat na váš model",
+  "settings.failover.wait.description":
+    "Pokud bude váš model v této době znovu dostupný, počká se na něj místo přechodu na další model v seznamu.",
+  "settings.failover.wait.never": "Nečekat",
+  "settings.failover.wait.minutes": "Až {{count}} min",
+  "settings.failover.privacy":
+    "Každý model v tomto seznamu obdrží při převzetí pracovní kontext úlohy včetně kódu. Místní model jej ponechá na tomto počítači.",
   "settings.agents.title": "Agenti",
   "settings.agents.description": "Zde bude možné konfigurovat nastavení agenta.",
   "settings.commands.title": "Příkazy",

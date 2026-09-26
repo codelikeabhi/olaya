@@ -1090,6 +1090,22 @@ export const dict = {
   "settings.routing.selected": "Valin líkön: {{count}}. Beining notar aldrei líkan utan þessa lista.",
   "settings.routing.price": "{{input}} inntak, {{output}} úttak á hver 1M tákn",
   "settings.routing.price.none": "Ekkert verð skráð",
+  "settings.failover.title": "Þegar veitandi bregst",
+  "settings.failover.description":
+    "Ef líkan klárar kvótann sinn, er lengi takmarkað vegna of margra beiðna, bilar eða hættir að svara færir Olaya verkefnið ásamt öllu samhengi þess yfir á næsta líkan á þessum lista og snýr aftur í þitt líkan þegar það er tiltækt á ný.",
+  "settings.failover.up": "Færa upp",
+  "settings.failover.remove": "Fjarlægja",
+  "settings.failover.add.title": "Bæta við varalíkani",
+  "settings.failover.add.description":
+    "Líkönin eru reynd í þessari röð, á eftir líkaninu sem valið var fyrir verkefnið.",
+  "settings.failover.add.placeholder": "Veldu líkan",
+  "settings.failover.wait.title": "Bíða eftir þínu líkani",
+  "settings.failover.wait.description":
+    "Ef líkanið þitt verður tiltækt aftur innan þessa tíma er beðið eftir því í stað þess að fara neðar á listann.",
+  "settings.failover.wait.never": "Ekki bíða",
+  "settings.failover.wait.minutes": "Allt að {{count}} mín.",
+  "settings.failover.privacy":
+    "Hvert líkan á þessum lista fær vinnusamhengi verkefnisins, þar á meðal kóða, þegar það tekur við. Staðbundið líkan heldur því á þessari vél.",
   "settings.agents.title": "Umboðsmenn",
   "settings.agents.description": "Umboðsmannsstillingar verða stillanlegar hér.",
   "settings.commands.title": "Skipanir",

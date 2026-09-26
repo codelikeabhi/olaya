@@ -1081,6 +1081,21 @@ export const dict = {
   "settings.routing.selected": "ເລືອກແລ້ວ {{count}} ຕົວແບບ. ການກຳນົດເສັ້ນທາງຈະບໍ່ໃຊ້ຕົວແບບນອກລາຍການນີ້ເລີຍ.",
   "settings.routing.price": "ຂາເຂົ້າ {{input}}, ຂາອອກ {{output}} ຕໍ່ 1M ໂທເຄັນ",
   "settings.routing.price.none": "ບໍ່ມີລາຄາລະບຸ",
+  "settings.failover.title": "ເມື່ອຜູ້ໃຫ້ບໍລິການລົ້ມເຫຼວ",
+  "settings.failover.description":
+    "ຖ້າຕົວແບບໃຊ້ໂຄຕາໝົດ, ຖືກຈຳກັດອັດຕາເປັນເວລາດົນ, ລົ້ມເຫຼວ ຫຼື ຢຸດຕອບສະໜອງ, Olaya ຈະຍ້າຍວຽກພ້ອມບໍລິບົດທັງໝົດໄປຫາຕົວແບບຖັດໄປໃນລາຍການນີ້ ແລະ ກັບມາໃຊ້ຕົວແບບຂອງທ່ານເມື່ອມັນພ້ອມໃຊ້ງານອີກຄັ້ງ.",
+  "settings.failover.up": "ຍ້າຍຂຶ້ນ",
+  "settings.failover.remove": "ເອົາອອກ",
+  "settings.failover.add.title": "ເພີ່ມຕົວແບບສຳຮອງ",
+  "settings.failover.add.description": "ຕົວແບບຈະຖືກລອງຕາມລຳດັບນີ້ ຫຼັງຈາກຕົວແບບທີ່ເລືອກໄວ້ສຳລັບວຽກ.",
+  "settings.failover.add.placeholder": "ເລືອກຕົວແບບ",
+  "settings.failover.wait.title": "ລໍຖ້າຕົວແບບຂອງທ່ານ",
+  "settings.failover.wait.description":
+    "ຖ້າຕົວແບບຂອງທ່ານຈະພ້ອມໃຊ້ງານອີກຄັ້ງພາຍໃນເວລານີ້, ຈະລໍຖ້າມັນແທນການຍ້າຍໄປຕົວແບບຖັດໄປໃນລາຍການ.",
+  "settings.failover.wait.never": "ບໍ່ລໍຖ້າ",
+  "settings.failover.wait.minutes": "ສູງສຸດ {{count}} ນາທີ",
+  "settings.failover.privacy":
+    "ທຸກຕົວແບບໃນລາຍການນີ້ຈະໄດ້ຮັບບໍລິບົດການເຮັດວຽກຂອງວຽກ ລວມທັງໂຄດ ເມື່ອມັນຮັບຊ່ວງຕໍ່. ຕົວແບບໃນເຄື່ອງຈະເກັບມັນໄວ້ໃນເຄື່ອງນີ້.",
   "settings.agents.title": "ຕົວແທນ",
   "settings.agents.description": "ການຕັ້ງຄ່າຕົວແທນຈະຖືກຕັ້ງຄ່າໄດ້ທີ່ນີ້.",
   "settings.commands.title": "ຄໍາສັ່ງ",

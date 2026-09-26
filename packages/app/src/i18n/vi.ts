@@ -1103,6 +1103,21 @@ export const dict = {
     "Đã chọn {{count}} mô hình. Định tuyến không bao giờ dùng mô hình nằm ngoài danh sách này.",
   "settings.routing.price": "Đầu vào {{input}}, đầu ra {{output}} mỗi 1M token",
   "settings.routing.price.none": "Chưa có giá niêm yết",
+  "settings.failover.title": "Khi nhà cung cấp gặp sự cố",
+  "settings.failover.description":
+    "Nếu một mô hình hết hạn mức, bị giới hạn tốc độ trong thời gian dài, gặp lỗi hoặc ngừng phản hồi, Olaya sẽ chuyển tác vụ cùng toàn bộ ngữ cảnh sang mô hình tiếp theo trong danh sách này và quay lại mô hình của bạn khi mô hình đó khả dụng trở lại.",
+  "settings.failover.up": "Di chuyển lên",
+  "settings.failover.remove": "Xóa",
+  "settings.failover.add.title": "Thêm mô hình dự phòng",
+  "settings.failover.add.description": "Các mô hình được thử theo thứ tự này, sau mô hình được chọn cho tác vụ.",
+  "settings.failover.add.placeholder": "Chọn mô hình",
+  "settings.failover.wait.title": "Chờ mô hình của bạn",
+  "settings.failover.wait.description":
+    "Nếu mô hình của bạn sẽ khả dụng trở lại trong khoảng thời gian này, hệ thống sẽ chờ thay vì chuyển sang mô hình tiếp theo trong danh sách.",
+  "settings.failover.wait.never": "Không chờ",
+  "settings.failover.wait.minutes": "Tối đa {{count}} phút",
+  "settings.failover.privacy":
+    "Mọi mô hình trong danh sách này đều nhận ngữ cảnh làm việc của tác vụ, bao gồm cả mã, khi tiếp quản. Mô hình cục bộ giữ ngữ cảnh đó trên máy này.",
   "settings.agents.title": "Tác nhân",
   "settings.agents.description": "Cài đặt tác nhân sẽ được cấu hình ở đây.",
   "settings.commands.title": "Lệnh",

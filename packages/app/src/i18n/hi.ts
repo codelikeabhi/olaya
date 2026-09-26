@@ -1097,6 +1097,21 @@ export const dict = {
   "settings.routing.selected": "{{count}} मॉडल चयनित। रूटिंग इस सूची के बाहर के किसी मॉडल का कभी उपयोग नहीं करती।",
   "settings.routing.price": "प्रति 1M टोकन इनपुट {{input}}, आउटपुट {{output}}",
   "settings.routing.price.none": "कोई मूल्य सूचीबद्ध नहीं",
+  "settings.failover.title": "जब कोई प्रोवाइडर विफल हो",
+  "settings.failover.description":
+    "अगर किसी मॉडल का कोटा खत्म हो जाए, वह लंबे समय तक रेट-लिमिट में रहे, विफल हो जाए या जवाब देना बंद कर दे, तो Olaya कार्य को उसके पूरे कॉन्टेक्स्ट के साथ इस सूची के अगले मॉडल पर ले जाता है और आपका मॉडल फिर से उपलब्ध होने पर उसी पर लौट आता है।",
+  "settings.failover.up": "ऊपर ले जाएँ",
+  "settings.failover.remove": "हटाएँ",
+  "settings.failover.add.title": "फ़ॉलबैक मॉडल जोड़ें",
+  "settings.failover.add.description": "कार्य के लिए चुने गए मॉडल के बाद, मॉडल इसी क्रम में आज़माए जाते हैं।",
+  "settings.failover.add.placeholder": "मॉडल चुनें",
+  "settings.failover.wait.title": "अपने मॉडल की प्रतीक्षा करें",
+  "settings.failover.wait.description":
+    "अगर आपका मॉडल इस समय के भीतर फिर से उपलब्ध होने वाला है, तो सूची में आगे बढ़ने के बजाय उसकी प्रतीक्षा की जाती है।",
+  "settings.failover.wait.never": "प्रतीक्षा न करें",
+  "settings.failover.wait.minutes": "अधिकतम {{count}} मिनट",
+  "settings.failover.privacy":
+    "इस सूची का हर मॉडल कार्य संभालते समय कोड सहित कार्य का कार्यशील कॉन्टेक्स्ट प्राप्त करता है। स्थानीय मॉडल इसे इसी मशीन पर रखता है।",
   "settings.agents.title": "एजेंट",
   "settings.agents.description": "एजेंट सेटिंग्स यहां कॉन्फ़िगर करने योग्य होंगी।",
   "settings.commands.title": "कमांड",
