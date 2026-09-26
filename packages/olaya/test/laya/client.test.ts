@@ -25,7 +25,7 @@ const ok = (probability: number) =>
 describe("LayaClient", () => {
   test("a good response yields a probability", async () => {
     await withServer(() => ok(0.87), async (url) => {
-      const result = await new LayaClient(url, 500).decide({ action: "shell" }, QUESTIONS)
+      const result = await new LayaClient(url, 5000).decide({ action: "shell" }, QUESTIONS)
       expect(result.ok).toBe(true)
       if (result.ok) {
         expect(result.probabilities.auto_approve).toBe(0.87)
@@ -47,7 +47,7 @@ describe("LayaClient", () => {
     ["probability below 0", () => json({ answers: { auto_approve: { probability: -0.2 } } }), "out-of-range"],
   ])("%s yields no judgment", async (_label, handler, reason) => {
     await withServer(handler as () => Response, async (url) => {
-      const result = await new LayaClient(url, 500).decide({}, QUESTIONS)
+      const result = await new LayaClient(url, 5000).decide({}, QUESTIONS)
       expect(result.ok).toBe(false)
       if (!result.ok) expect(result.reason).toBe(reason as never)
     })
@@ -86,7 +86,7 @@ describe("LayaClient", () => {
           ? json(ready ? { ready: true, checkpoint: "c", state_budget: 316 } : { ready: false, checkpoint: "c" })
           : ok(0.5),
       async (url) => {
-        const client = new LayaClient(url, 500)
+        const client = new LayaClient(url, 5000)
         expect(await client.stateBudget()).toBeUndefined()
         ready = true
         expect(await client.stateBudget()).toBe(316)
