@@ -11,6 +11,11 @@ export interface LayaConfig {
   enabled: boolean
   /** Record predictions and labels. Requires `enabled`. Opt-in: off by default. */
   shadow: boolean
+  /**
+   * "shadow" observes only. "live" may turn an `ask` into `allow`, and only when the loaded
+   * checkpoint carries a passed certification gate; otherwise it behaves exactly like shadow.
+   */
+  mode: "shadow" | "live"
   /** Base URL of an externally managed sidecar. When set, Olaya does not spawn one. */
   url?: string
   /** Hard ceiling on a single decision request. */
@@ -24,6 +29,7 @@ export interface LayaConfig {
 const DEFAULTS: LayaConfig = {
   enabled: false,
   shadow: false,
+  mode: "shadow",
   // Steady state is 40-90 ms, but MPS recompiles on each new sequence shape and that
   // first hit costs 200-700 ms. A tight ceiling turns those into lost judgments - and in
   // shadow mode a lost judgment is lost training data - so the ceiling is generous. It is a
@@ -48,6 +54,7 @@ export function resolve(options: Record<string, unknown> = {}, env = process.env
   const fromEnv: Partial<LayaConfig> = {
     enabled: bool(env["OLAYA_LAYA_ENABLED"]),
     shadow: bool(env["OLAYA_LAYA_SHADOW"]),
+    mode: env["OLAYA_LAYA_MODE"] === "live" ? "live" : env["OLAYA_LAYA_MODE"] === "shadow" ? "shadow" : undefined,
     url: env["OLAYA_LAYA_URL"] || undefined,
     timeoutMs: int(env["OLAYA_LAYA_TIMEOUT_MS"]),
     python: env["OLAYA_LAYA_PYTHON"] || undefined,

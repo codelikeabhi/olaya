@@ -96,6 +96,14 @@ def test_pinned_checkpoint_refuses_other_questions():
     assert st.agent.calls == 1  # the refused request never reached the model
 
 
+def test_health_reports_the_checkpoint_gate():
+    st = service.State()
+    st.agent = StubAgent()
+    assert st.describe()["gate"] is None  # the stock checkpoint has no certification
+    st.gate = {"passed": True, "threshold": 0.93}
+    assert st.describe()["gate"] == {"passed": True, "threshold": 0.93}
+
+
 def test_budget_endpoint():
     st = service.State()
     st.agent = StubAgent()

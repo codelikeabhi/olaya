@@ -71,6 +71,9 @@ class State:
         self.last_used = 0.0
         manifest = read_manifest(self.checkpoint)
         self.pinned_hash = (manifest or {}).get("question_hash")
+        # Written by the certification step. Live mode acts only on a checkpoint whose gate
+        # passed, and only above the threshold certified with it.
+        self.gate = (manifest or {}).get("gate")
 
     @property
     def ready(self):
@@ -114,6 +117,7 @@ class State:
                 state_budget=self.budget(),
             )
         d["pinned_question_hash"] = self.pinned_hash
+        d["gate"] = self.gate
         return d
 
 

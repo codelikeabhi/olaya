@@ -89,6 +89,14 @@ export class ShadowLog {
     await this.append({ kind: "refusal", ts: new Date().toISOString(), ...input })
   }
 
+  /**
+   * Audit record for a permission the model granted in live mode: what was allowed, at what
+   * probability, above which certified threshold, by which checkpoint.
+   */
+  async autoApproved(input: { id: string; action: string; probability: number; threshold: number; checkpoint: string }): Promise<void> {
+    await this.append({ kind: "auto-approved", ts: new Date().toISOString(), ...input })
+  }
+
   /** Join the user's reply to the prediction, producing a labelled training row. */
   async replied(id: string, reply: Reply): Promise<boolean> {
     const entry = this.pending.get(id)

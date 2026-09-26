@@ -58,7 +58,7 @@ export interface JudgmentDeps {
 
 /** What a judgment attempt produced. Returned for tests and diagnostics; never acted upon. */
 export type Outcome =
-  | { evaluated: true; probability: number }
+  | { evaluated: true; probability: number; checkpoint?: string }
   | { evaluated: false; reason: RefusalReason }
 
 export async function evaluate(input: any, deps: JudgmentDeps): Promise<Outcome> {
@@ -83,7 +83,7 @@ export async function evaluate(input: any, deps: JudgmentDeps): Promise<Outcome>
   }
 
   const context = (await deps.context?.({ sessionID: String(input?.sessionID ?? "") })) ?? {}
-  const budget = (await client.stateBudget()) ?? FALLBACK_BUDGET
+  const budget = (await client.stateBudget(QUESTIONS)) ?? FALLBACK_BUDGET
   const compacted = compact(req, context, budget)
   if (!compacted.ok) {
     await deps.shadow?.refused({ id, action: req.permission, reason: compacted.reason })
@@ -108,7 +108,7 @@ export async function evaluate(input: any, deps: JudgmentDeps): Promise<Outcome>
     estimatedTokens: compacted.estimatedTokens,
     inputTokens: judgment.inputTokens,
   })
-  return { evaluated: true, probability }
+  return { evaluated: true, probability, checkpoint: judgment.checkpoint }
 }
 
 /**
@@ -124,6 +124,44 @@ export function shadowHandler(deps: JudgmentDeps): (input: unknown) => Promise<v
       await evaluate(input, deps)
     } catch {
       // A judgment is advisory. It must never surface an error into the permission path.
+    }
+  }
+}
+
+/**
+ * The hook handler for live mode: the only code path in Olaya that lets the model grant a
+ * permission. Every limit on it is enforced here, in one place:
+ *
+ * - it only ever turns `ask` into `allow`. It never denies, and never touches a request the
+ *   static rules already decided (those never reach this hook);
+ * - it acts only when the loaded checkpoint carries a passed certification gate, and only at
+ *   or above the threshold certified with it; an uncertified checkpoint behaves as shadow;
+ * - denylisted, non-English, unavailable, slow or malformed judgments all leave the ask
+ *   in place, because evaluate() refuses them before any probability exists;
+ * - every grant is written to the local audit log.
+ */
+export function liveHandler(
+  deps: JudgmentDeps,
+): (input: unknown, output: { status: "ask" | "deny" | "allow" }) => Promise<void> {
+  return async (input, output) => {
+    try {
+      const outcome = await evaluate(input, deps)
+      if (!outcome.evaluated || output.status !== "ask") return
+      const gate = await deps.client()?.gate()
+      // Checked here as well as in the client: this is the one code path that can grant a
+      // permission, so it must not depend on every client filtering correctly.
+      if (!gate || gate.passed !== true || !(gate.threshold > 0 && gate.threshold <= 1)) return
+      if (outcome.probability < gate.threshold) return
+      output.status = "allow"
+      await deps.shadow?.autoApproved({
+        id: String((input as { id?: unknown })?.id ?? ""),
+        action: String((input as { permission?: unknown })?.permission ?? "unknown"),
+        probability: outcome.probability,
+        threshold: gate.threshold,
+        checkpoint: outcome.checkpoint ?? "",
+      })
+    } catch {
+      // A judgment is advisory. Any failure leaves the request asking the user.
     }
   }
 }

@@ -19,6 +19,7 @@ Everything is off by default. Enable it with environment variables:
 |---|---|
 | `OLAYA_LAYA_ENABLED` | master switch; nothing spawns, runs or is logged without it |
 | `OLAYA_LAYA_SHADOW` | record predictions and labels (requires `ENABLED`) |
+| `OLAYA_LAYA_MODE` | `shadow` (default) observes only. `live` may turn an `ask` into `allow`, but only on a checkpoint whose manifest carries a passed certification `gate`, at or above its certified threshold; it never denies, and every grant is audit-logged. On an uncertified checkpoint `live` behaves exactly like `shadow`. |
 | `OLAYA_LAYA_PYTHON` | interpreter that has `laya` installed |
 | `OLAYA_LAYA_URL` | attach to a sidecar you started yourself instead of spawning one |
 | `OLAYA_LAYA_TIMEOUT_MS` | per-decision ceiling (default 400) |

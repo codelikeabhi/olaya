@@ -20,6 +20,19 @@ export interface Health {
   max_len?: number
   head_max_len?: number
   state_budget?: number
+  /** Certification of the loaded checkpoint; null for any checkpoint that was never certified. */
+  gate?: Gate | null
+}
+
+/**
+ * The result of certifying a checkpoint: false-approve rate at most `alpha` with confidence
+ * 1 - `delta` at `threshold`. Live mode acts only when `passed` is true.
+ */
+export interface Gate {
+  passed: boolean
+  threshold: number
+  alpha?: number
+  delta?: number
 }
 
 export type FailureReason = "disabled" | "not-ready" | "timeout" | "transport" | "malformed" | "out-of-range" | "http"
@@ -47,13 +60,41 @@ export class LayaClient {
   }
 
   /** State budget in tokens, read from the checkpoint. Cached once the model reports ready. */
-  async stateBudget(): Promise<number | undefined> {
+  /**
+   * Tokens available for the state. With the questions known, the sidecar measures the real
+   * question head (471 tokens for v1 on the 512 checkpoint); /health only knows the cap-based
+   * figure (316). Falls back to that when /budget is unavailable.
+   */
+  async stateBudget(questions?: Record<string, Question>): Promise<number | undefined> {
     if (this.budgetCache !== undefined) return this.budgetCache
+    if (questions) {
+      try {
+        const res = await fetch(new URL("/budget", this.baseUrl), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ questions }),
+          signal: AbortSignal.timeout(this.timeoutMs),
+        })
+        const body = res.ok ? ((await res.json()) as { state_budget?: unknown }) : undefined
+        if (typeof body?.state_budget === "number" && body.state_budget > 0) return (this.budgetCache = body.state_budget)
+      } catch {
+        // fall through to the conservative figure
+      }
+    }
     const health = await this.health()
     // Only cache a ready model's budget - a warming sidecar reports no budget, and caching
     // that absence would pin us to a fallback for the life of the process.
     if (health?.ready && typeof health.state_budget === "number") this.budgetCache = health.state_budget
     return this.budgetCache
+  }
+
+  /** The loaded checkpoint's certification, or undefined if it has none or the sidecar is down. */
+  async gate(): Promise<Gate | undefined> {
+    const health = await this.health()
+    const gate = health?.ready ? health.gate : undefined
+    if (!gate || gate.passed !== true || typeof gate.threshold !== "number") return undefined
+    if (!(gate.threshold > 0 && gate.threshold <= 1)) return undefined
+    return gate
   }
 
   async decide(state: unknown, questions: Record<string, Question>): Promise<Judgment> {

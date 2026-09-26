@@ -119,7 +119,7 @@ describe("evaluate", () => {
       shadow,
       context: async () => ({ task: "reinstall deps" }),
     })
-    expect(result).toEqual({ evaluated: true, probability: 0.77 })
+    expect(result).toEqual({ evaluated: true, probability: 0.77, checkpoint: "c" })
     expect((seen[0] as any).command).toBe("bun install")
     expect((seen[0] as any).task).toBe("reinstall deps")
 

@@ -11,7 +11,7 @@ import type { Plugin } from "@olaya/plugin"
 import { resolve } from "./config"
 import { Sidecar } from "./sidecar"
 import { ShadowLog, type Reply } from "./shadow"
-import { shadowHandler } from "./judgment"
+import { liveHandler, shadowHandler } from "./judgment"
 import type { SessionContext } from "./state"
 
 export const SHADOW_DIR = path.join(Global.Path.data, "laya-shadow")
@@ -53,17 +53,22 @@ export const LayaPlugin: Plugin = async (input, options) => {
   const sidecar = new Sidecar(config)
   await sidecar.start()
 
-  const shadow = config.shadow ? new ShadowLog(process.env["OLAYA_LAYA_SHADOW_DIR"] ?? SHADOW_DIR) : undefined
+  // Live mode always keeps the local log: every permission it grants must leave an audit record.
+  const live = config.mode === "live"
+  const shadow = config.shadow || live ? new ShadowLog(process.env["OLAYA_LAYA_SHADOW_DIR"] ?? SHADOW_DIR) : undefined
   const memory = new TaskMemory()
-  const handler = shadowHandler({
+  const deps = {
     client: () => sidecar.current(),
     shadow,
     // Synchronous lookup, no I/O: see TaskMemory.
-    context: async ({ sessionID }) => {
+    context: async ({ sessionID }: { sessionID: string }) => {
       const task = memory.get(sessionID)
       return { cwd: input.directory, ...(task ? { task } : {}) }
     },
-  })
+  }
+  // Shadow mode's handler cannot change a permission by construction (it never sees the
+  // output). Live mode's can, within the limits enforced in liveHandler.
+  const handler = live ? liveHandler(deps) : shadowHandler(deps)
 
   return {
     "permission.ask": handler as never,
