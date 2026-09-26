@@ -33,11 +33,23 @@ export function alreadyInstalled() {
   return process.env["OLAYA_CALLER"] === "vscode" || process.env["OLAYA_CALLER"] === "vscode-insiders"
 }
 
+/**
+ * Olaya's editor extension, once it is on the Marketplace ("olaya-ai.olaya"). Until then install
+ * refuses: fetching by a name nobody here has published would install whatever a stranger
+ * uploads under it.
+ */
+export const EXTENSION_ID: string | undefined = undefined
+
 export async function install(ide: (typeof SUPPORTED_IDES)[number]["name"]) {
   const cmd = SUPPORTED_IDES.find((i) => i.name === ide)?.cmd
   if (!cmd) throw new Error(`Unknown IDE: ${ide}`)
+  if (!EXTENSION_ID) {
+    throw new InstallFailedError({
+      stderr: "The Olaya editor extension is not published yet. Build it from sdks/vscode in the Olaya repository.",
+    })
+  }
 
-  const p = await Process.run([cmd, "--install-extension", "sst-dev.opencode"], {
+  const p = await Process.run([cmd, "--install-extension", EXTENSION_ID], {
     nothrow: true,
   })
   const stdout = p.stdout.toString()

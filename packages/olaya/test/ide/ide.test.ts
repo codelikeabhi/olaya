@@ -79,4 +79,9 @@ describe("ide", () => {
 
     expect(Ide.alreadyInstalled()).toBe(false)
   })
+
+  test("refuses to install an editor extension until Olaya's own is published", async () => {
+    expect(Ide.EXTENSION_ID).toBeUndefined()
+    await expect(Ide.install("Visual Studio Code")).rejects.toMatchObject({ name: "InstallFailedError" })
+  })
 })
