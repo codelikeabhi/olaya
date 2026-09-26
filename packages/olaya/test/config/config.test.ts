@@ -2170,8 +2170,8 @@ test("parseManagedPlist strips MDM metadata keys", async () => {
       await ConfigManaged.parseManagedPlist(
         JSON.stringify({
           PayloadDisplayName: "Olaya Managed",
-          PayloadIdentifier: "ai.olaya.managed.test",
-          PayloadType: "ai.olaya.managed",
+          PayloadIdentifier: "io.olaya.managed.test",
+          PayloadType: "io.olaya.managed",
           PayloadUUID: "AAAA-BBBB-CCCC",
           PayloadVersion: 1,
           _manualProfile: true,

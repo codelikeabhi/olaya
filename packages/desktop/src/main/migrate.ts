@@ -23,12 +23,12 @@ function tauriDir(id: string) {
 
 // The Tauri app identifier changes between dev/beta/prod builds.
 const TAURI_APP_IDS: Record<string, string> = {
-  dev: "ai.olaya.desktop.dev",
-  beta: "ai.olaya.desktop.beta",
-  prod: "ai.olaya.desktop",
+  dev: "io.olaya.desktop.dev",
+  beta: "io.olaya.desktop.beta",
+  prod: "io.olaya.desktop",
 }
 function tauriAppId() {
-  return app.isPackaged ? TAURI_APP_IDS[CHANNEL] : "ai.olaya.desktop.dev"
+  return app.isPackaged ? TAURI_APP_IDS[CHANNEL] : "io.olaya.desktop.dev"
 }
 
 // Migrate a single Tauri .dat file into the corresponding electron-store.

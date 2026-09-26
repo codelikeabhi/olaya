@@ -11,7 +11,7 @@ const rootDir = path.resolve(packageDir, "../..")
 const signScript = path.join(rootDir, "script", "sign-windows.ps1")
 // The Electron 42 packaging update briefly installed Linux launchers/icons under
 // "olaya-desktop". Keep that hidden desktop entry around so existing GNOME/KDE
-// pins still resolve after the canonical app id changes back to ai.olaya.desktop.
+// pins still resolve after the canonical app id changes back to io.olaya.desktop.
 const legacyDesktopEntry = path.join(packageDir, "resources", "linux", "olaya-desktop.desktop")
 const legacyDesktopEntryFpm = `${legacyDesktopEntry}=/usr/share/applications/olaya-desktop.desktop`
 
@@ -36,9 +36,9 @@ const channel = (() => {
 })()
 
 const APP_IDS = {
-  dev: "ai.olaya.desktop.dev",
-  beta: "ai.olaya.desktop.beta",
-  prod: "ai.olaya.desktop",
+  dev: "io.olaya.desktop.dev",
+  beta: "io.olaya.desktop.beta",
+  prod: "io.olaya.desktop",
 } as const
 
 const getBase = (appId: string): Configuration => ({
@@ -48,8 +48,8 @@ const getBase = (appId: string): Configuration => ({
     buildResources: "resources",
   },
   // Linux launchers are .desktop files, so this is the desktop file name,
-  // not just the app id. For prod, app id "ai.olaya.desktop" becomes
-  // "ai.olaya.desktop.desktop".
+  // not just the app id. For prod, app id "io.olaya.desktop" becomes
+  // "io.olaya.desktop.desktop".
   // https://developer.gnome.org/documentation/guidelines/maintainer/integrating.html
   // https://www.electron.build/docs/linux/
   extraMetadata: {

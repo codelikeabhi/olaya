@@ -3,7 +3,7 @@ import { resolveChannel } from "./utils"
 const arg = process.argv[2]
 const channel = arg === "dev" || arg === "beta" || arg === "prod" ? arg : resolveChannel()
 
-const appId = channel === "prod" ? "ai.olaya.desktop" : `ai.olaya.desktop.${channel}`
+const appId = channel === "prod" ? "io.olaya.desktop" : `io.olaya.desktop.${channel}`
 const productName = channel === "prod" ? "Olaya" : `Olaya ${channel.charAt(0).toUpperCase() + channel.slice(1)}`
 const summary = `Open source AI coding agent${channel !== "prod" ? ` (${channel})` : ""}`
 
@@ -17,8 +17,8 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
   <name>${productName}</name>
   <summary>${summary}</summary>
 
-  <developer id="ly.anoma">
-    <name>Anomaly Innovations Inc.</name>
+  <developer id="io.olaya">
+    <name>The Olaya contributors</name>
   </developer>
 
   <description>
@@ -32,14 +32,9 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
   <content_rating type="oars-1.1" />
 
   <url type="bugtracker">https://github.com/codelikeabhi/olaya/issues</url>
-  <url type="homepage">https://opencode.ai</url>
+  <url type="homepage">https://github.com/codelikeabhi/olaya</url>
   <url type="vcs-browser">https://github.com/codelikeabhi/olaya</url>
 
-  <screenshots>
-    <screenshot type="default">
-      <image>https://raw.githubusercontent.com/codelikeabhi/olaya/b75d4d1c5ec449585d515c756fc81f080a157a9a/packages/web/src/assets/lander/screenshot.png</image>
-    </screenshot>
-  </screenshots>
 </component>
 `
 

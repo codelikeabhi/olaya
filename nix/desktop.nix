@@ -44,10 +44,10 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   desktopItems = lib.optional stdenv.hostPlatform.isLinux (makeDesktopItem {
-    name = "ai.olaya.desktop";
+    name = "io.olaya.desktop";
     desktopName = "Olaya";
     exec = "olaya-desktop %U";
-    icon = "ai.olaya.desktop";
+    icon = "io.olaya.desktop";
     # Electron 41 derives X11 WM_CLASS from app.name.
     startupWMClass = "Olaya";
     categories = [ "Development" ];
@@ -110,17 +110,17 @@ stdenv.mkDerivation (finalAttrs: {
     mkdir -p $out/opt/olaya-desktop
     cp -r dist/linux*-unpacked/{resources,LICENSE*} $out/opt/olaya-desktop
     install -Dm644 resources/icons/32x32.png \
-      "$out/share/icons/hicolor/32x32/apps/ai.olaya.desktop.png"
+      "$out/share/icons/hicolor/32x32/apps/io.olaya.desktop.png"
     install -Dm644 resources/icons/64x64.png \
-      "$out/share/icons/hicolor/64x64/apps/ai.olaya.desktop.png"
+      "$out/share/icons/hicolor/64x64/apps/io.olaya.desktop.png"
     install -Dm644 resources/icons/128x128.png \
-      "$out/share/icons/hicolor/128x128/apps/ai.olaya.desktop.png"
+      "$out/share/icons/hicolor/128x128/apps/io.olaya.desktop.png"
     install -Dm644 resources/icons/128x128@2x.png \
-      "$out/share/icons/hicolor/256x256/apps/ai.olaya.desktop.png"
+      "$out/share/icons/hicolor/256x256/apps/io.olaya.desktop.png"
     install -Dm644 resources/icons/icon.png \
-      "$out/share/icons/hicolor/512x512/apps/ai.olaya.desktop.png"
-    install -Dm644 resources/ai.olaya.desktop.metainfo.xml \
-      "$out/share/metainfo/ai.olaya.desktop.metainfo.xml"
+      "$out/share/icons/hicolor/512x512/apps/io.olaya.desktop.png"
+    install -Dm644 resources/io.olaya.desktop.metainfo.xml \
+      "$out/share/metainfo/io.olaya.desktop.metainfo.xml"
     makeWrapper ${lib.getExe electron} $out/bin/olaya-desktop \
      --inherit-argv0 \
      --set ELECTRON_FORCE_IS_PACKAGED 1 \

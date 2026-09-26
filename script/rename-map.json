@@ -142,6 +142,10 @@
   ],
   "replace": [
     [
+      "ai.opencode.",
+      "io.olaya."
+    ],
+    [
       "@opencode-ai/",
       "@olaya/"
     ],

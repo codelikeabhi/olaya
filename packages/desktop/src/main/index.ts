@@ -56,9 +56,9 @@ const APP_NAMES: Record<string, string> = {
   prod: "Olaya",
 }
 const APP_IDS: Record<string, string> = {
-  dev: "ai.olaya.desktop.dev",
-  beta: "ai.olaya.desktop.beta",
-  prod: "ai.olaya.desktop",
+  dev: "io.olaya.desktop.dev",
+  beta: "io.olaya.desktop.beta",
+  prod: "io.olaya.desktop",
 }
 const TEST_ONBOARDING = process.env.OLAYA_TEST_ONBOARDING === "1"
 const SIDECAR_VERSION = process.env.OLAYA_SIDECAR_V2 === "1" ? "v2" : "v1"
@@ -122,7 +122,7 @@ const main = Effect.gen(function* () {
 
   process.env.OLAYA_DISABLE_EMBEDDED_WEB_UI = "true"
 
-  const appId = app.isPackaged ? APP_IDS[CHANNEL] : "ai.olaya.desktop.dev"
+  const appId = app.isPackaged ? APP_IDS[CHANNEL] : "io.olaya.desktop.dev"
   const onboardingTestRoot = ((): string | undefined => {
     if (!TEST_ONBOARDING) return
 

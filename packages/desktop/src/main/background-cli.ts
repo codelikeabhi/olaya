@@ -9,7 +9,7 @@ import { app } from "electron"
 const execFileAsync = promisify(execFile)
 const root = dirname(fileURLToPath(import.meta.url))
 const stateHome = process.env.XDG_STATE_HOME
-const desktopStateNames = ["ai.olaya.desktop.dev", "ai.olaya.desktop.beta", "ai.olaya.desktop"]
+const desktopStateNames = ["io.olaya.desktop.dev", "io.olaya.desktop.beta", "io.olaya.desktop"]
 
 type Logger = {
   log(message: string, meta?: Record<string, unknown>): void
