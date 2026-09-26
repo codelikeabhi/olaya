@@ -57,6 +57,19 @@ const team = [
   ...bot,
 ]
 
+/**
+ * Shipped binaries embed the Bun runtime they were compiled with, so builds pin it exactly:
+ * binaries compiled with Bun 1.4.2 instead of the pinned 1.3.14 hit EPIPE errors and exited
+ * non-zero after tool calls in benchmark runs. Other scripts keep the relaxed range above.
+ */
+export function requireExactBun() {
+  if (process.versions.bun === expectedBunVersion || process.env["OLAYA_ALLOW_BUN_MISMATCH"] === "1") return
+  throw new Error(
+    `Builds need exactly bun@${expectedBunVersion} (this is ${process.versions.bun}). ` +
+      `Run: bunx bun@${expectedBunVersion} run script/build.ts, or set OLAYA_ALLOW_BUN_MISMATCH=1 for a throwaway build.`,
+  )
+}
+
 export const Script = {
   get channel() {
     return CHANNEL

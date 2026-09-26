@@ -13,7 +13,9 @@ process.chdir(dir)
 
 const generated = await import("./generate.ts")
 
-import { Script } from "@olaya/script"
+import { Script, requireExactBun } from "@olaya/script"
+
+requireExactBun()
 import pkg from "../package.json"
 
 const singleFlag = process.argv.includes("--single")

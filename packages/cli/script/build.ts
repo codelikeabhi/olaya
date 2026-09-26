@@ -3,7 +3,9 @@
 import { $ } from "bun"
 import { rm } from "fs/promises"
 import path from "path"
-import { Script } from "@olaya/script"
+import { Script, requireExactBun } from "@olaya/script"
+
+requireExactBun()
 import { createSolidTransformPlugin } from "@opentui/solid/bun-plugin"
 import pkg from "../package.json"
 import { modelsData } from "./generate"

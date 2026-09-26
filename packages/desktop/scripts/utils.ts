@@ -70,7 +70,9 @@ export async function buildCliToResources() {
   const dest = windowsify("resources/olaya-cli")
   const name = `cli-${cli.os === "win32" ? "windows" : cli.os}-${cli.cpu}`
   const binary = cli.os === "win32" ? "lildax.exe" : "lildax"
-  await $`bun ./script/build.ts --single --skip-install`.cwd("../cli")
+  // Local dev builds may run on a newer Bun; CI builds with the pinned one and keeps the check.
+  const env = process.env.GITHUB_ACTIONS === "true" ? process.env : { ...process.env, OLAYA_ALLOW_BUN_MISMATCH: "1" }
+  await $`bun ./script/build.ts --single --skip-install`.cwd("../cli").env(env)
   await copyFile(join("../cli/dist", name, "bin", binary), dest)
   if (process.platform !== "win32") await chmod(dest, 0o755)
   if (process.platform === "win32" && process.env.GITHUB_ACTIONS === "true") {
