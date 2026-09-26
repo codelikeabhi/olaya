@@ -1,8 +1,8 @@
 """One report that shows the two layers together: the decision model and the harness.
 
     python -m bench.combined --decision <bench report dir> [--decision ...] \\
-        --job ~/.local/share/olaya/harness/jobs/l3-opencode --job .../l3-olaya \\
-        --pair .../l3-opencode .../l3-olaya --out combined.md
+        --job ~/.local/share/olaya/harness/jobs/l3-opencode --job .../l3-olaya \\  (olaya-rename:keep)
+        --pair .../l3-opencode .../l3-olaya --out combined.md  (olaya-rename:keep)
 
 Caveats are written into the report by the data itself: an uncertifiable decision set, an
 uninstrumented harness arm, or a paired difference whose interval spans zero is said so in the
