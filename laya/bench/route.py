@@ -32,6 +32,8 @@ RUNS = os.path.join(HOME, "runs")
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 IMAGE = "olaya-trackc:py312"
 TIMEOUT_S = 600
+# How a compaction summary begins: the harness's template, or Laya's extractive rendering.
+SUMMARY_OPENINGS = ("## Objective", "Earlier in this session, kept by Olaya's retention")
 
 # The heuristic baseline, fixed before any outcome was seen: Exercism difficulty -> tier index.
 HEURISTIC = [(2, 0), (4, 1), (6, 2), (10, 3)]
@@ -77,42 +79,47 @@ def binary():
     return path
 
 
-def olaya_config(model):
-    return json.dumps({
+def olaya_config(model, extra=None, top=None):
+    return json.dumps({**(top or {}),
         "provider": {"ollama": {"npm": "@ai-sdk/openai-compatible", "name": "Ollama",
                                 "options": {"baseURL": "http://host.docker.internal:11434/v1"},
                                 # qwen3 thinks by default and spends a 16k window on thinking before it edits
                                 # anything; the tiers are compared with thinking off
                                 "models": {model: {"name": model, "tools": True,
-                                                   "options": {"reasoningEffort": "none"}}}}},
+                                                   "options": {"reasoningEffort": "none"}, **(extra or {})}}}},
     })
 
 
-def run_one(item, model, k):
-    out_dir = os.path.join(RUNS, model, item["id"])
+def run_one(item, model, k, variant=None):
+    """`variant` ({name, model, config, env, binary}) runs the same item under changed settings, into
+    its own directory: model-entry and top-level config overrides, extra environment, another build."""
+    v = variant or {}
+    out_dir = os.path.join(os.path.dirname(RUNS), "variants", v["name"], model, item["id"]) if v else os.path.join(RUNS, model, item["id"])
     out = os.path.join(out_dir, f"{k}.json")
     if os.path.exists(out):
         return json.load(open(out))
     os.makedirs(out_dir, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
-        work, pristine = os.path.join(tmp, "work"), os.path.join(tmp, "pristine")
-        os.makedirs(work); os.makedirs(pristine)
+        # logs sit outside the agent's working directory and are written as the run goes, so a run
+        # killed at the timeout still leaves its events
+        work, pristine, logs = (os.path.join(tmp, d) for d in ("work", "pristine", "logs"))
+        os.makedirs(work); os.makedirs(pristine); os.makedirs(logs)
         for f in item["solution"] + item["test"]:
             shutil.copy(os.path.join(item["dir"], f), os.path.join(work, f))
         for f in item["test"]:
             shutil.copy(os.path.join(item["dir"], f), os.path.join(pristine, f))
-        os.chmod(work, 0o777)
+        os.chmod(work, 0o777); os.chmod(logs, 0o777)
         name = "trackc-" + hashlib.sha1(f"{model}{item['id']}{k}{time.time()}".encode()).hexdigest()[:10]
         script = (
             f"olaya --model ollama/{model} run --format json --dangerously-skip-permissions -- \"$TASK\" "
-            "> /tmp/events.jsonl 2>/tmp/stderr; echo $? > /tmp/olaya-exit; "
-            "cp /pristine/* /work/; python -m pytest -q > /tmp/pytest.txt 2>&1; echo $? > /tmp/pytest-exit; "
-            "cp /tmp/events.jsonl /tmp/stderr /tmp/olaya-exit /tmp/pytest.txt /tmp/pytest-exit /work/ 2>/dev/null; true"
+            "> /logs/events.jsonl 2>/logs/stderr; echo $? > /logs/olaya-exit; "
+            "cp /pristine/* /work/; python -m pytest -q > /logs/pytest.txt 2>&1; echo $? > /logs/pytest-exit; true"
         )
         t0 = time.time()
         cmd = ["docker", "run", "--rm", "--name", name, "--add-host", "host.docker.internal:host-gateway",
-               "-v", f"{work}:/work", "-v", f"{pristine}:/pristine:ro", "-v", f"{binary()}:/usr/local/bin/olaya:ro",
-               "-e", f"OLAYA_CONFIG_CONTENT={olaya_config(model)}", "-e", f"TASK={task_text(item)}",
+               "-v", f"{work}:/work", "-v", f"{pristine}:/pristine:ro", "-v", f"{logs}:/logs", "-v", f"{v.get('binary') or binary()}:/usr/local/bin/olaya:ro",
+               "-e", f"OLAYA_CONFIG_CONTENT={olaya_config(model, v.get('model'), v.get('config'))}", "-e", f"TASK={task_text(item)}",
+               *[x for key, value in v.get("env", {}).items() for x in ("-e", f"{key}={value}")],
                "-e", "OLAYA_DISABLE_AUTOUPDATE=1", IMAGE, "sh", "-c", script]
         timed_out = False
         try:
@@ -120,14 +127,16 @@ def run_one(item, model, k):
         except subprocess.TimeoutExpired:
             timed_out = True
             subprocess.run(["docker", "kill", name], capture_output=True)
-        read = lambda f, d="": open(os.path.join(work, f)).read() if os.path.exists(os.path.join(work, f)) else d
+        read = lambda f, d="": open(os.path.join(logs, f), errors="replace").read() if os.path.exists(os.path.join(logs, f)) else d
         events = [json.loads(l) for l in read("events.jsonl").splitlines() if l.startswith("{")]
         record = {
             "item": item["id"], "difficulty": item["difficulty"], "model": model, "k": k,
             "passed": (not timed_out) and read("pytest-exit").strip() == "0",
             "timed_out": timed_out, "olaya_exit": read("olaya-exit").strip() or None,
             "wall_s": round(time.time() - t0, 1), "calls": calls_from(events, model),
-            "pytest_tail": read("pytest.txt")[-400:],
+            "pytest_tail": read("pytest.txt")[-400:], "stderr_tail": read("stderr")[-400:],
+            "summaries": [e["part"]["text"][:40] for e in events if e.get("type") == "text"
+                          and (e.get("part") or {}).get("text", "").startswith(SUMMARY_OPENINGS)],
         }
     json.dump(record, open(out, "w"))
     return record

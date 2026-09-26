@@ -14,9 +14,11 @@ import { ShadowLog, type Reply } from "./shadow"
 import { liveHandler, shadowHandler } from "./judgment"
 import { observe } from "./inject"
 import type { SessionContext } from "./state"
-import { handler as retentionHandler } from "./retention"
+import { handler as retentionHandler, recallTool } from "./retention"
 
 export const SHADOW_DIR = path.join(Global.Path.data, "laya-shadow")
+/** Full text of what live retention shortened or dropped, one append-only file per session. */
+export const RECALL_DIR = path.join(Global.Path.data, "laya-recall")
 
 /**
  * Whether permission replies in this process come from auto-approval rather than a person.
@@ -69,7 +71,9 @@ export const LayaPlugin: Plugin = async (input, options) => {
             budget: config.retentionBudget,
             cap: RETENTION_CAP_TOKENS,
             shadow: new ShadowLog(shadowDir),
+            recallDir: RECALL_DIR,
           }),
+          ...(config.retention === "live" && { tool: { recall: recallTool(RECALL_DIR) } }),
         }
   if (!config.enabled) return retention
 
