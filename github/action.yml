@@ -58,7 +58,7 @@ runs:
     - name: Install olaya
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
-      run: curl -fsSL https://opencode.ai/install | bash
+      run: curl -fsSL https://raw.githubusercontent.com/codelikeabhi/olaya/main/install | bash
 
     - name: Add olaya to PATH
       shell: bash
