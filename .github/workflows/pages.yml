@@ -1,0 +1,42 @@
+name: pages
+
+# Publishes the interim site at olaya.damndev.in: the install script, a landing page and the logo.
+# Needs Settings -> Pages -> Source: "GitHub Actions", and a CNAME record
+# olaya.damndev.in -> codelikeabhi.github.io.
+
+on:
+  push:
+    branches: [main]
+    paths: [install, site/**, packages/identity/*.svg, .github/workflows/pages.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp site/* _site/
+          cp install _site/install
+          cp packages/identity/olaya-logo.svg packages/identity/olaya-logo-dark.svg _site/
+          cp packages/ui/src/assets/favicon/favicon.svg _site/favicon.svg
+          cp packages/ui/src/assets/images/social-share.png _site/social-share.png
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

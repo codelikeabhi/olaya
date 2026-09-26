@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Olaya</title>
+<meta name="description" content="An open-source AI coding harness you can leave alone.">
+<link rel="icon" href="favicon.svg">
+<meta property="og:image" content="social-share.png">
+<style>
+  :root { --ink: #25236B; --ground: #FAFAF7; --point: #D9573B; --muted: #5D5B7E; --code: #EFEEF4; }
+  @media (prefers-color-scheme: dark) { :root { --ink: #FAFAF7; --ground: #16143D; --point: #F08A70; --muted: #A3A1C4; --code: #221F52; } }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--ground); color: var(--ink);
+         font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 640px; padding: 48px 16px; display: flex; flex-direction: column; gap: 24px; }
+  .logo-dark { display: none; }
+  @media (prefers-color-scheme: dark) { .logo-light { display: none; } .logo-dark { display: block; } }
+  h1 { margin: 0; font-size: 22px; font-weight: 500; }
+  pre { margin: 0; padding: 14px 16px; border-radius: 10px; background: var(--code); overflow-x: auto; font-size: 14px; }
+  a { color: var(--point); }
+  p { margin: 0; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <img class="logo-light" src="olaya-logo.svg" alt="Olaya" width="260">
+  <img class="logo-dark" src="olaya-logo-dark.svg" alt="Olaya" width="260">
+  <h1>An open-source AI coding harness you can leave alone.</h1>
+  <pre>curl -fsSL https://olaya.damndev.in/install | bash</pre>
+  <p>Early development. Source, docs and releases: <a href="https://github.com/codelikeabhi/olaya">github.com/codelikeabhi/olaya</a></p>
+</main>
+</body>
+</html>
