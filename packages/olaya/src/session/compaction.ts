@@ -30,6 +30,8 @@ export const Event = SessionCompactionEvent
 export const PRUNE_MINIMUM = 20_000
 export const PRUNE_PROTECT = 40_000
 const TOOL_OUTPUT_MAX_CHARS = 2_000
+// The processor's refusal when a summary request tries to call a tool (session/processor.ts).
+const TOOL_CALL_REFUSED = "Tool call not allowed while generating summary"
 // Errors and test summaries sit at the end of an output, so most of the budget goes to the tail.
 const TOOL_OUTPUT_HEAD_CHARS = 600
 const PRUNE_PROTECTED_TOOLS = ["skill"]
@@ -446,90 +448,105 @@ const layer = Layer.effect(
           .filter(Boolean)
           .join("\n\n")
       const ctx = yield* InstanceState.context
-      const msg: SessionV1.Assistant = {
-        id: MessageID.ascending(),
-        role: "assistant",
-        parentID: input.parentID,
-        sessionID: input.sessionID,
-        mode: "compaction",
-        agent: "compaction",
-        variant: userMessage.model.variant,
-        summary: true,
-        path: {
-          cwd: ctx.directory,
-          root: ctx.worktree,
-        },
-        cost: 0,
-        tokens: {
-          output: 0,
-          input: 0,
-          reasoning: 0,
-          cache: { read: 0, write: 0 },
-        },
-        modelID: model.id,
-        providerID: model.providerID,
-        time: {
-          created: Date.now(),
-        },
-      }
-      yield* session.updateMessage(msg)
-      if (retained.summary) {
-        const now = Date.now()
-        yield* session.updatePart({
-          id: PartID.ascending(),
-          messageID: msg.id,
+      // One summary message. `shared` sends the session's system prompt and tools, so the cache serves them.
+      const summarise = Effect.fnUntraced(function* (shared: Prefix | undefined) {
+        const msg: SessionV1.Assistant = {
+          id: MessageID.ascending(),
+          role: "assistant",
+          parentID: input.parentID,
           sessionID: input.sessionID,
-          type: "text",
-          text: retained.summary,
-          time: { start: now, end: now },
-        })
-        msg.finish = "stop"
-        msg.time.completed = now
+          mode: "compaction",
+          agent: "compaction",
+          variant: userMessage.model.variant,
+          summary: true,
+          path: {
+            cwd: ctx.directory,
+            root: ctx.worktree,
+          },
+          cost: 0,
+          tokens: {
+            output: 0,
+            input: 0,
+            reasoning: 0,
+            cache: { read: 0, write: 0 },
+          },
+          modelID: model.id,
+          providerID: model.providerID,
+          time: {
+            created: Date.now(),
+          },
+        }
         yield* session.updateMessage(msg)
-      }
-      const processor = yield* processors.create({
-        assistantMessage: msg,
-        sessionID: input.sessionID,
-        model,
-      })
-      const result = retained.summary
-        ? "continue"
-        : yield* processor.process({
-            user: userMessage,
-            agent,
+        if (retained.summary) {
+          const now = Date.now()
+          yield* session.updatePart({
+            id: PartID.ascending(),
+            messageID: msg.id,
             sessionID: input.sessionID,
-            tools: {},
-            system: [],
-            ...(prefix && {
-              ...prefix,
-              // Same definitions, so the cached prefix matches; a call is refused rather than run.
-              // toolChoice "none" would drop the tools from Anthropic requests and miss the cache.
-              tools: Object.fromEntries(
-                Object.entries(prefix.tools).map(([name, item]) => [
-                  name,
-                  { ...item, execute: async () => Promise.reject(new Error("Tools are unavailable while compacting")) },
-                ]),
-              ),
-            }),
-            messages: [
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "text",
-                    text: [
-                      ...(prefix ? [agent.prompt, "Reply with the summary only. Do not call tools."] : []),
-                      nextPrompt,
-                      ...(compacting.prompt ? ["The following is the conversation history:", conversation] : []),
-                    ]
-                      .filter(Boolean)
-                      .join("\n\n"),
-                  },
-                ],
-              },
-            ],
-            model,
+            type: "text",
+            text: retained.summary,
+            time: { start: now, end: now },
           })
+          msg.finish = "stop"
+          msg.time.completed = now
+          yield* session.updateMessage(msg)
+        }
+        const processor = yield* processors.create({
+          assistantMessage: msg,
+          sessionID: input.sessionID,
+          model,
+        })
+        const result = retained.summary
+          ? "continue"
+          : yield* processor.process({
+              user: userMessage,
+              agent,
+              sessionID: input.sessionID,
+              tools: {},
+              system: [],
+              ...(shared && {
+                ...shared,
+                // Same definitions, so the cached prefix matches; a call is refused rather than run.
+                // toolChoice "none" would drop the tools from Anthropic requests and miss the cache.
+                tools: Object.fromEntries(
+                  Object.entries(shared.tools).map(([name, item]) => [
+                    name,
+                    {
+                      ...item,
+                      execute: async () => Promise.reject(new Error("Tools are unavailable while compacting")),
+                    },
+                  ]),
+                ),
+              }),
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    {
+                      type: "text",
+                      text: [
+                        ...(shared ? [agent.prompt, "Reply with the summary only. Do not call tools."] : []),
+                        nextPrompt,
+                        ...(compacting.prompt ? ["The following is the conversation history:", conversation] : []),
+                      ]
+                        .filter(Boolean)
+                        .join("\n\n"),
+                    },
+                  ],
+                },
+              ],
+              model,
+            })
+        return { processor, result }
+      })
+      const first = yield* summarise(prefix)
+      // With the session's tools in the request a model can try to call one; the processor refuses,
+      // which would error the compaction and stop the session. The tool-free request cannot call
+      // tools, so it gets one retry.
+      const { processor, result } =
+        prefix && JSON.stringify(first.processor.message.error ?? "").includes(TOOL_CALL_REFUSED)
+          ? yield* summarise(undefined)
+          : first
 
       if (result === "compact") {
         processor.message.error = new SessionV1.ContextOverflowError({

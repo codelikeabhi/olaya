@@ -70,20 +70,24 @@ it.instance(
 )
 
 it.instance(
-  "a tool call during compaction stops it without running the tool",
+  "a tool call during compaction runs nothing, and the summary is retried without tools",
   () =>
     Effect.gen(function* () {
       yield* project()
-      const { messages } = yield* run(
+      const { messages, bodies } = yield* run(
         Effect.gen(function* () {
           const llm = yield* TestLLMServer
           yield* llm.text("working", overflowing)
           yield* llm.tool("todowrite", { todos: [{ content: "sneaky", status: "pending", priority: "high", id: "9" }] })
+          yield* llm.text("Summary from the retry.")
           yield* llm.text("done")
         }),
       )
-      const compaction = messages.find((m) => m.info.role === "assistant" && m.info.summary)
-      expect(JSON.stringify(compaction?.info)).toContain("Tool call not allowed while generating summary")
+      const summaries = messages.filter((m) => m.info.role === "assistant" && m.info.summary)
+      expect(JSON.stringify(summaries[0]?.info)).toContain("Tool call not allowed while generating summary")
+      expect(JSON.stringify(summaries[1]?.parts)).toContain("Summary from the retry.")
+      expect((bodies as unknown as Body[])[2]!.tools).toBeUndefined() // the retry carries no tools
+      expect(bodies).toHaveLength(4) // and the session carried on
       const todo = yield* Todo.Service
       expect(yield* todo.get(messages[0]!.info.sessionID)).toEqual([])
     }),
