@@ -1,0 +1,35 @@
+{
+  "$comment": "Gates for Laya's three roles (permissions, model routing, context retention). Each gate's check lives in bench/gates.py. Thresholds are null until gate G1 (design) fixes them from the research; after that they don't move.",
+  "G0": {
+    "memos": ["research/08-model-routing.md", "research/09-context-retention.md"],
+    "sections": ["Summary", "Findings", "Implications for Olaya", "Recommended approach", "Evaluation design", "Risks", "Sources"],
+    "min_sources": 10,
+    "min_pdfs_per_memo": 5
+  },
+  "G1": {
+    "changes": ["laya-model-routing", "laya-context-retention"],
+    "gates_needing_thresholds": ["G4", "G6", "G8", "G9", "G10"]
+  },
+  "G2": {
+    "tests": {
+      "packages/olaya": ["test/session/model-select.test.ts", "test/session/step-usage.test.ts"]
+    },
+    "typecheck": ["packages/olaya", "packages/plugin"]
+  },
+  "G3": { "report": "track-c/latest.json" },
+  "G4": { "report": "router/latest.json", "thresholds": null },
+  "G5": {
+    "tests": { "packages/olaya": ["test/laya/router-shadow.test.ts"] },
+    "report": "router/shadow-smoke.json",
+    "thresholds": { "p95_ms": 150, "steps_with_record": 1.0 }
+  },
+  "G6": { "report": "router/live-ab.json", "thresholds": null },
+  "G7": { "report": "track-d/latest.json" },
+  "G8": { "report": "retention/latest.json", "thresholds": null },
+  "G9": {
+    "tests": { "packages/olaya": ["test/laya/retention.test.ts"] },
+    "report": "retention/live-ab.json",
+    "thresholds": null
+  },
+  "G10": { "report": "combined/latest.json", "thresholds": null }
+}
