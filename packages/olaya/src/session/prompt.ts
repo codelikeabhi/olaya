@@ -1193,6 +1193,22 @@ const layer = Layer.effect(
           while (true) {
             const now = Date.now()
             const next = FailoverAvailability.pick(models, now)
+            // A model with no declared window can't be protected from overflow; local servers such
+            // as Ollama then drop the oldest messages silently. It is skipped until configured.
+            const slash = next?.indexOf("/") ?? -1
+            const resolved =
+              next && next !== models[0] // the user's own model is theirs to choose; only fallbacks are vetted
+                ? yield* provider
+                    .getModel(ProviderV2.ID.make(next.slice(0, slash)), ModelV2.ID.make(next.slice(slash + 1)))
+                    .pipe(Effect.option)
+                : undefined
+            if (next && resolved && (Option.isNone(resolved) || !resolved.value.limit.context)) {
+              FailoverAvailability.mark(next, {
+                action: "disable",
+                reason: Option.isNone(resolved) ? "model not found" : "no context window declared (set limit.context)",
+              })
+              continue
+            }
             if (next) return next
             const at = FailoverAvailability.earliest(models)
             if (at === undefined || (limit !== undefined && at - started > limit * 60_000)) return undefined
@@ -1364,10 +1380,23 @@ const layer = Layer.effect(
             continue
           }
 
+          // Counts from another provider's tokenizer can run 35% short for this one (research/11b).
+          const foreign = lastFinished && lastFinished.providerID !== model.providerID
+          const counted = lastFinished && {
+            ...lastFinished.tokens,
+            total: Math.ceil(
+              (lastFinished.tokens.total ||
+                lastFinished.tokens.input +
+                  lastFinished.tokens.output +
+                  lastFinished.tokens.cache.read +
+                  lastFinished.tokens.cache.write) * (foreign ? 1.35 : 1),
+            ),
+          }
           if (
             lastFinished &&
+            counted &&
             lastFinished.summary !== true &&
-            (yield* compaction.isOverflow({ tokens: lastFinished.tokens, model }))
+            (yield* compaction.isOverflow({ tokens: counted, model }))
           ) {
             yield* compaction.create({ sessionID, agent: lastUser.agent, model: lastUser.model, auto: true })
             continue

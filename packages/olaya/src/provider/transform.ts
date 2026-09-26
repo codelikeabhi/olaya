@@ -3,6 +3,7 @@ import { mergeDeep, unique } from "remeda"
 import type { JSONSchema7 } from "@ai-sdk/provider"
 import type * as Provider from "./provider"
 import type * as ModelsDev from "@olaya/core/models-dev"
+import { createHash } from "crypto"
 import { iife } from "@/util/iife"
 
 type Modality = NonNullable<ModelsDev.Model["modalities"]>["input"][number]
@@ -251,37 +252,27 @@ function normalizeMessages(
   }
 
   const modelID = model.api.id.toLowerCase()
+  // Kimi expects its own `functions.<name>:<n>` IDs; foreign ones mislead it into malformed calls.
+  if (/moonshot|kimi/.test(`${model.providerID} ${modelID}`)) {
+    let n = 0
+    msgs = remapToolCallIds(msgs, (id, name) =>
+      /^functions\.[^:]+:\d+$/.test(id) ? id : `functions.${name ?? "tool"}:${n++}`,
+    )
+  } else if (!model.api.id.includes("claude")) {
+    // IDs from another provider can be longer than some accept (Gemini's run to ~50 characters).
+    msgs = remapToolCallIds(msgs, (id) => (id.length <= 40 ? id : `call_${hashId(id, 24)}`))
+  }
   if (
     model.providerID === "mistral" ||
     ["mistral", "devstral", "codestral", "pixtral", "mixtral"].some((family) => modelID.includes(family))
   ) {
-    const scrub = (id: string) => {
-      return id
-        .replace(/[^a-zA-Z0-9]/g, "") // Remove non-alphanumeric characters
-        .substring(0, 9) // Take first 9 characters
-        .padEnd(9, "0") // Pad with zeros if less than 9 characters
-    }
+    // Mistral wants exactly 9 alphanumerics. Its own IDs pass through; any other is hashed, not
+    // truncated, so two IDs sharing a prefix (toolu_01…) stay distinct.
+    msgs = remapToolCallIds(msgs, (id) => (/^[a-zA-Z0-9]{9}$/.test(id) ? id : hashId(id, 9)))
     const result: ModelMessage[] = []
     for (let i = 0; i < msgs.length; i++) {
       const msg = msgs[i]
       const nextMsg = msgs[i + 1]
-
-      if (msg.role === "assistant" && Array.isArray(msg.content)) {
-        msg.content = msg.content.map((part) => {
-          if (part.type === "tool-call" || part.type === "tool-result") {
-            return { ...part, toolCallId: scrub(part.toolCallId) }
-          }
-          return part
-        })
-      }
-      if (msg.role === "tool" && Array.isArray(msg.content)) {
-        msg.content = msg.content.map((part) => {
-          if (part.type === "tool-result") {
-            return { ...part, toolCallId: scrub(part.toolCallId) }
-          }
-          return part
-        })
-      }
       result.push(msg)
 
       // Fix message sequence: tool messages cannot be followed by user messages
@@ -406,8 +397,42 @@ function applyCaching(msgs: ModelMessage[], model: Provider.Model): ModelMessage
   return msgs
 }
 
-function unsupportedParts(msgs: ModelMessage[], model: Provider.Model): ModelMessage[] {
+/** Maps every tool-call ID, in calls and results alike, so each pair still matches. */
+function remapToolCallIds(msgs: ModelMessage[], remap: (id: string, name: string | undefined) => string) {
+  const ids = new Map<string, string>()
+  const next = (id: string, name: string | undefined) => {
+    if (!ids.has(id)) ids.set(id, remap(id, name))
+    return ids.get(id)!
+  }
   return msgs.map((msg) => {
+    if ((msg.role !== "assistant" && msg.role !== "tool") || !Array.isArray(msg.content)) return msg
+    return {
+      ...msg,
+      content: msg.content.map((part) =>
+        part.type === "tool-call" || part.type === "tool-result"
+          ? { ...part, toolCallId: next(part.toolCallId, part.toolName) }
+          : part,
+      ),
+    } as ModelMessage
+  })
+}
+
+const BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+/** A stable alphanumeric ID of `length` characters from any string. */
+export function hashId(id: string, length: number) {
+  let n = BigInt("0x" + createHash("sha256").update(id).digest("hex"))
+  let out = ""
+  while (out.length < length) {
+    out += BASE62[Number(n % 62n)]
+    n /= 62n
+  }
+  return out
+}
+
+function unsupportedParts(msgs: ModelMessage[], model: Provider.Model): ModelMessage[] {
+  const latest = msgs.findLastIndex((msg) => msg.role === "user")
+  return msgs.map((msg, index) => {
     if (msg.role !== "user" || !Array.isArray(msg.content)) return msg
 
     const filtered = msg.content.map((part) => {
@@ -434,9 +459,14 @@ function unsupportedParts(msgs: ModelMessage[], model: Provider.Model): ModelMes
       if (model.capabilities.input[modality]) return part
 
       const name = filename ? `"${filename}"` : modality
+      // Only the message being answered now asks for the user: an earlier attachment, such as one
+      // a previous model already read before a failover, is just noted.
       return {
         type: "text" as const,
-        text: `ERROR: Cannot read ${name} (this model does not support ${modality} input). Inform the user.`,
+        text:
+          index === latest
+            ? `ERROR: Cannot read ${name} (this model does not support ${modality} input). Inform the user.`
+            : `[${name} omitted: this model does not support ${modality} input]`,
       }
     })
 

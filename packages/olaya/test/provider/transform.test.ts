@@ -2186,12 +2186,47 @@ describe("ProviderTransform.message - Mistral tool call IDs", () => {
         {},
       )
 
-      expect(result).toMatchObject([
-        { role: "assistant", content: [{ type: "tool-call", toolCallId: "toolu01CB" }] },
-        { role: "tool", content: [{ type: "tool-result", toolCallId: "toolu01CB" }] },
-      ])
+      // hashed, not truncated: 9 alphanumerics, the same for the call and its result
+      const call = (result[0] as any).content[0].toolCallId
+      expect(call).toMatch(/^[a-zA-Z0-9]{9}$/)
+      expect((result[1] as any).content[0].toolCallId).toBe(call)
     },
   )
+
+  test("IDs that share a prefix stay distinct (truncation made them collide)", () => {
+    const ids = ["toolu_01CBhTTz95qkd9LJMdC9sf8t", "toolu_01CBhTTzXXXXXXXXXXXXXXXX"]
+    const result = ProviderTransform.message(
+      ids.map((toolCallId) => ({
+        role: "assistant",
+        content: [{ type: "tool-call", toolCallId, toolName: "read", input: {} }],
+      })) as any,
+      {
+        id: "mistral/devstral",
+        providerID: "mistral",
+        api: { id: "devstral-latest", url: "", npm: "@ai-sdk/mistral" },
+      } as any,
+      {},
+    )
+    const mapped = result.flatMap((msg: any) =>
+      msg.content.filter((p: any) => p.type === "tool-call").map((p: any) => p.toolCallId),
+    )
+    expect(new Set(mapped).size).toBe(2)
+  })
+
+  test("Mistral's own IDs pass through unchanged", () => {
+    const result = ProviderTransform.message(
+      [
+        { role: "assistant", content: [{ type: "tool-call", toolCallId: "aB3dE5gH9", toolName: "read", input: {} }] },
+      ] as any,
+      {
+        id: "mistral/devstral",
+        providerID: "mistral",
+        api: { id: "devstral-latest", url: "", npm: "@ai-sdk/mistral" },
+      } as any,
+      {},
+    )
+    expect((result[0] as any).content[0].toolCallId).toBe("aB3dE5gH9")
+  })
 })
 
 describe("ProviderTransform.message - DeepSeek reasoning content", () => {

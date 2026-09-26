@@ -155,7 +155,7 @@ export const it = testEffect(
   ]),
 )
 
-const model = (id: string) => ({
+export const model = (id: string) => ({
   id,
   name: id,
   attachment: false,
@@ -174,6 +174,8 @@ export const project = Effect.fn("test.project")(function* (
   routing?: { enabled?: boolean; models: string[] },
   /** Further top-level config, such as a `failover` chain. */
   extra: Record<string, unknown> = {},
+  /** Models added to, or replacing, the "test" provider's two. */
+  models: Record<string, unknown> = {},
 ) {
   const { directory } = yield* TestInstance
   const llm = yield* TestLLMServer
@@ -190,7 +192,7 @@ export const project = Effect.fn("test.project")(function* (
         id: "test",
         env: [],
         npm: "@ai-sdk/openai-compatible",
-        models: { "test-model": model("test-model"), "cheap-model": model("cheap-model") },
+        models: { "test-model": model("test-model"), "cheap-model": model("cheap-model"), ...models },
         options: { apiKey: "test-key", baseURL: llm.url },
       },
     },
