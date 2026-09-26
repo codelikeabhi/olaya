@@ -1087,6 +1087,13 @@ export const dict = {
   "settings.providers.tag.other": "Övrigt",
   "settings.models.title": "Modeller",
   "settings.models.description": "Modellinställningar kommer att kunna konfigureras här.",
+  "settings.routing.title": "Routning",
+  "settings.routing.enabled.title": "Låt Olaya välja modell",
+  "settings.routing.enabled.description":
+    "Beslutslagret i Olaya kan flytta en uppgift mellan modellerna du väljer nedan medan den körs. Modellen du väljer i prompten förblir standard.",
+  "settings.routing.selected": "{{count}} modeller valda. Routning använder aldrig en modell utanför den här listan.",
+  "settings.routing.price": "{{input}} indata, {{output}} utdata per 1M tokens",
+  "settings.routing.price.none": "Inget pris angivet",
   "settings.agents.title": "Agenter",
   "settings.agents.description": "Agentinställningar kommer att kunna konfigureras här.",
   "settings.commands.title": "Kommandon",

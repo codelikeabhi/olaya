@@ -1086,6 +1086,13 @@ export const dict = {
   "settings.providers.tag.other": "Diğer",
   "settings.models.title": "Modeller",
   "settings.models.description": "Model ayarları burada yapılandırılabilecek.",
+  "settings.routing.title": "Yönlendirme",
+  "settings.routing.enabled.title": "Modeli Olaya seçsin",
+  "settings.routing.enabled.description":
+    "Olaya'nın karar katmanı, çalışan bir görevi aşağıda seçtiğiniz modeller arasında taşıyabilir. İstemde seçtiğiniz model varsayılan olarak kalır.",
+  "settings.routing.selected": "{{count}} model seçildi. Yönlendirme bu listenin dışındaki bir modeli asla kullanmaz.",
+  "settings.routing.price": "1M token başına girdi {{input}}, çıktı {{output}}",
+  "settings.routing.price.none": "Fiyat belirtilmemiş",
   "settings.agents.title": "Ajanlar",
   "settings.agents.description": "Ajan ayarları burada yapılandırılabilecek.",
   "settings.commands.title": "Komutlar",

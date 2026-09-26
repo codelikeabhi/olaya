@@ -1088,6 +1088,14 @@ export const dict = {
   "settings.providers.tag.other": "Altele",
   "settings.models.title": "Modele",
   "settings.models.description": "Setările modelelor vor putea fi configurate aici.",
+  "settings.routing.title": "Rutare",
+  "settings.routing.enabled.title": "Lasă Olaya să aleagă modelul",
+  "settings.routing.enabled.description":
+    "Stratul de decizie al Olaya poate muta o sarcină între modelele pe care le selectezi mai jos, în timp ce rulează. Modelul pe care îl alegi în prompt rămâne cel implicit.",
+  "settings.routing.selected":
+    "{{count}} modele selectate. Rutarea nu folosește niciodată un model din afara acestei liste.",
+  "settings.routing.price": "{{input}} intrare, {{output}} ieșire per 1M de tokenuri",
+  "settings.routing.price.none": "Niciun preț afișat",
   "settings.agents.title": "Agenți",
   "settings.agents.description": "Setările agenților vor putea fi configurate aici.",
   "settings.commands.title": "Comenzi",

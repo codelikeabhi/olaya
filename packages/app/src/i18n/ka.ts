@@ -1082,6 +1082,14 @@ export const dict = {
   "settings.providers.tag.other": "სხვა",
   "settings.models.title": "მოდელები",
   "settings.models.description": "მოდელის პარამეტრების კონფიგურაცია იქნება აქ.",
+  "settings.routing.title": "მარშრუტიზაცია",
+  "settings.routing.enabled.title": "მიეცით Olaya-ს მოდელის არჩევის უფლება",
+  "settings.routing.enabled.description":
+    "Olaya-ს გადაწყვეტილების ფენას შეუძლია დავალების შესრულებისას მისი გადატანა ქვემოთ თქვენ მიერ არჩეულ მოდელებს შორის. მოთხოვნაში არჩეული მოდელი ნაგულისხმევად რჩება.",
+  "settings.routing.selected":
+    "არჩეულია {{count}} მოდელი. მარშრუტიზაცია არასოდეს იყენებს ამ სიის გარეთ არსებულ მოდელს.",
+  "settings.routing.price": "შეყვანა {{input}}, გამოტანა {{output}} ყოველ 1M ტოკენზე",
+  "settings.routing.price.none": "ფასი მითითებული არ არის",
   "settings.agents.title": "აგენტები",
   "settings.agents.description": "აგენტის პარამეტრების კონფიგურაცია იქნება აქ.",
   "settings.commands.title": "ბრძანებები",

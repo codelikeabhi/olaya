@@ -40,6 +40,7 @@ import { LocationProvider } from "./context/location"
 import { LocalProvider, useLocal } from "./context/local"
 import { PermissionProvider } from "./context/permission"
 import { DialogModel } from "./component/dialog-model"
+import { DialogRouting } from "./component/dialog-routing"
 import { useConnected } from "./component/use-connected"
 import { DialogMcp } from "./component/dialog-mcp"
 import { DialogStatus } from "./component/dialog-status"
@@ -638,6 +639,15 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
         slashAliases: ["mo"],
         run: () => {
           dialog.replace(() => <DialogModel />)
+        },
+      },
+      {
+        name: "model.routing",
+        title: "Model routing",
+        category: "Agent",
+        slashName: "routing",
+        run: () => {
+          dialog.replace(() => <DialogRouting />)
         },
       },
       {

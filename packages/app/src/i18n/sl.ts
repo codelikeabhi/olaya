@@ -1089,6 +1089,13 @@ export const dict = {
   "settings.providers.tag.other": "drugo",
   "settings.models.title": "Modeli",
   "settings.models.description": "Tukaj je mogoče konfigurirati nastavitve modela.",
+  "settings.routing.title": "Usmerjanje",
+  "settings.routing.enabled.title": "Naj Olaya izbere model",
+  "settings.routing.enabled.description":
+    "Odločitveni sloj Olaya lahko med izvajanjem premika opravilo med modeli, ki jih izberete spodaj. Model, ki ga izberete v pozivu, ostane privzet.",
+  "settings.routing.selected": "Izbrani modeli: {{count}}. Usmerjanje nikoli ne uporabi modela zunaj tega seznama.",
+  "settings.routing.price": "Vhod {{input}}, izhod {{output}} na 1M žetonov",
+  "settings.routing.price.none": "Cena ni navedena",
   "settings.agents.title": "Agenti",
   "settings.agents.description": "Tukaj je mogoče konfigurirati nastavitve agenta.",
   "settings.commands.title": "Ukazi",

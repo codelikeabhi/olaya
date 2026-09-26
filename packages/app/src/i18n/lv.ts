@@ -1088,6 +1088,13 @@ export const dict = {
   "settings.providers.tag.other": "Citi",
   "settings.models.title": "Modeļi",
   "settings.models.description": "Modeļu iestatījumus varēs konfigurēt šeit.",
+  "settings.routing.title": "Maršrutēšana",
+  "settings.routing.enabled.title": "Ļaut Olaya izvēlēties modeli",
+  "settings.routing.enabled.description":
+    "Olaya lēmumu slānis izpildes laikā var pārvietot uzdevumu starp tālāk izvēlētajiem modeļiem. Uzvednē izvēlētais modelis paliek noklusējuma modelis.",
+  "settings.routing.selected": "Izvēlētie modeļi: {{count}}. Maršrutēšana nekad neizmanto modeli ārpus šī saraksta.",
+  "settings.routing.price": "Ievade {{input}}, izvade {{output}} par 1M žetonu",
+  "settings.routing.price.none": "Cena nav norādīta",
   "settings.agents.title": "Aģenti",
   "settings.agents.description": "Šeit varēs konfigurēt aģentu iestatījumus.",
   "settings.commands.title": "Komandas",

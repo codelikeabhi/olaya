@@ -1934,6 +1934,10 @@ export type Config = {
   enabled_providers?: Array<string>
   model?: string
   small_model?: string
+  routing?: {
+    enabled?: boolean
+    models?: Array<string>
+  }
   default_agent?: string
   subagent_depth?: number
   username?: string

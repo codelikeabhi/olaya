@@ -1095,6 +1095,14 @@ export const dict = {
   "settings.providers.tag.other": "други",
   "settings.models.title": "Модели",
   "settings.models.description": "Настройките на модела ще могат да се конфигурират тук.",
+  "settings.routing.title": "Маршрутизиране",
+  "settings.routing.enabled.title": "Нека Olaya избира модела",
+  "settings.routing.enabled.description":
+    "Слоят за вземане на решения на Olaya може да премества задача между моделите, които изберете по-долу, докато тя се изпълнява. Моделът, избран в подканата, остава по подразбиране.",
+  "settings.routing.selected":
+    "Избрани модели: {{count}}. Маршрутизирането никога не използва модел извън този списък.",
+  "settings.routing.price": "{{input}} вход, {{output}} изход за 1M токена",
+  "settings.routing.price.none": "Няма посочена цена",
   "settings.agents.title": "Агенти",
   "settings.agents.description": "Настройките на агента ще могат да се конфигурират тук.",
   "settings.commands.title": "Команди",

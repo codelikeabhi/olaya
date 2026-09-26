@@ -1078,6 +1078,13 @@ export const dict: Record<string, string> = {
   "settings.providers.tag.other": "অন্যান্য",
   "settings.models.title": "মডেল",
   "settings.models.description": "মডেল সেটিংস এখানে কনফিগারযোগ্য হবে।",
+  "settings.routing.title": "রাউটিং",
+  "settings.routing.enabled.title": "Olaya-কে মডেল বেছে নিতে দিন",
+  "settings.routing.enabled.description":
+    "Olaya-র সিদ্ধান্ত স্তর কোনো কাজ চলাকালীন সেটিকে নিচে আপনার নির্বাচিত মডেলগুলোর মধ্যে সরাতে পারে। প্রম্পটে আপনার বেছে নেওয়া মডেলটিই ডিফল্ট থাকে।",
+  "settings.routing.selected": "{{count}}টি মডেল নির্বাচিত। রাউটিং কখনও এই তালিকার বাইরের কোনো মডেল ব্যবহার করে না।",
+  "settings.routing.price": "প্রতি 1M টোকেনে ইনপুট {{input}}, আউটপুট {{output}}",
+  "settings.routing.price.none": "কোনো মূল্য তালিকাভুক্ত নেই",
   "settings.agents.title": "এজেন্ট",
   "settings.agents.description": "এজেন্ট সেটিংস এখানে কনফিগারযোগ্য হবে।",
   "settings.commands.title": "কমান্ড",

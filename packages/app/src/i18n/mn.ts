@@ -1094,6 +1094,14 @@ export const dict = {
   "settings.providers.tag.other": "Бусад",
   "settings.models.title": "Загварууд",
   "settings.models.description": "Загварын тохиргоог энд хийх боломжтой.",
+  "settings.routing.title": "Чиглүүлэлт",
+  "settings.routing.enabled.title": "Olaya-д загвар сонгохыг зөвшөөрөх",
+  "settings.routing.enabled.description":
+    "Olaya шийдвэрийн давхарга даалгаврыг гүйцэтгэж байх үед доор таны сонгосон загваруудын хооронд шилжүүлж болно. Промптод сонгосон загвар өгөгдмөл хэвээр үлдэнэ.",
+  "settings.routing.selected":
+    "{{count}} загвар сонгогдсон. Чиглүүлэлт энэ жагсаалтаас гадуурх загварыг хэзээ ч ашиглахгүй.",
+  "settings.routing.price": "1M токен тутамд оролт {{input}}, гаралт {{output}}",
+  "settings.routing.price.none": "Үнэ заагаагүй",
   "settings.agents.title": "Агентууд",
   "settings.agents.description": "Агентын тохиргоог энд хийх боломжтой.",
   "settings.commands.title": "Тушаалууд",

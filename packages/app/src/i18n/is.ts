@@ -1083,6 +1083,13 @@ export const dict = {
   "settings.providers.tag.other": "Annað",
   "settings.models.title": "Fyrirmyndir",
   "settings.models.description": "Líkanstillingar verða stillanlegar hér.",
+  "settings.routing.title": "Beining",
+  "settings.routing.enabled.title": "Leyfa Olaya að velja líkanið",
+  "settings.routing.enabled.description":
+    "Ákvörðunarlag Olaya getur fært verkefni á milli líkananna sem þú velur hér fyrir neðan á meðan það keyrir. Líkanið sem þú velur í kvaðningunni er áfram sjálfgefið.",
+  "settings.routing.selected": "Valin líkön: {{count}}. Beining notar aldrei líkan utan þessa lista.",
+  "settings.routing.price": "{{input}} inntak, {{output}} úttak á hver 1M tákn",
+  "settings.routing.price.none": "Ekkert verð skráð",
   "settings.agents.title": "Umboðsmenn",
   "settings.agents.description": "Umboðsmannsstillingar verða stillanlegar hér.",
   "settings.commands.title": "Skipanir",

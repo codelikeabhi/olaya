@@ -1092,6 +1092,13 @@ export const dict = {
   "settings.providers.tag.other": "Друго",
   "settings.models.title": "Модели",
   "settings.models.description": "Поставките за моделот ќе можат да се конфигурираат овде.",
+  "settings.routing.title": "Рутирање",
+  "settings.routing.enabled.title": "Дозволете Olaya да го избира моделот",
+  "settings.routing.enabled.description":
+    "Слојот за одлучување на Olaya може да ја преместува задачата меѓу моделите што ги избирате подолу додека таа се извршува. Моделот што го избирате во барањето останува стандарден.",
+  "settings.routing.selected": "Избрани модели: {{count}}. Рутирањето никогаш не користи модел надвор од оваа листа.",
+  "settings.routing.price": "{{input}} влез, {{output}} излез на 1M токени",
+  "settings.routing.price.none": "Нема наведена цена",
   "settings.agents.title": "Агенти",
   "settings.agents.description": "Овде ќе може да се конфигурираат поставките за агентот.",
   "settings.commands.title": "Наредби",

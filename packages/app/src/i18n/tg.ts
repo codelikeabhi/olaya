@@ -1090,6 +1090,14 @@ export const dict = {
   "settings.providers.tag.other": "Дигар",
   "settings.models.title": "Моделҳо",
   "settings.models.description": "Танзимоти модел дар ин ҷо танзим карда мешавад.",
+  "settings.routing.title": "Масирёбӣ",
+  "settings.routing.enabled.title": "Ба Olaya иҷозат диҳед, ки моделро интихоб кунад",
+  "settings.routing.enabled.description":
+    "Қабати қабули қарори Olaya метавонад вазифаро ҳангоми иҷро байни моделҳое, ки дар поён интихоб мекунед, интиқол диҳад. Моделе, ки дар промпт интихоб мекунед, пешфарз боқӣ мемонад.",
+  "settings.routing.selected":
+    "{{count}} модел интихоб шудааст. Масирёбӣ ҳеҷ гоҳ модели берун аз ин рӯйхатро истифода намебарад.",
+  "settings.routing.price": "Барои ҳар 1M токен: вуруд {{input}}, баромад {{output}}",
+  "settings.routing.price.none": "Нарх нишон дода нашудааст",
   "settings.agents.title": "Агентҳо",
   "settings.agents.description": "Танзимоти агент дар ин ҷо танзим карда мешавад.",
   "settings.commands.title": "Фармонҳо",

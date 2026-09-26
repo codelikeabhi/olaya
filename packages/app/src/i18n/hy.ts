@@ -1090,6 +1090,13 @@ export const dict = {
   "settings.providers.tag.other": "Այլ",
   "settings.models.title": "Մոդելներ",
   "settings.models.description": "Մոդելի կարգավորումները կարգավորելի կլինեն այստեղ։",
+  "settings.routing.title": "Երթուղավորում",
+  "settings.routing.enabled.title": "Թույլ տալ Olaya-ին ընտրել մոդելը",
+  "settings.routing.enabled.description":
+    "Olaya որոշումների շերտը կարող է առաջադրանքը կատարման ընթացքում տեղափոխել ստորև ձեր ընտրած մոդելների միջև։ Հուշումում ձեր ընտրած մոդելը մնում է լռելյայն։",
+  "settings.routing.selected": "Ընտրված է {{count}} մոդել։ Երթուղավորումը երբեք չի օգտագործում այս ցանկից դուրս մոդել։",
+  "settings.routing.price": "Մուտք՝ {{input}}, ելք՝ {{output}} յուրաքանչյուր 1M թոքենի համար",
+  "settings.routing.price.none": "Գինը նշված չէ",
   "settings.agents.title": "Գործակալներ",
   "settings.agents.description": "Գործակալի կարգավորումները կկարգավորվեն այստեղ։",
   "settings.commands.title": "Հրամաններ",

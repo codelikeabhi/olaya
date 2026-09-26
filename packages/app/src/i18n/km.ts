@@ -1077,6 +1077,13 @@ export const dict = {
   "settings.providers.tag.other": "ផ្សេងទៀត។",
   "settings.models.title": "ម៉ូដែល",
   "settings.models.description": "ការកំណត់ម៉ូដែលនឹងអាចកំណត់បាននៅទីនេះ។",
+  "settings.routing.title": "ការកំណត់ផ្លូវ",
+  "settings.routing.enabled.title": "អនុញ្ញាតឱ្យ Olaya ជ្រើសរើសម៉ូដែល",
+  "settings.routing.enabled.description":
+    "ស្រទាប់សម្រេចចិត្តរបស់ Olaya អាចផ្លាស់ទីកិច្ចការមួយរវាងម៉ូដែលដែលអ្នកជ្រើសរើសខាងក្រោម ខណៈពេលកិច្ចការកំពុងដំណើរការ។ ម៉ូដែលដែលអ្នកជ្រើសរើសក្នុងប្រអប់បញ្ចូលនៅតែជាលំនាំដើម។",
+  "settings.routing.selected": "បានជ្រើសរើសម៉ូដែល {{count}}។ ការកំណត់ផ្លូវមិនដែលប្រើម៉ូដែលក្រៅបញ្ជីនេះទេ។",
+  "settings.routing.price": "ធាតុចូល {{input}}, ធាតុចេញ {{output}} ក្នុងមួយ 1M Token",
+  "settings.routing.price.none": "មិនមានតម្លៃបញ្ជាក់",
   "settings.agents.title": "ភ្នាក់ងារ",
   "settings.agents.description": "ការកំណត់ភ្នាក់ងារនឹងអាចកំណត់បាននៅទីនេះ។",
   "settings.commands.title": "ពាក្យបញ្ជា",

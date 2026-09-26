@@ -1098,6 +1098,14 @@ export const dict = {
   "settings.providers.tag.other": "Altres",
   "settings.models.title": "Models",
   "settings.models.description": "La configuració del model es podrà configurar aquí.",
+  "settings.routing.title": "Encaminament",
+  "settings.routing.enabled.title": "Deixeu que Olaya triï el model",
+  "settings.routing.enabled.description":
+    "La capa de decisió d'Olaya pot moure una tasca entre els models que seleccioneu a continuació mentre s'executa. El model que trieu a la sol·licitud es manté com a model per defecte.",
+  "settings.routing.selected":
+    "{{count}} models seleccionats. L'encaminament mai no fa servir un model fora d'aquesta llista.",
+  "settings.routing.price": "{{input}} d'entrada, {{output}} de sortida per 1M de fitxes",
+  "settings.routing.price.none": "No hi ha cap preu indicat",
   "settings.agents.title": "Agents",
   "settings.agents.description": "La configuració de l'agent es podrà configurar aquí.",
   "settings.commands.title": "Ordres",

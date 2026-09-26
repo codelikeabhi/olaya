@@ -1060,6 +1060,13 @@ export const dict = {
   "settings.providers.tag.other": "อื่น ๆ",
   "settings.models.title": "โมเดล",
   "settings.models.description": "การตั้งค่าโมเดลจะสามารถกำหนดค่าได้ที่นี่",
+  "settings.routing.title": "การกำหนดเส้นทาง",
+  "settings.routing.enabled.title": "ให้ Olaya เลือกโมเดล",
+  "settings.routing.enabled.description":
+    "เลเยอร์การตัดสินใจของ Olaya สามารถย้ายงานไปมาระหว่างโมเดลที่คุณเลือกด้านล่างขณะที่งานกำลังทำงานอยู่ โมเดลที่คุณเลือกในพรอมต์จะยังคงเป็นค่าเริ่มต้น",
+  "settings.routing.selected": "เลือกแล้ว {{count}} โมเดล การกำหนดเส้นทางจะไม่ใช้โมเดลนอกรายการนี้เลย",
+  "settings.routing.price": "อินพุต {{input}}, เอาต์พุต {{output}} ต่อ 1M โทเค็น",
+  "settings.routing.price.none": "ไม่มีราคาระบุ",
   "settings.agents.title": "เอเจนต์",
   "settings.agents.description": "การตั้งค่าเอเจนต์จะสามารถกำหนดค่าได้ที่นี่",
   "settings.commands.title": "คำสั่ง",

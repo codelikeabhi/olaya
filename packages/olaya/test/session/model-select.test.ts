@@ -171,7 +171,7 @@ const model = (id: string) => ({
 })
 
 /** A project whose "test" provider has two models, and optionally a plugin written from `source`. */
-const project = Effect.fn("test.project")(function* (source?: string) {
+const project = Effect.fn("test.project")(function* (source?: string, routing?: { models: string[] }) {
   const { directory } = yield* TestInstance
   const llm = yield* TestLLMServer
   const plugin = path.join(directory, "router.ts")
@@ -179,6 +179,7 @@ const project = Effect.fn("test.project")(function* (source?: string) {
   const config = {
     $schema: "https://opencode.ai/config.json",
     ...(source ? { plugin: [pathToFileURL(plugin).href] } : {}),
+    ...(routing ? { routing } : {}),
     provider: {
       test: {
         name: "Test",
@@ -336,6 +337,38 @@ it.instance(
         { kind: "select", step: 1, point: "start", previous: null },
         { kind: "select", step: 2, point: "step", previous: 1 },
       ])
+    }),
+  30_000,
+)
+
+const cheapFirst = [
+  "export default async () => ({",
+  '  "experimental.model.select": async (input, output) => {',
+  '    if (input.point === "start") output.model = { providerID: "test", modelID: "cheap-model" }',
+  "  },",
+  "})",
+  "",
+].join("\n")
+
+it.instance(
+  "a model outside the user's routing pool is never chosen",
+  () =>
+    Effect.gen(function* () {
+      yield* project(cheapFirst, { models: ["test/test-model"] })
+      const { assistants, bodies } = yield* run(twoSteps)
+      expect(assistants.map((a) => String(a.modelID))).toEqual(["test-model", "test-model"])
+      expect(bodies.map((b) => b.model)).toEqual(["test-model", "test-model"])
+    }),
+  30_000,
+)
+
+it.instance(
+  "a model inside the routing pool can be chosen",
+  () =>
+    Effect.gen(function* () {
+      yield* project(cheapFirst, { models: ["test/test-model", "test/cheap-model"] })
+      const { assistants } = yield* run(twoSteps)
+      expect(assistants.map((a) => String(a.modelID))).toEqual(["cheap-model", "test-model"])
     }),
   30_000,
 )

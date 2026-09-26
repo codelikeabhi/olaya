@@ -990,6 +990,14 @@ export const dict = {
   "settings.providers.tag.other": "その他",
   "settings.models.title": "モデル",
   "settings.models.description": "モデル設定は今後ここで構成できるようになります。",
+  "settings.routing.title": "ルーティング",
+  "settings.routing.enabled.title": "Olayaにモデルを選ばせる",
+  "settings.routing.enabled.description":
+    "Olayaの判断レイヤーは、実行中のタスクを下で選択したモデル間で移動できます。プロンプトで選んだモデルは引き続きデフォルトになります。",
+  "settings.routing.selected":
+    "{{count}} 個のモデルが選択されています。ルーティングでこのリスト外のモデルが使われることはありません。",
+  "settings.routing.price": "1M トークンあたり入力 {{input}}、出力 {{output}}",
+  "settings.routing.price.none": "価格の記載なし",
   "settings.agents.title": "エージェント",
   "settings.agents.description": "エージェント設定は今後ここで構成できるようになります。",
   "settings.commands.title": "コマンド",

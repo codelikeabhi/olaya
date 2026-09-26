@@ -1077,6 +1077,14 @@ export const dict = {
   "settings.providers.tag.other": "muud",
   "settings.models.title": "Mudelid",
   "settings.models.description": "Mudeli sätteid saab siin konfigureerida.",
+  "settings.routing.title": "Marsruutimine",
+  "settings.routing.enabled.title": "Lase Olayal mudel valida",
+  "settings.routing.enabled.description":
+    "Olaya otsustuskiht saab ülesannet selle käitamise ajal allpool valitud mudelite vahel liigutada. Viibas valitud mudel jääb vaikimisi mudeliks.",
+  "settings.routing.selected":
+    "Valitud mudeleid: {{count}}. Marsruutimine ei kasuta kunagi mudelit, mis pole selles loendis.",
+  "settings.routing.price": "Sisend {{input}}, väljund {{output}} 1M tokeni kohta",
+  "settings.routing.price.none": "Hind puudub",
   "settings.agents.title": "Agendid",
   "settings.agents.description": "Agendi seadeid saab siin konfigureerida.",
   "settings.commands.title": "Käsud",

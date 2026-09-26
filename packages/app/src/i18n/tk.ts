@@ -1085,6 +1085,13 @@ export const dict = {
   "settings.providers.tag.other": "Beýlekiler",
   "settings.models.title": "Modeller",
   "settings.models.description": "Model sazlamalary bu ýerde düzülip bilner.",
+  "settings.routing.title": "Ugrukdyrma",
+  "settings.routing.enabled.title": "Modeli Olaya saýlasyn",
+  "settings.routing.enabled.description":
+    "Olaya karar gatlagy bir işi ýerine ýetirilýän wagty ony aşakda saýlan modelleriňiziň arasynda geçirip biler. Promptda saýlan modeliňiz bellenen bolup galýar.",
+  "settings.routing.selected": "{{count}} model saýlandy. Ugrukdyrma bu sanawyň daşyndaky modeli hiç haçan ulanmaýar.",
+  "settings.routing.price": "1M belgi üçin giriş {{input}}, çykyş {{output}}",
+  "settings.routing.price.none": "Baha görkezilmedi",
   "settings.agents.title": "Agentler",
   "settings.agents.description": "Agent sazlamalary bu ýerde düzülip bilner.",
   "settings.commands.title": "Buýruklar",

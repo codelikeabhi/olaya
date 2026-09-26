@@ -1089,6 +1089,14 @@ export const dict = {
   "settings.providers.tag.other": "Të tjera",
   "settings.models.title": "Modelet",
   "settings.models.description": "Cilësimet e modelit do të konfigurohen këtu.",
+  "settings.routing.title": "Rrugëzimi",
+  "settings.routing.enabled.title": "Lejoni Olaya të zgjedhë modelin",
+  "settings.routing.enabled.description":
+    "Shtresa e vendimmarrjes së Olaya mund ta zhvendosë një detyrë ndërmjet modeleve që zgjidhni më poshtë ndërsa ajo po ekzekutohet. Modeli që zgjidhni në kërkesë mbetet modeli i paracaktuar.",
+  "settings.routing.selected":
+    "Modele të zgjedhura: {{count}}. Rrugëzimi nuk përdor kurrë një model jashtë kësaj liste.",
+  "settings.routing.price": "Hyrje {{input}}, dalje {{output}} për 1M shenja",
+  "settings.routing.price.none": "Nuk ka çmim të shënuar",
   "settings.agents.title": "Agjentët",
   "settings.agents.description": "Cilësimet e agjentit do të konfigurohen këtu.",
   "settings.commands.title": "Komandat",

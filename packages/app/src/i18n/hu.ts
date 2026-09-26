@@ -1094,6 +1094,13 @@ export const dict = {
   "settings.providers.tag.other": "Más",
   "settings.models.title": "Modellek",
   "settings.models.description": "A modellbeállítások itt konfigurálhatók.",
+  "settings.routing.title": "Útválasztás",
+  "settings.routing.enabled.title": "Az Olaya válassza ki a modellt",
+  "settings.routing.enabled.description":
+    "Az Olaya döntési rétege futás közben áthelyezhet egy feladatot az alább kiválasztott modellek között. Az utasításban kiválasztott modell marad az alapértelmezett.",
+  "settings.routing.selected": "{{count}} modell kiválasztva. Az útválasztás soha nem használ a listán kívüli modellt.",
+  "settings.routing.price": "Bemenet {{input}}, kimenet {{output}} 1M tokenenként",
+  "settings.routing.price.none": "Nincs megadott ár",
   "settings.agents.title": "Ügynökök",
   "settings.agents.description": "Az ügynök beállításai itt konfigurálhatók.",
   "settings.commands.title": "Parancsok",

@@ -1100,6 +1100,14 @@ export const dict = {
   "settings.providers.tag.other": "အခြား",
   "settings.models.title": "မော်ဒယ်များ",
   "settings.models.description": "မော်ဒယ်လ်ဆက်တင်များကို ဤနေရာတွင် စီစဉ်သတ်မှတ်နိုင်မည်ဖြစ်သည်။",
+  "settings.routing.title": "လမ်းကြောင်းသတ်မှတ်ခြင်း",
+  "settings.routing.enabled.title": "မော်ဒယ်ကို Olaya အား ရွေးခွင့်ပြုပါ",
+  "settings.routing.enabled.description":
+    "Olaya ၏ ဆုံးဖြတ်ချက်အလွှာသည် လုပ်ငန်းတစ်ခု လုပ်ဆောင်နေစဉ် ၎င်းကို အောက်တွင် သင်ရွေးထားသော မော်ဒယ်များကြား ရွှေ့ပြောင်းနိုင်သည်။ Prompt တွင် သင်ရွေးသော မော်ဒယ်သည် မူရင်းအဖြစ် ဆက်ရှိနေမည်။",
+  "settings.routing.selected":
+    "မော်ဒယ် {{count}} ခု ရွေးထားသည်။ လမ်းကြောင်းသတ်မှတ်ခြင်းသည် ဤစာရင်းပြင်ပရှိ မော်ဒယ်ကို ဘယ်တော့မှ မသုံးပါ။",
+  "settings.routing.price": "တိုကင် 1M လျှင် အဝင် {{input}}၊ အထွက် {{output}}",
+  "settings.routing.price.none": "စျေးနှုန်း မဖော်ပြထားပါ",
   "settings.agents.title": "အေးဂျင့်များ",
   "settings.agents.description": "အေးဂျင့်ဆက်တင်များကို ဤနေရာတွင် ပြင်ဆင်သတ်မှတ်နိုင်ပါမည်။",
   "settings.commands.title": "အမိန့်များ",

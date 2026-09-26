@@ -1095,6 +1095,14 @@ export const dict = {
   "settings.providers.tag.other": "Khác",
   "settings.models.title": "Mô hình",
   "settings.models.description": "Cài đặt mô hình sẽ được cấu hình ở đây.",
+  "settings.routing.title": "Định tuyến",
+  "settings.routing.enabled.title": "Để Olaya chọn mô hình",
+  "settings.routing.enabled.description":
+    "Lớp quyết định của Olaya có thể chuyển một tác vụ giữa các mô hình bạn chọn bên dưới trong khi tác vụ đang chạy. Mô hình bạn chọn trong lời nhắc vẫn là mặc định.",
+  "settings.routing.selected":
+    "Đã chọn {{count}} mô hình. Định tuyến không bao giờ dùng mô hình nằm ngoài danh sách này.",
+  "settings.routing.price": "Đầu vào {{input}}, đầu ra {{output}} mỗi 1M token",
+  "settings.routing.price.none": "Chưa có giá niêm yết",
   "settings.agents.title": "Tác nhân",
   "settings.agents.description": "Cài đặt tác nhân sẽ được cấu hình ở đây.",
   "settings.commands.title": "Lệnh",

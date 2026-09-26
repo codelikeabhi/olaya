@@ -1081,6 +1081,13 @@ export const dict = {
   "settings.providers.tag.other": "دیگر",
   "settings.models.title": "مدل ها",
   "settings.models.description": "تنظیمات مدل در اینجا قابل تنظیم خواهد بود.",
+  "settings.routing.title": "مسیریابی",
+  "settings.routing.enabled.title": "اجازه دهید Olaya مدل را انتخاب کند",
+  "settings.routing.enabled.description":
+    "لایه تصمیم‌گیری Olaya می‌تواند یک کار را در حین اجرا بین مدل‌هایی که در زیر انتخاب می‌کنید جابه‌جا کند. مدلی که در پرامپت انتخاب می‌کنید همچنان پیش فرض باقی می‌ماند.",
+  "settings.routing.selected": "{{count}} مدل انتخاب شده است. مسیریابی هرگز از مدلی خارج از این فهرست استفاده نمی‌کند.",
+  "settings.routing.price": "ورودی {{input}}، خروجی {{output}} به ازای هر 1M توکن",
+  "settings.routing.price.none": "قیمتی درج نشده است",
   "settings.agents.title": "عوامل",
   "settings.agents.description": "تنظیمات عامل در اینجا قابل تنظیم خواهد بود.",
   "settings.commands.title": "دستورات",

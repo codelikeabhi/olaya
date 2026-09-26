@@ -1090,6 +1090,13 @@ export const dict = {
   "settings.providers.tag.other": "अन्य",
   "settings.models.title": "मॉडल",
   "settings.models.description": "मॉडल सेटिंग्स यहां कॉन्फ़िगर करने योग्य होंगी।",
+  "settings.routing.title": "रूटिंग",
+  "settings.routing.enabled.title": "Olaya को मॉडल चुनने दें",
+  "settings.routing.enabled.description":
+    "Olaya की निर्णय लेयर किसी कार्य को चलते समय नीचे आपके चुने गए मॉडलों के बीच स्थानांतरित कर सकती है। प्रॉम्प्ट में आपके द्वारा चुना गया मॉडल डिफ़ॉल्ट बना रहता है।",
+  "settings.routing.selected": "{{count}} मॉडल चयनित। रूटिंग इस सूची के बाहर के किसी मॉडल का कभी उपयोग नहीं करती।",
+  "settings.routing.price": "प्रति 1M टोकन इनपुट {{input}}, आउटपुट {{output}}",
+  "settings.routing.price.none": "कोई मूल्य सूचीबद्ध नहीं",
   "settings.agents.title": "एजेंट",
   "settings.agents.description": "एजेंट सेटिंग्स यहां कॉन्फ़िगर करने योग्य होंगी।",
   "settings.commands.title": "कमांड",

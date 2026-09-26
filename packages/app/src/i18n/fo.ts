@@ -1080,6 +1080,13 @@ export const dict = {
   "settings.providers.tag.other": "Annað",
   "settings.models.title": "Fyrimyndir",
   "settings.models.description": "Model innstillingar verða stillaðar her.",
+  "settings.routing.title": "Routing",
+  "settings.routing.enabled.title": "Lat Olaya velja modellið",
+  "settings.routing.enabled.description":
+    "Avgerðarlagið í Olaya kann flyta eina uppgávu millum modellini, sum tú velur niðanfyri, meðan hon koyrir. Modellið, sum tú velur í promptinum, verður verandi forsett.",
+  "settings.routing.selected": "{{count}} modell vald. Routing brúkar ongantíð eitt modell uttan fyri hendan listan.",
+  "settings.routing.price": "{{input}} inn, {{output}} út fyri hvørji 1M merki",
+  "settings.routing.price.none": "Eingin prísur upplýstur",
   "settings.agents.title": "Agentar",
   "settings.agents.description": "Agentinnstillingar verða stillaðar her.",
   "settings.commands.title": "Skipanir",

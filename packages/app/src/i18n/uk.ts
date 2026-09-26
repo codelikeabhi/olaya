@@ -1188,6 +1188,14 @@ export const dict = {
   "settings.providers.tag.other": "Інше",
   "settings.models.title": "Моделі",
   "settings.models.description": "Налаштування моделей будуть доступні тут.",
+  "settings.routing.title": "Маршрутизація",
+  "settings.routing.enabled.title": "Дозволити Olaya вибирати модель",
+  "settings.routing.enabled.description":
+    "Шар ухвалення рішень Olaya може переносити задачу між вибраними нижче моделями під час її виконання. Модель, вибрана в запиті, залишається моделлю за замовчуванням.",
+  "settings.routing.selected":
+    "Вибрано моделей: {{count}}. Маршрутизація ніколи не використовує моделі поза цим списком.",
+  "settings.routing.price": "Вхід {{input}}, вихід {{output}} за 1M токенів",
+  "settings.routing.price.none": "Ціну не вказано",
   "settings.agents.title": "Агенти",
   "settings.agents.description": "Налаштування агентів будуть доступні тут.",
   "settings.commands.title": "Команди",

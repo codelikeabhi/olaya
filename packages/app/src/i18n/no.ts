@@ -905,6 +905,13 @@ export const dict = {
   "settings.providers.tag.other": "Annet",
   "settings.models.title": "Modeller",
   "settings.models.description": "Modellinnstillinger vil kunne konfigureres her.",
+  "settings.routing.title": "Ruting",
+  "settings.routing.enabled.title": "La Olaya velge modellen",
+  "settings.routing.enabled.description":
+    "Beslutningslaget i Olaya kan flytte en oppgave mellom modellene du velger nedenfor, mens den kjører. Modellen du velger i prompten, forblir standard.",
+  "settings.routing.selected": "{{count}} modeller valgt. Ruting bruker aldri en modell utenfor denne listen.",
+  "settings.routing.price": "{{input}} inndata, {{output}} utdata per 1M tokener",
+  "settings.routing.price.none": "Ingen pris oppgitt",
   "settings.agents.title": "Agenter",
   "settings.agents.description": "Agentinnstillinger vil kunne konfigureres her.",
   "settings.commands.title": "Kommandoer",

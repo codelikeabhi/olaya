@@ -637,6 +637,15 @@ const layer = Layer.effect(
       )
       const wanted = selection.model
       if (!wanted || (wanted.providerID === resolved.providerID && wanted.modelID === resolved.id)) return resolved
+      // The user's routing pool is a hard limit: a model they left out is never chosen for them.
+      const pool = (yield* config.get()).routing?.models
+      if (pool && !pool.includes(`${wanted.providerID}/${wanted.modelID}`)) {
+        yield* Effect.logWarning("model selection rejected: outside the routing pool", {
+          "session.id": input.sessionID,
+          model: `${wanted.providerID}/${wanted.modelID}`,
+        })
+        return resolved
+      }
       const exit = yield* provider
         .getModel(ProviderV2.ID.make(wanted.providerID), ModelV2.ID.make(wanted.modelID))
         .pipe(Effect.exit)

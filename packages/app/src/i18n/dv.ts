@@ -1101,6 +1101,14 @@ export const dict = {
   "settings.providers.tag.other": "އެހެން",
   "settings.models.title": "މޮޑެލްތަކެވެ",
   "settings.models.description": "މޮޑެލް ސެޓިންގސް މިތަނުގައި ކޮންފިގްރޭޓް ކުރެވޭނެއެވެ.",
+  "settings.routing.title": "ރައުޓިންގ",
+  "settings.routing.enabled.title": "މޮޑެލް ހޮވުމަށް Olaya އަށް ދޫކޮށްލާ",
+  "settings.routing.enabled.description":
+    "Olaya ގެ ނިންމުމުގެ ލޭޔަރަށް، މަސައްކަތެއް ހިނގަމުންދާއިރު، ތިރީގައި ތިޔަ ހޮވާ މޮޑެލްތަކުގެ ތެރޭގައި އެ މަސައްކަތް ބަދަލުކުރެވޭނެއެވެ. ޕްރޮމްޕްޓްގައި ތިޔަ ހޮވާ މޮޑެލް ޑީފޯލްޓްކަމުގައި ބާކީ ހުންނާނެއެވެ.",
+  "settings.routing.selected":
+    "ހޮވިފައިވާ މޮޑެލްތައް: {{count}}. ރައުޓިންގއިން މި ލިސްޓުން ބޭރުގެ މޮޑެލެއް ދުވަހަކުވެސް ބޭނުން ނުކުރެއެވެ.",
+  "settings.routing.price": "1M ޓޯކަންސްއަކަށް އިންޕުޓް {{input}}، އައުޓްޕުޓް {{output}}",
+  "settings.routing.price.none": "އަގެއް ލިސްޓުކޮށްފައެއް ނުވެއެވެ",
   "settings.agents.title": "އޭޖެންޓުންނެވެ",
   "settings.agents.description": "އޭޖެންޓް ސެޓިންގސް މިތަނުގައި ކޮންފިގްރޭޓް ކުރެވޭނެއެވެ.",
   "settings.commands.title": "އަމުރުތަކެވެ",

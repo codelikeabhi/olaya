@@ -1047,6 +1047,13 @@ export const dict = {
   "settings.providers.tag.other": "其他",
   "settings.models.title": "模型",
   "settings.models.description": "模型設定將在此處可設定。",
+  "settings.routing.title": "路由",
+  "settings.routing.enabled.title": "讓 Olaya 選擇模型",
+  "settings.routing.enabled.description":
+    "Olaya 的決策層可在任務執行期間，在你於下方選擇的模型之間移轉該任務。你在提示中選擇的模型仍為預設模型。",
+  "settings.routing.selected": "已選擇 {{count}} 個模型。路由絕不會使用此清單以外的模型。",
+  "settings.routing.price": "每 1M token 輸入 {{input}}，輸出 {{output}}",
+  "settings.routing.price.none": "未列出價格",
   "settings.agents.title": "代理程式",
   "settings.agents.description": "代理程式設定將在此處可設定。",
   "settings.commands.title": "命令",

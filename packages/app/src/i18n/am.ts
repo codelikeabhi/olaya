@@ -1056,6 +1056,13 @@ export const dict = {
   "settings.providers.tag.other": "ሌላ",
   "settings.models.title": "ሞዴሎች",
   "settings.models.description": "የሞዴል ቅንብሮች እዚህ ሊዋቀሩ ይችላሉ።",
+  "settings.routing.title": "ራውቲንግ",
+  "settings.routing.enabled.title": "Olaya ሞዴሉን እንዲመርጥ ይፍቀዱ",
+  "settings.routing.enabled.description":
+    "የOlaya የውሳኔ ንብርብር አንድ ተግባር በሂደት ላይ እያለ ከዚህ በታች በሚመርጧቸው ሞዴሎች መካከል ሊያንቀሳቅሰው ይችላል። በፕሮምፕቱ ውስጥ የመረጡት ሞዴል ነባሪ ሆኖ ይቆያል።",
+  "settings.routing.selected": "{{count}} ሞዴሎች ተመርጠዋል። ራውቲንግ ከዚህ ዝርዝር ውጭ ያለ ሞዴል በጭራሽ አይጠቀምም።",
+  "settings.routing.price": "ግቤት {{input}}፣ ውጤት {{output}} ለ1M ቶከኖች",
+  "settings.routing.price.none": "ዋጋ አልተዘረዘረም",
   "settings.agents.title": "ወኪሎች",
   "settings.agents.description": "የወኪል ቅንብሮች እዚህ ይዋቀራሉ።",
   "settings.commands.title": "ትዕዛዞች",

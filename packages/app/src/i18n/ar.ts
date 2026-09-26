@@ -1000,6 +1000,13 @@ export const dict = {
   "settings.providers.tag.other": "أخرى",
   "settings.models.title": "النماذج",
   "settings.models.description": "ستكون إعدادات النموذج قابلة للتكوين هنا.",
+  "settings.routing.title": "التوجيه",
+  "settings.routing.enabled.title": "السماح لـ Olaya باختيار النموذج",
+  "settings.routing.enabled.description":
+    "يمكن لطبقة القرار في Olaya نقل المهمة أثناء تنفيذها بين النماذج التي تحددها أدناه. يظل النموذج الذي تختاره في الموجّه هو الافتراضي.",
+  "settings.routing.selected": "النماذج المحددة: {{count}}. لا يستخدم التوجيه أبدًا نموذجًا من خارج هذه القائمة.",
+  "settings.routing.price": "{{input}} للإدخال، {{output}} للإخراج لكل 1M من الرموز المميزة",
+  "settings.routing.price.none": "لا يوجد سعر مدرج",
   "settings.agents.title": "الوكلاء",
   "settings.agents.description": "ستكون إعدادات الوكيل قابلة للتكوين هنا.",
   "settings.commands.title": "الأوامر",

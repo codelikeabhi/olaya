@@ -1074,6 +1074,13 @@ export const dict = {
   "settings.providers.tag.other": "ອື່ນໆ",
   "settings.models.title": "ຕົວແບບ",
   "settings.models.description": "ການຕັ້ງຄ່າຕົວແບບຈະຕັ້ງຄ່າໄດ້ທີ່ນີ້.",
+  "settings.routing.title": "ການກຳນົດເສັ້ນທາງ",
+  "settings.routing.enabled.title": "ໃຫ້ Olaya ເລືອກຕົວແບບ",
+  "settings.routing.enabled.description":
+    "ຊັ້ນການຕັດສິນໃຈຂອງ Olaya ສາມາດຍ້າຍວຽກລະຫວ່າງຕົວແບບທີ່ທ່ານເລືອກຢູ່ລຸ່ມນີ້ ໃນຂະນະທີ່ວຽກກຳລັງດຳເນີນຢູ່. ຕົວແບບທີ່ທ່ານເລືອກໃນ prompt ຍັງຄົງເປັນຄ່າເລີ່ມຕົ້ນ.",
+  "settings.routing.selected": "ເລືອກແລ້ວ {{count}} ຕົວແບບ. ການກຳນົດເສັ້ນທາງຈະບໍ່ໃຊ້ຕົວແບບນອກລາຍການນີ້ເລີຍ.",
+  "settings.routing.price": "ຂາເຂົ້າ {{input}}, ຂາອອກ {{output}} ຕໍ່ 1M ໂທເຄັນ",
+  "settings.routing.price.none": "ບໍ່ມີລາຄາລະບຸ",
   "settings.agents.title": "ຕົວແທນ",
   "settings.agents.description": "ການຕັ້ງຄ່າຕົວແທນຈະຖືກຕັ້ງຄ່າໄດ້ທີ່ນີ້.",
   "settings.commands.title": "ຄໍາສັ່ງ",

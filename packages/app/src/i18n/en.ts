@@ -1072,6 +1072,13 @@ export const dict = {
   "settings.providers.tag.other": "Other",
   "settings.models.title": "Models",
   "settings.models.description": "Model settings will be configurable here.",
+  "settings.routing.title": "Routing",
+  "settings.routing.enabled.title": "Let Olaya choose the model",
+  "settings.routing.enabled.description":
+    "Olaya's decision layer can move a task between the models you select below as it runs. The model you pick in the prompt stays the default.",
+  "settings.routing.selected": "{{count}} models selected. Routing never uses a model outside this list.",
+  "settings.routing.price": "{{input}} in, {{output}} out per 1M tokens",
+  "settings.routing.price.none": "No price listed",
   "settings.agents.title": "Agents",
   "settings.agents.description": "Agent settings will be configurable here.",
   "settings.commands.title": "Commands",

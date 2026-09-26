@@ -985,6 +985,14 @@ export const dict = {
   "settings.providers.tag.other": "Muut",
   "settings.models.title": "Mallit",
   "settings.models.description": "Mallin asetukset voidaan määrittää täällä.",
+  "settings.routing.title": "Reititys",
+  "settings.routing.enabled.title": "Anna Olayan valita malli",
+  "settings.routing.enabled.description":
+    "Olayan päätöskerros voi siirtää tehtävää alla valitsemiesi mallien välillä sen ollessa käynnissä. Kehotteessa valitsemasi malli pysyy oletuksena.",
+  "settings.routing.selected":
+    "Valittuja malleja: {{count}}. Reititys ei koskaan käytä mallia, joka ei ole tällä listalla.",
+  "settings.routing.price": "Syöte {{input}}, tuloste {{output}} 1M tokenia kohden",
+  "settings.routing.price.none": "Hintaa ei ilmoitettu",
   "settings.agents.title": "Agentit",
   "settings.agents.description": "Agentin asetukset voidaan määrittää täällä.",
   "settings.commands.title": "Komennot",

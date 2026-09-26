@@ -1104,6 +1104,14 @@ export const dict: Record<string, string> = {
   "settings.providers.tag.other": "གཞན",
   "settings.models.title": "དཔེ་ཚད།",
   "settings.models.description": "དཔེ་ཚད་སྒྲིག་སྟངས་ཚུ་ནཱ་ལུ་རིམ་སྒྲིག་འབད་བཏུབ་འོང་།",
+  "settings.routing.title": "ལམ་སྟོན།",
+  "settings.routing.enabled.title": "Olaya གིས་ དཔེ་ཚད་སེལ་འཐུ་འབད་བཅུག",
+  "settings.routing.enabled.description":
+    "Olaya གི་ཐག་གཅོད་རིམ་པ་གིས་ ལཱ་ཅིག་འགྱོ་བའི་སྐབས་ འོག་ལུ་ཁྱོད་ཀྱིས་སེལ་འཐུ་འབད་མི་དཔེ་ཚད་ཚུ་གི་བར་ན་ སྤོ་བཏུབ། བརྡ་སྟོན་ནང་ ཁྱོད་ཀྱིས་གདམ་ཁ་བརྐྱབ་མི་དཔེ་ཚད་དེ་ སྔོན་སྒྲིག་སྦེ་ལུས་འོང་།",
+  "settings.routing.selected":
+    "དཔེ་ཚད་ {{count}} སེལ་འཐུ་འབད་ཡི། ལམ་སྟོན་གྱིས་ ཐོ་ཡིག་འདི་གི་ཕྱི་ཁར་གྱི་དཔེ་ཚད་ ནམ་ཡང་ལག་ལེན་མི་འཐབ།",
+  "settings.routing.price": "ཊོ་ཀེན་ 1M རེ་ལུ་ ཨིན་པུཊི་ {{input}}, ཨའུཊི་པུཊི་ {{output}}",
+  "settings.routing.price.none": "གོང་ཚད་ཐོ་བཀོད་མེད།",
   "settings.agents.title": "ལས་ཚབ་ཚུ།",
   "settings.agents.description": "ལས་ཚབ་སྒྲིག་སྟངས་ཚུ་ནཱ་ལུ་རིམ་སྒྲིག་འབད་བཏུབ་འོང་།",
   "settings.commands.title": "བརྡ་བཀོད་ཚུ།",

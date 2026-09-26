@@ -1096,6 +1096,13 @@ export const dict = {
   "settings.providers.tag.other": "Anders",
   "settings.models.title": "Modellen",
   "settings.models.description": "Modelinstellingen kunnen hier worden geconfigureerd.",
+  "settings.routing.title": "Routering",
+  "settings.routing.enabled.title": "Laat Olaya het model kiezen",
+  "settings.routing.enabled.description":
+    "De beslislaag van Olaya kan een taak tijdens het uitvoeren verplaatsen tussen de modellen die je hieronder selecteert. Het model dat je in de prompt kiest, blijft de standaard.",
+  "settings.routing.selected": "{{count}} modellen geselecteerd. Routering gebruikt nooit een model buiten deze lijst.",
+  "settings.routing.price": "{{input}} invoer, {{output}} uitvoer per 1M tokens",
+  "settings.routing.price.none": "Geen prijs vermeld",
   "settings.agents.title": "Agenten",
   "settings.agents.description": "Agentinstellingen kunnen hier worden geconfigureerd.",
   "settings.commands.title": "Commando's",

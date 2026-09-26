@@ -77,6 +77,17 @@ export const Info = Schema.Struct({
   small_model: Schema.optional(Schema.String).annotate({
     description: "Small model to use for tasks like title generation in the format of provider/model",
   }),
+  routing: Schema.optional(
+    Schema.Struct({
+      enabled: Schema.optional(Schema.Boolean).annotate({
+        description: "Let Olaya's decision layer choose the model for each task (default: false)",
+      }),
+      models: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
+        description:
+          "Models routing may switch between, as provider/model. When set, no model outside this list is ever chosen by routing",
+      }),
+    }),
+  ).annotate({ description: "Model routing: which models Olaya's decision layer may choose between" }),
   default_agent: Schema.optional(Schema.String).annotate({
     description:
       "Default agent to use when none is specified. Must be a primary agent. Falls back to 'build' if not set or if the specified agent is invalid.",

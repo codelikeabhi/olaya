@@ -1098,6 +1098,14 @@ export const dict = {
   "settings.providers.tag.other": "Άλλο",
   "settings.models.title": "Μοντέλα",
   "settings.models.description": "Οι ρυθμίσεις μοντέλου μπορούν να διαμορφωθούν εδώ.",
+  "settings.routing.title": "Δρομολόγηση",
+  "settings.routing.enabled.title": "Επιτρέψτε στο Olaya να επιλέγει το μοντέλο",
+  "settings.routing.enabled.description":
+    "Το επίπεδο αποφάσεων του Olaya μπορεί να μετακινεί μια εργασία, όσο εκτελείται, μεταξύ των μοντέλων που επιλέγετε παρακάτω. Το μοντέλο που επιλέγετε στην προτροπή παραμένει το προεπιλεγμένο.",
+  "settings.routing.selected":
+    "Επιλεγμένα μοντέλα: {{count}}. Η δρομολόγηση δεν χρησιμοποιεί ποτέ μοντέλο εκτός αυτής της λίστας.",
+  "settings.routing.price": "{{input}} εισόδου, {{output}} εξόδου ανά 1M διακριτικά",
+  "settings.routing.price.none": "Δεν αναφέρεται τιμή",
   "settings.agents.title": "Πράκτορες",
   "settings.agents.description": "Οι ρυθμίσεις πρακτόρων μπορούν να διαμορφωθούν εδώ.",
   "settings.commands.title": "Εντολές",

@@ -1089,6 +1089,13 @@ export const dict = {
   "settings.providers.tag.other": "Jiné",
   "settings.models.title": "Modely",
   "settings.models.description": "Zde bude možné konfigurovat nastavení modelu.",
+  "settings.routing.title": "Směrování",
+  "settings.routing.enabled.title": "Nechat Olaya vybrat model",
+  "settings.routing.enabled.description":
+    "Rozhodovací vrstva Olaya může za běhu přesouvat úlohu mezi modely, které níže vyberete. Model, který zvolíte ve výzvě, zůstává výchozí.",
+  "settings.routing.selected": "Vybrané modely: {{count}}. Směrování nikdy nepoužije model mimo tento seznam.",
+  "settings.routing.price": "Vstup {{input}}, výstup {{output}} za 1M tokenů",
+  "settings.routing.price.none": "Cena není uvedena",
   "settings.agents.title": "Agenti",
   "settings.agents.description": "Zde bude možné konfigurovat nastavení agenta.",
   "settings.commands.title": "Příkazy",

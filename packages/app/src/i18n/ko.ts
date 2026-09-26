@@ -715,6 +715,13 @@ export const dict = {
   "settings.providers.tag.other": "기타",
   "settings.models.title": "모델",
   "settings.models.description": "모델 설정은 여기서 구성할 수 있습니다.",
+  "settings.routing.title": "라우팅",
+  "settings.routing.enabled.title": "Olaya가 모델을 선택하도록 허용",
+  "settings.routing.enabled.description":
+    "Olaya의 결정 계층은 작업이 실행되는 동안 아래에서 선택한 모델 간에 작업을 옮길 수 있습니다. 프롬프트에서 고른 모델은 계속 기본값으로 유지됩니다.",
+  "settings.routing.selected": "모델 {{count}}개 선택됨. 라우팅은 이 목록 밖의 모델을 절대 사용하지 않습니다.",
+  "settings.routing.price": "1M 토큰당 입력 {{input}}, 출력 {{output}}",
+  "settings.routing.price.none": "가격 정보 없음",
   "settings.agents.title": "에이전트",
   "settings.agents.description": "에이전트 설정은 여기서 구성할 수 있습니다.",
   "settings.commands.title": "명령어",

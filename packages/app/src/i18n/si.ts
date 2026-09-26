@@ -1079,6 +1079,14 @@ export const dict: Record<string, string> = {
   "settings.providers.tag.other": "වෙනත්",
   "settings.models.title": "ආකෘති",
   "settings.models.description": "ආදර්ශ සැකසුම් මෙහි වින්‍යාසගත වනු ඇත.",
+  "settings.routing.title": "මාර්ගකරණය",
+  "settings.routing.enabled.title": "ආකෘතිය තෝරා ගැනීමට Olaya ට ඉඩ දෙන්න",
+  "settings.routing.enabled.description":
+    "Olaya හි තීරණ ස්තරයට කාර්යයක් ක්‍රියාත්මක වන අතරතුර එය පහතින් ඔබ තෝරන ආකෘති අතර ගෙන යා හැක. ප්‍රොම්ප්ට් එකේ ඔබ තෝරන ආකෘතිය පෙරනිමිය ලෙස පවතී.",
+  "settings.routing.selected":
+    "තෝරාගත් ආකෘති: {{count}}. මාර්ගකරණය කිසිවිටෙක මෙම ලැයිස්තුවෙන් පිටත ආකෘතියක් භාවිත නොකරයි.",
+  "settings.routing.price": "ටෝකන 1M කට ආදානය {{input}}, ප්‍රතිදානය {{output}}",
+  "settings.routing.price.none": "මිලක් ලැයිස්තුගත කර නැත",
   "settings.agents.title": "නියෝජිතයන්",
   "settings.agents.description": "නියෝජිත සැකසුම් මෙහි වින්‍යාස කළ හැක.",
   "settings.commands.title": "විධාන",

@@ -1087,6 +1087,13 @@ export const dict = {
   "settings.providers.tag.other": "ہور",
   "settings.models.title": "ماڈل",
   "settings.models.description": "ماڈل دی ترتیبات ایتھے ترتیب دے قابل ہون گیاں۔",
+  "settings.routing.title": "روٹنگ",
+  "settings.routing.enabled.title": "Olaya نوں ماڈل چنن دیو",
+  "settings.routing.enabled.description":
+    "Olaya دی فیصلہ پرت کسے کم نوں چلدیاں ہویاں ہیٹھاں تہاڈے چنے ہوئے ماڈلاں وچکار منتقل کر سکدی اے۔ پرامپٹ وچ تہاڈا چنیا ہویا ماڈل طے شدہ رہندا اے۔",
+  "settings.routing.selected": "{{count}} ماڈل چنے گئے۔ روٹنگ کدے وی ایس لسٹ توں باہر دا ماڈل نئیں ورتدی۔",
+  "settings.routing.price": "ہر 1M ٹوکن لئی ان پٹ {{input}}، آؤٹ پٹ {{output}}",
+  "settings.routing.price.none": "کوئی قیمت درج نئیں",
   "settings.agents.title": "ایجنٹاں",
   "settings.agents.description": "Agent ترتیبات ایتھے ترتیب دے قابل ہون گیاں۔",
   "settings.commands.title": "کمانڈز",

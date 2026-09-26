@@ -1085,6 +1085,13 @@ export const dict = {
   "settings.providers.tag.other": "Iné",
   "settings.models.title": "Modely",
   "settings.models.description": "Nastavenia modelov budú konfigurovateľné tu.",
+  "settings.routing.title": "Smerovanie",
+  "settings.routing.enabled.title": "Nechať Olaya vybrať model",
+  "settings.routing.enabled.description":
+    "Rozhodovacia vrstva Olaya môže počas behu presúvať úlohu medzi modelmi, ktoré vyberiete nižšie. Model zvolený vo výzve zostáva predvolený.",
+  "settings.routing.selected": "Vybrané modely: {{count}}. Smerovanie nikdy nepoužije model mimo tohto zoznamu.",
+  "settings.routing.price": "Vstup {{input}}, výstup {{output}} za 1M tokenov",
+  "settings.routing.price.none": "Cena nie je uvedená",
   "settings.agents.title": "Agenti",
   "settings.agents.description": "Nastavenia agentov budú konfigurovateľné tu.",
   "settings.commands.title": "Príkazy",

@@ -8,6 +8,7 @@ import { SettingsGeneralV2 } from "./general"
 import { SettingsKeybinds } from "../settings-keybinds"
 import { SettingsProvidersV2 } from "./providers"
 import { SettingsModelsV2 } from "./models"
+import { SettingsRoutingV2 } from "./routing"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
 import { useDialog } from "@olaya/ui/context/dialog"
@@ -83,6 +84,10 @@ export const DialogSettings: Component<{
                       <Icon name="models" />
                       {language.t("settings.models.title")}
                     </TabsV2.Trigger>
+                    <TabsV2.Trigger value="routing">
+                      <Icon name="branch" />
+                      {language.t("settings.routing.title")}
+                    </TabsV2.Trigger>
                   </div>
                 </div>
               </div>
@@ -107,6 +112,9 @@ export const DialogSettings: Component<{
         </TabsV2.Content>
         <TabsV2.Content value="models" class="settings-v2-panel">
           <SettingsModelsV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="routing" class="settings-v2-panel">
+          <SettingsRoutingV2 />
         </TabsV2.Content>
       </TabsV2>
     </Dialog>

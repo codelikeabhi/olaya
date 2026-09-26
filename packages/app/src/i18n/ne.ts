@@ -1083,6 +1083,13 @@ export const dict: Record<string, string> = {
   "settings.providers.tag.other": "अन्य",
   "settings.models.title": "मोडेलहरू",
   "settings.models.description": "मोडेल सेटिङहरू यहाँ कन्फिगर योग्य हुनेछ।",
+  "settings.routing.title": "राउटिङ",
+  "settings.routing.enabled.title": "Olaya लाई मोडेल छान्न दिनुहोस्",
+  "settings.routing.enabled.description":
+    "Olaya को निर्णय तहले कुनै कार्य चलिरहेको बेला त्यसलाई तल तपाईंले चयन गर्नुभएका मोडेलहरूबीच सार्न सक्छ। प्रम्प्टमा तपाईंले छान्नुभएको मोडेल नै पूर्वनिर्धारित रहन्छ।",
+  "settings.routing.selected": "{{count}} मोडेल चयन गरिए। राउटिङले यो सूचीबाहिरको मोडेल कहिल्यै प्रयोग गर्दैन।",
+  "settings.routing.price": "प्रति 1M टोकन इनपुट {{input}}, आउटपुट {{output}}",
+  "settings.routing.price.none": "मूल्य सूचीबद्ध छैन",
   "settings.agents.title": "एजेन्टहरू",
   "settings.agents.description": "एजेन्ट सेटिङहरू यहाँ कन्फिगर योग्य हुनेछ।",
   "settings.commands.title": "आदेशहरू",

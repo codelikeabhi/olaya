@@ -1083,6 +1083,14 @@ export const dict = {
   "settings.providers.tag.other": "Lain-lain",
   "settings.models.title": "Model",
   "settings.models.description": "Tetapan model boleh dikonfigurasi di sini.",
+  "settings.routing.title": "Penghalaan",
+  "settings.routing.enabled.title": "Benarkan Olaya memilih model",
+  "settings.routing.enabled.description":
+    "Lapisan keputusan Olaya boleh memindahkan tugas antara model yang anda pilih di bawah semasa tugas itu berjalan. Model yang anda pilih dalam prompt kekal sebagai lalai.",
+  "settings.routing.selected":
+    "{{count}} model dipilih. Penghalaan tidak sekali-kali menggunakan model di luar senarai ini.",
+  "settings.routing.price": "Input {{input}}, output {{output}} bagi setiap 1M token",
+  "settings.routing.price.none": "Tiada harga disenaraikan",
   "settings.agents.title": "Ejen",
   "settings.agents.description": "Tetapan ejen boleh dikonfigurasi di sini.",
   "settings.commands.title": "Arahan",

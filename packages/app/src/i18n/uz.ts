@@ -1096,6 +1096,14 @@ export const dict = {
   "settings.providers.tag.other": "Boshqa",
   "settings.models.title": "Modellar",
   "settings.models.description": "Model sozlamalari bu erda sozlanishi mumkin.",
+  "settings.routing.title": "Marshrutlash",
+  "settings.routing.enabled.title": "Modelni Olaya tanlasin",
+  "settings.routing.enabled.description":
+    "Olaya qaror qatlami vazifani bajarilish davomida quyida siz tanlagan modellar orasida ko'chirishi mumkin. So'rovda tanlagan modelingiz standart bo'lib qoladi.",
+  "settings.routing.selected":
+    "{{count}} ta model tanlangan. Marshrutlash hech qachon ushbu ro'yxatdan tashqaridagi modelni ishlatmaydi.",
+  "settings.routing.price": "1M token uchun kirish {{input}}, chiqish {{output}}",
+  "settings.routing.price.none": "Narx ko'rsatilmagan",
   "settings.agents.title": "Agentlar",
   "settings.agents.description": "Bu yerda agent sozlamalari sozlanishi mumkin.",
   "settings.commands.title": "Buyruqlar",

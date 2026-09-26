@@ -1091,6 +1091,13 @@ export const dict = {
   "settings.providers.tag.other": "دیگر",
   "settings.models.title": "ماڈلز",
   "settings.models.description": "ماڈل کی ترتیبات یہاں قابل ترتیب ہوں گی۔",
+  "settings.routing.title": "روٹنگ",
+  "settings.routing.enabled.title": "Olaya کو ماڈل منتخب کرنے دیں",
+  "settings.routing.enabled.description":
+    "Olaya کی فیصلہ ساز پرت کسی کام کو چلنے کے دوران نیچے آپ کے منتخب کردہ ماڈلز کے درمیان منتقل کر سکتی ہے۔ پرامپٹ میں آپ کا چنا ہوا ماڈل طے شدہ رہتا ہے۔",
+  "settings.routing.selected": "{{count}} ماڈلز منتخب ہیں۔ روٹنگ کبھی بھی اس فہرست سے باہر کا ماڈل استعمال نہیں کرتی۔",
+  "settings.routing.price": "فی 1M ٹوکنز ان پٹ {{input}}، آؤٹ پٹ {{output}}",
+  "settings.routing.price.none": "کوئی قیمت درج نہیں",
   "settings.agents.title": "ایجنٹس",
   "settings.agents.description": "ایجنٹ کی ترتیبات یہاں قابل ترتیب ہوں گی۔",
   "settings.commands.title": "کمانڈز",

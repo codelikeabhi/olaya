@@ -1095,6 +1095,14 @@ export const dict = {
   "settings.providers.tag.other": "Digər",
   "settings.models.title": "Modellər",
   "settings.models.description": "Model tənzimləmələri burada konfiqurasiya edilə biləcək.",
+  "settings.routing.title": "Marşrutlaşdırma",
+  "settings.routing.enabled.title": "Modeli Olaya seçsin",
+  "settings.routing.enabled.description":
+    "Olaya qərar qatı tapşırığı icra olunarkən onu aşağıda seçdiyiniz modellər arasında köçürə bilər. Promptda seçdiyiniz model standart olaraq qalır.",
+  "settings.routing.selected":
+    "{{count}} model seçilib. Marşrutlaşdırma heç vaxt bu siyahıdan kənar model istifadə etmir.",
+  "settings.routing.price": "1M token üçün giriş {{input}}, çıxış {{output}}",
+  "settings.routing.price.none": "Qiymət göstərilməyib",
   "settings.agents.title": "Agentlər",
   "settings.agents.description": "Agent tənzimləmələri burada konfiqurasiya edilə biləcək.",
   "settings.commands.title": "Əmrlər",

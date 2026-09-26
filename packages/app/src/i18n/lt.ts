@@ -1097,6 +1097,14 @@ export const dict = {
   "settings.providers.tag.other": "Kita",
   "settings.models.title": "Modeliai",
   "settings.models.description": "Čia bus konfigūruojami modelio nustatymai.",
+  "settings.routing.title": "Maršrutizavimas",
+  "settings.routing.enabled.title": "Leisti Olaya pasirinkti modelį",
+  "settings.routing.enabled.description":
+    "Olaya sprendimų sluoksnis užduoties vykdymo metu gali ją perkelti tarp toliau jūsų pasirinktų modelių. Raginime pasirinktas modelis lieka numatytuoju.",
+  "settings.routing.selected":
+    "Pasirinkta modelių: {{count}}. Maršrutizavimas niekada nenaudoja modelio, kurio nėra šiame sąraše.",
+  "settings.routing.price": "Įvestis {{input}}, išvestis {{output}} už 1M žetonų",
+  "settings.routing.price.none": "Kaina nenurodyta",
   "settings.agents.title": "Agentai",
   "settings.agents.description": "Agento nustatymus bus galima konfigūruoti čia.",
   "settings.commands.title": "Komandos",
