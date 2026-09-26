@@ -24,7 +24,6 @@ Everything is off by default. Enable it with environment variables:
 | `OLAYA_LAYA_PYTHON` | interpreter that has `laya` installed |
 | `OLAYA_LAYA_URL` | attach to a sidecar you started yourself instead of spawning one |
 | `OLAYA_LAYA_TIMEOUT_MS` | per-decision ceiling (default 400) |
-| `OLAYA_LAYA_DEVICE` | `cpu` (default, ~0.1 s per decision), `mps`, `cuda`, or `auto`. Keep `cpu` beside a local LLM: MPS measured 8.7 s per decision while sharing the GPU. |
 | `OLAYA_LAYA_STDERR` | route the sidecar's stderr to a file for diagnostics |
 | `OLAYA_LAYA_SHADOW_DIR` | override the shadow log location |
 

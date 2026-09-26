@@ -133,10 +133,7 @@ def load_model(state=None):
     try:
         import laya
 
-        # CPU by default: ~0.1 s per decision is ample for a permission prompt, while MPS beside a
-        # resident local LLM measured 8.7 s and recompiles per input shape. "auto" lets Laya pick.
-        device = os.environ.get("OLAYA_LAYA_DEVICE") or "cpu"
-        device = None if device == "auto" else device
+        device = os.environ.get("OLAYA_LAYA_DEVICE") or None
         t0 = time.time()
         agent = laya.load(state.checkpoint, device=device)
 
