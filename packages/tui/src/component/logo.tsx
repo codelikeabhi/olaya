@@ -1,7 +1,7 @@
 import { RGBA, TextAttributes } from "@opentui/core"
-import { For, type JSX } from "solid-js"
+import { createMemo, For, type JSX } from "solid-js"
 import { tint, useTheme } from "../context/theme"
-import { logo } from "../logo"
+import { markCells, POINT, word } from "../logo"
 
 export function Logo() {
   const { theme } = useTheme()
@@ -46,13 +46,26 @@ export function Logo() {
     })
   }
 
+  const cells = markCells()
+  const point = createMemo(() => {
+    const bg = theme.background
+    const dark = 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b < 0.5
+    return RGBA.fromHex(dark ? POINT.dark : POINT.light)
+  })
+
   return (
     <box>
-      <For each={logo.left}>
+      <For each={word}>
         {(line, index) => (
-          <box flexDirection="row" gap={1}>
-            <box flexDirection="row">{renderLine(line, theme.textMuted, false)}</box>
-            <box flexDirection="row">{renderLine(logo.right[index()], theme.text, true)}</box>
+          <box flexDirection="row" gap={2}>
+            <box flexDirection="row">
+              {cells[index()]!.map((cell) => (
+                <text fg={cell.ink === "point" ? point() : theme.text} selectable={false}>
+                  {cell.char}
+                </text>
+              ))}
+            </box>
+            <box flexDirection="row">{renderLine(line, theme.text, true)}</box>
           </box>
         )}
       </For>
