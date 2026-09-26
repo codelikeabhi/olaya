@@ -21,6 +21,8 @@ ts-dist
 refs
 Session.vim
 /olaya.json
+# the same local config under its pre-rename name (the character class keeps the rename codemod off it)
+/open[c]ode.json
 a.out
 target
 .scripts
