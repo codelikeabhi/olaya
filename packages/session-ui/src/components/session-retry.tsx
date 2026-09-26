@@ -45,6 +45,8 @@ export function SessionRetry(props: { status: SessionStatus; show?: boolean }) {
     const count = Math.max(0, seconds())
     const delay = count > 0 ? i18n.t("ui.sessionTurn.retry.inSeconds", { seconds: count }) : ""
     const retrying = i18n.t("ui.sessionTurn.retry.retrying")
+    // attempt 0 is a failover wait (every model cooling): no attempt counter, the session resumes by itself
+    if (current.attempt === 0) return delay
     const line = [retrying, delay].filter(Boolean).join(" ")
     if (!line) return i18n.t("ui.sessionTurn.retry.attempt", { attempt: current.attempt })
     return i18n.t("ui.sessionTurn.retry.attemptLine", { line, attempt: current.attempt })

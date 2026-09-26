@@ -41,6 +41,7 @@ import { LocalProvider, useLocal } from "./context/local"
 import { PermissionProvider } from "./context/permission"
 import { DialogModel } from "./component/dialog-model"
 import { DialogRouting } from "./component/dialog-routing"
+import { DialogFailover } from "./component/dialog-failover"
 import { useConnected } from "./component/use-connected"
 import { DialogMcp } from "./component/dialog-mcp"
 import { DialogStatus } from "./component/dialog-status"
@@ -651,6 +652,15 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
         },
       },
       {
+        name: "model.failover",
+        title: "Failover order",
+        category: "Agent",
+        slashName: "failover",
+        run: () => {
+          dialog.replace(() => <DialogFailover />)
+        },
+      },
+      {
         name: "model.cycle_recent",
         title: "Model cycle",
         category: "Agent",
@@ -1111,9 +1121,7 @@ function App(props: { onSnapshot?: () => Promise<string[]>; pluginHost: TuiPlugi
         evt.stopPropagation()
       }}
       onMouseUp={
-        !Flag.OLAYA_EXPERIMENTAL_DISABLE_COPY_ON_SELECT
-          ? () => Selection.copy(renderer, toast, clipboard)
-          : undefined
+        !Flag.OLAYA_EXPERIMENTAL_DISABLE_COPY_ON_SELECT ? () => Selection.copy(renderer, toast, clipboard) : undefined
       }
     >
       <Show when={Flag.OLAYA_SHOW_TTFD}>

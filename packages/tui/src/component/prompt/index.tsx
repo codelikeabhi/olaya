@@ -1570,6 +1570,9 @@ export function Prompt(props: PromptProps) {
                         const baseMessage = message()
                         const truncatedHint = isTruncated() ? " (click to expand)" : ""
                         const duration = formatDuration(seconds())
+                        // attempt 0 is a failover wait: every model is cooling, and the session resumes by itself
+                        if (r.attempt === 0)
+                          return `${baseMessage} [${duration ? `continuing in ${duration}` : "continuing"}]`
                         const retryInfo = ` [retrying ${duration ? `in ${duration} ` : ""}attempt #${r.attempt}]`
                         return baseMessage + truncatedHint + retryInfo
                       }
@@ -1577,7 +1580,7 @@ export function Prompt(props: PromptProps) {
                       return (
                         <Show when={retry()}>
                           <box onMouseUp={handleMessageClick}>
-                            <text fg={theme.error}>{retryText()}</text>
+                            <text fg={retry()?.attempt === 0 ? theme.textMuted : theme.error}>{retryText()}</text>
                           </box>
                         </Show>
                       )
