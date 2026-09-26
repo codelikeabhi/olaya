@@ -12,6 +12,7 @@ import { resolve } from "./config"
 import { Sidecar } from "./sidecar"
 import { ShadowLog, type Reply } from "./shadow"
 import { liveHandler, shadowHandler } from "./judgment"
+import { observe } from "./inject"
 import type { SessionContext } from "./state"
 
 export const SHADOW_DIR = path.join(Global.Path.data, "laya-shadow")
@@ -78,6 +79,16 @@ export const LayaPlugin: Plugin = async (input, options) => {
 
   return {
     "permission.ask": handler as never,
+
+    // Tier 2 (shadow only): score tool outputs for injection. Scheduled, not awaited, so the
+    // agent's next step never waits on it; it cannot modify the output.
+    "tool.execute.after": async (call, result) => {
+      if (!config.shadow || process.env["OLAYA_LAYA_OBSERVE_OUTPUTS"] === "0") return
+      void observe(
+        { tool: call.tool, callID: call.callID, output: (result as { output?: unknown })?.output ?? result, task: memory.get(call.sessionID) },
+        { client: () => sidecar.current(), shadow },
+      )
+    },
 
     // Capture the user's request as it arrives, so the permission path never has to ask for it.
     "chat.message": async (msg, out) => {

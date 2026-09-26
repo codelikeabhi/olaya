@@ -97,6 +97,14 @@ export class ShadowLog {
     await this.append({ kind: "auto-approved", ts: new Date().toISOString(), ...input })
   }
 
+  /**
+   * A tool output scored for injection. Unlabelled by construction: it becomes training or
+   * evaluation data only after a person labels it (train/label.py).
+   */
+  async observedOutput(input: { id: string; tool: string; probability: number; checkpoint: string; state: unknown }): Promise<void> {
+    await this.append({ kind: "inject-observation", ts: new Date().toISOString(), ...input, state: JSON.stringify(input.state) })
+  }
+
   /** Join the user's reply to the prediction, producing a labelled training row. */
   async replied(id: string, reply: Reply, replier: "user" | "auto" = "user"): Promise<boolean> {
     const entry = this.pending.get(id)
