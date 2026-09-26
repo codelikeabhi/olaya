@@ -85,8 +85,9 @@ def binary():
 
 def olaya_config(model, extra=None, top=None, pool=()):
     """`pool`: further models defined alongside, for routing to choose from."""
-    return json.dumps({**(top or {}),
-        "provider": {"ollama": {"npm": "@ai-sdk/openai-compatible", "name": "Ollama",
+    top = top or {}
+    return json.dumps({**top,
+        "provider": {**top.get("provider", {}), "ollama": {"npm": "@ai-sdk/openai-compatible", "name": "Ollama",
                                 "options": {"baseURL": "http://host.docker.internal:11434/v1"},
                                 # qwen3 thinks by default and spends a 16k window on thinking before it edits
                                 # anything; the tiers are compared with thinking off
@@ -96,7 +97,7 @@ def olaya_config(model, extra=None, top=None, pool=()):
 
 
 def run_one(item, model, k, variant=None):
-    """`variant` ({name, model, config, env, binary, timeout}) runs the same item under changed settings,
+    """`variant` ({name, model, config, env, binary, timeout, cli_model}) runs the same item under changed settings,
     into its own directory: model-entry and top-level config overrides, extra environment, another
     build, another time limit."""
     v = variant or {}
@@ -117,7 +118,7 @@ def run_one(item, model, k, variant=None):
         os.chmod(work, 0o777); os.chmod(logs, 0o777)
         name = "trackc-" + hashlib.sha1(f"{model}{item['id']}{k}{time.time()}".encode()).hexdigest()[:10]
         script = (
-            f"olaya --model ollama/{model} run --format json --dangerously-skip-permissions -- \"$TASK\" "
+            f"olaya --model {v.get('cli_model') or 'ollama/' + model} run --format json --dangerously-skip-permissions -- \"$TASK\" "
             "> /logs/events.jsonl 2>/logs/stderr; echo $? > /logs/olaya-exit; "
             "cp /pristine/* /work/; python -m pytest -q > /logs/pytest.txt 2>&1; echo $? > /logs/pytest-exit; true"
         )
