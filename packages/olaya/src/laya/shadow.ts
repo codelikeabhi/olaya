@@ -138,6 +138,11 @@ export class ShadowLog {
    * Write everything still waiting as unlabelled. `gold` is null, which is the marker the
    * training split filters on: a prediction with no human decision is not a training example.
    */
+  /** A retention plan at a compaction point: counts and token sizes only, no text. */
+  async retention(record: Record<string, unknown>): Promise<void> {
+    await this.append({ kind: "retention", ts: new Date().toISOString(), ...record })
+  }
+
   async flushUnlabelled(): Promise<number> {
     const entries = [...this.pending.values()]
     this.pending.clear()

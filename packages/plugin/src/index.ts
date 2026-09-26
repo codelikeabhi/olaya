@@ -222,6 +222,16 @@ export type AuthOuathResult = AuthOAuthResult
 export type ModelRef = { providerID: string; modelID: string }
 
 /** Where a step's model is being chosen: the first step, the first step after a compaction, or any other. */
+/** One piece of the history a compaction is about to replace. */
+export type RetentionItem = {
+  role: "user" | "assistant" | "tool"
+  text: string
+  /** Tool items: the call, as `tool(input JSON)`. */
+  call?: string
+  /** The assistant step the item belongs to, counted from the start of the replaced history. */
+  turn: number
+}
+
 export type ModelSelectPoint = "start" | "compaction" | "step"
 
 /** One completed model step: its usage, and cheap signals of trouble counted from its tool calls. */
@@ -333,6 +343,17 @@ export interface Hooks {
   "experimental.session.compacting"?: (
     input: { sessionID: string },
     output: { context: string[]; prompt?: string },
+  ) => Promise<void>
+  /**
+   * Called at a compaction point with the history about to be replaced: every item before the
+   * verbatim tail, plus the previous compaction's summary if there is one.
+   *
+   * - `summary`: If set, it becomes the compaction summary and no summary request is sent.
+   *   Leave it unset for the default compaction.
+   */
+  "experimental.session.retention"?: (
+    input: { sessionID: string; items: RetentionItem[]; previous?: string },
+    output: { summary?: string },
   ) => Promise<void>
   /**
    * Called after compaction succeeds and before a synthetic user

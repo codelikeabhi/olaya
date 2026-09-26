@@ -139,8 +139,8 @@ def oracle(s, budget, rng=None):
 
 # ------------------------------------------------------------------ Laya's retention policy
 TEST_CMD = re.compile(r"pytest|unittest|\bnpm (?:run )?test|\bbun test|\bgo test|\bcargo (?:test|build)|\bmake\b|\btox\b|\bjest\b|\bvitest\b")
-SEARCH_CMD = re.compile(r'^(?:grep|glob|find|search|list|ls)\b|"command": "(?:grep|rg|find|ls|tree)\b')
-READ_CMD = re.compile(r'^(?:read|view|cat)\b|"command": "(?:view|cat|head|tail|sed -n)\b')
+SEARCH_CMD = re.compile(r'^(?:grep|glob|find|search|list|ls)\b|"command":\s*"(?:grep|rg|find|ls|tree)\b')
+READ_CMD = re.compile(r'^(?:read|view|cat)\b|"command":\s*"(?:view|cat|head|tail|sed -n)\b')
 ERROR_LINE = re.compile(r"Error|Exception|Traceback|FAILED|FAIL:|error:|failed")
 # The harness's recovery cost of losing an item (design D3): what it takes to get the text back.
 RECOVERY = {"test": 3.0, "assistant": 2.0, "search": 1.5, "bash": 1.5, "read": 1.0}
@@ -674,6 +674,27 @@ def report(model):
     print("->", path)
 
 
+def fixture(out, seeds=(0, 1), budgets=(0.1, 0.2, 0.4), keep_chars=600):
+    """Sessions and this module's plans for them, for the harness's parity test. Texts are cut to
+    their first and last `keep_chars / 2` characters so the fixture stays small; both sides plan
+    over the same cut texts."""
+    pool = code_pool()
+    cut = lambda t: t if len(t) <= keep_chars else t[: keep_chars // 2] + "\n" + t[-(keep_chars // 2):]
+    out_sessions = []
+    for seed in seeds:
+        s = synthetic(seed, pool)
+        # "_"-keys are memos of the uncut item (its token size) and must not come along
+        items = [{k: (cut(v) if k == "text" else v) for k, v in it.items() if not k.startswith("_")}
+                 for it in s["items"][: s["cut"]]]
+        small = {"items": items, "cut": len(items), "needles": []}
+        total = history_tokens(small)
+        out_sessions.append({"id": s["id"], "items": items, "plans": {
+            str(b): sorted([i, how] for i, how in laya_policy(small, int(b * total)).items()) for b in budgets}})
+    json.dump({"source": "laya/bench/recall.py fixture; code excerpts from Exercism (MIT) and laya/",
+               "sessions": out_sessions}, open(out, "w"), indent=0)
+    print(f"{len(out_sessions)} sessions -> {out}")
+
+
 def self_test():
     """A hand-built session with known answers. Sizes are multiples of 4 characters."""
     s = {"items": [
@@ -727,9 +748,12 @@ def main(argv=None):
     b = sub.add_parser("build"); b.add_argument("--synthetic", type=int, default=60); b.add_argument("--public", type=int, default=60)
     m = sub.add_parser("summarize"); m.add_argument("--model", default="qwen3:8b"); m.add_argument("--n", type=int, default=40)
     r = sub.add_parser("report"); r.add_argument("--model", default="qwen3:8b")
+    f = sub.add_parser("fixture"); f.add_argument("--out", required=True)
     sub.add_parser("demo")
     a = ap.parse_args(argv)
-    if a.cmd == "build":
+    if a.cmd == "fixture":
+        fixture(a.out)
+    elif a.cmd == "build":
         build(a.synthetic, a.public)
     elif a.cmd == "summarize":
         summarize(a.model, a.n)

@@ -26,6 +26,14 @@ export interface LayaConfig {
   python: string
   /** Checkpoint id passed through to the sidecar. */
   checkpoint?: string
+  /**
+   * Extractive retention at compaction points. Independent of `enabled`: it needs no sidecar.
+   * "shadow" logs the plan only; "live" replaces the model-written summary. Uncertified until
+   * gate G9's A/B has run, so it is reachable from the environment alone.
+   */
+  retention: "off" | "shadow" | "live"
+  /** Share of the replaced history's tokens retention keeps. */
+  retentionBudget: number
 }
 
 const DEFAULTS: LayaConfig = {
@@ -38,6 +46,8 @@ const DEFAULTS: LayaConfig = {
   // bound, not a typical cost, and exceeding it just falls back to asking the user.
   timeoutMs: 1500,
   python: "python3",
+  retention: "off",
+  retentionBudget: 0.2,
 }
 
 function bool(value: string | undefined): boolean | undefined {
@@ -49,6 +59,11 @@ function int(value: string | undefined): number | undefined {
   if (value === undefined) return undefined
   const n = Number.parseInt(value, 10)
   return Number.isFinite(n) && n > 0 ? n : undefined
+}
+
+function fraction(value: string | undefined): number | undefined {
+  const n = Number(value)
+  return value !== undefined && n > 0 && n <= 1 ? n : undefined
 }
 
 /**
@@ -71,6 +86,8 @@ export function resolve(options: Record<string, unknown> = {}, env = process.env
     timeoutMs: int(env["OLAYA_LAYA_TIMEOUT_MS"]),
     python: env["OLAYA_LAYA_PYTHON"] || undefined,
     checkpoint: env["OLAYA_LAYA_MODEL"] || undefined,
+    retention: (["shadow", "live"] as const).find((mode) => mode === env["OLAYA_LAYA_RETENTION"]),
+    retentionBudget: fraction(env["OLAYA_LAYA_RETENTION_BUDGET"]),
   }
   const merged = { ...DEFAULTS }
   const fromOptions = { ...options, mode: parseMode(options["mode"]) } as Partial<LayaConfig>

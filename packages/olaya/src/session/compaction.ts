@@ -10,6 +10,7 @@ import { SessionProcessor } from "./processor"
 import { Agent } from "@/agent/agent"
 import { Plugin } from "@/plugin"
 import type { LLM } from "./llm"
+import type { RetentionItem } from "@olaya/plugin"
 import { Config } from "@/config/config"
 import { NotFoundError } from "@/storage/storage"
 
@@ -87,6 +88,31 @@ const serialize = (message: SessionV1.WithParts) => {
       return [call]
     })
     .join("\n")
+}
+
+/** The history as retention items: harness-written text and reasoning are left out. */
+function retentionItems(messages: SessionV1.WithParts[]) {
+  let turn = 0
+  return messages.flatMap((message): RetentionItem[] => {
+    if (message.info.role === "user") {
+      const text = message.parts
+        .filter((part): part is SessionV1.TextPart => part.type === "text" && !part.ignored && !part.synthetic)
+        .map((part) => part.text)
+        .filter(Boolean)
+        .join("\n")
+      return text ? [{ role: "user", text, turn }] : []
+    }
+    turn++
+    return message.parts.flatMap((part): RetentionItem[] => {
+      if (part.type === "text") return part.text && !part.synthetic ? [{ role: "assistant", text: part.text, turn }] : []
+      if (part.type !== "tool") return []
+      const call = `${part.tool}(${JSON.stringify(part.state.input)})`
+      if (part.state.status === "completed")
+        return [{ role: "tool", call, turn, text: part.state.time.compacted ? "[Old tool result content cleared]" : part.state.output }]
+      if (part.state.status === "error") return [{ role: "tool", call, turn, text: part.state.error }]
+      return []
+    })
+  })
 }
 
 function summaryText(message: SessionV1.WithParts) {
@@ -394,6 +420,12 @@ const layer = Layer.effect(
       const msgs = structuredClone(selected.head)
       yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
       const conversation = msgs.map(serialize).filter(Boolean).join("\n\n")
+      // A plugin may write the summary itself (Laya's extractive retention); then no request is sent.
+      const retained = yield* plugin.trigger(
+        "experimental.session.retention",
+        { sessionID: input.sessionID, items: retentionItems(msgs), previous: previousSummary },
+        {} as { summary?: string },
+      )
       const nextPrompt =
         compacting.prompt ??
         [
@@ -433,12 +465,26 @@ const layer = Layer.effect(
         },
       }
       yield* session.updateMessage(msg)
+      if (retained.summary) {
+        const now = Date.now()
+        yield* session.updatePart({
+          id: PartID.ascending(),
+          messageID: msg.id,
+          sessionID: input.sessionID,
+          type: "text",
+          text: retained.summary,
+          time: { start: now, end: now },
+        })
+        msg.finish = "stop"
+        msg.time.completed = now
+        yield* session.updateMessage(msg)
+      }
       const processor = yield* processors.create({
         assistantMessage: msg,
         sessionID: input.sessionID,
         model,
       })
-      const result = yield* processor.process({
+      const result = retained.summary ? "continue" : yield* processor.process({
         user: userMessage,
         agent,
         sessionID: input.sessionID,

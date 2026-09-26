@@ -14,6 +14,7 @@ import { ShadowLog, type Reply } from "./shadow"
 import { liveHandler, shadowHandler } from "./judgment"
 import { observe } from "./inject"
 import type { SessionContext } from "./state"
+import { handler as retentionHandler } from "./retention"
 
 export const SHADOW_DIR = path.join(Global.Path.data, "laya-shadow")
 
@@ -53,16 +54,31 @@ class TaskMemory {
   }
 }
 
+// ponytail: a fixed ceiling on what retention keeps; tune from the G9 A/B.
+const RETENTION_CAP_TOKENS = 24_000
+
 export const LayaPlugin: Plugin = async (input, options) => {
   const config = resolve((options ?? {}) as Record<string, unknown>)
-  if (!config.enabled) return {}
+  const shadowDir = process.env["OLAYA_LAYA_SHADOW_DIR"] ?? SHADOW_DIR
+  const retention =
+    config.retention === "off"
+      ? {}
+      : {
+          "experimental.session.retention": retentionHandler({
+            mode: config.retention,
+            budget: config.retentionBudget,
+            cap: RETENTION_CAP_TOKENS,
+            shadow: new ShadowLog(shadowDir),
+          }),
+        }
+  if (!config.enabled) return retention
 
   const sidecar = new Sidecar(config)
   await sidecar.start()
 
   // Live mode always keeps the local log: every permission it grants must leave an audit record.
   const live = config.mode === "live"
-  const shadow = config.shadow || live ? new ShadowLog(process.env["OLAYA_LAYA_SHADOW_DIR"] ?? SHADOW_DIR) : undefined
+  const shadow = config.shadow || live ? new ShadowLog(shadowDir) : undefined
   const memory = new TaskMemory()
   const deps = {
     client: () => sidecar.current(),
@@ -78,6 +94,7 @@ export const LayaPlugin: Plugin = async (input, options) => {
   const handler = live ? liveHandler(deps) : shadowHandler(deps)
 
   return {
+    ...retention,
     "permission.ask": handler as never,
 
     // Tier 2 (shadow only): score tool outputs for injection. Scheduled, not awaited, so the
