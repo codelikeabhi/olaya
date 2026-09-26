@@ -364,7 +364,7 @@ jobs:
           persist-credentials: false
 
       - name: Run olaya
-        uses: anomalyco/opencode/github@latest${envStr}
+        uses: codelikeabhi/olaya/github@main${envStr}
         with:
           model: ${provider}/${model}`,
         )

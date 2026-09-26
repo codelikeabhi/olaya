@@ -84,10 +84,12 @@ export function homeSessionServerStatus(active: boolean, status: () => { working
   return status()
 }
 
+// Olaya shares OpenCode's root commit, so this id is an Olaya checkout too. // olaya-rename:keep
+// Its avatar is the Olaya mark, served by the app itself.
 const OLAYA_PROJECT_ID = "4b0ea68d7af9a6031a7ffda7ad66e0cb83315750"
 
 export function getProjectAvatarSource(id?: string, icon?: { color?: string; url?: string; override?: string }) {
-  if (id === OLAYA_PROJECT_ID) return "https://opencode.ai/favicon.svg"
+  if (id === OLAYA_PROJECT_ID) return "/favicon-96x96-v3.png"
   if (icon?.override) return icon.override
   if (icon?.color) return undefined
   return icon?.url
