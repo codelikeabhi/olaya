@@ -4,6 +4,8 @@ import { Cause, Clock, Duration, Effect, Schedule } from "effect"
 import { MessageV2 } from "./message-v2"
 import { iife } from "@/util/iife"
 import { isRecord } from "@/util/record"
+import { FailoverClassify } from "@/failover/classify"
+import { FailoverFailure } from "@/failover/failure"
 
 export type Err = ReturnType<NamedError["toObject"]>
 
@@ -184,10 +186,26 @@ export function policy(opts: {
   provider: string
   parse: (error: unknown) => Err
   set: (input: { attempt: number; message: string; action?: Retryable["action"]; next: number }) => Effect.Effect<void>
+  /** A fallback chain is configured: retry only what retrying can fix, and move on otherwise. */
+  failover?: boolean
 }) {
   return Schedule.fromStepWithMetadata(
     Effect.succeed((meta: Schedule.InputMetadata<unknown>) => {
       const error = opts.parse(meta.input)
+      if (opts.failover) {
+        // Quota, credit and long throttles don't recover by waiting here; the loop moves on to the
+        // next model instead. Short throttles are waited out, outages get a couple of quick tries.
+        const verdict = FailoverClassify.classify(FailoverFailure.failureOf(error, opts.provider))
+        const tries =
+          verdict.action === "retry" ? RETRY_MAX_RETRIES : verdict.action === "switch" ? (verdict.retries ?? 0) : 0
+        if (meta.attempt > tries) return Cause.done(meta.attempt)
+        return Effect.gen(function* () {
+          const wait = verdict.wait ?? delay(meta.attempt)
+          const now = yield* Clock.currentTimeMillis
+          yield* opts.set({ attempt: meta.attempt, message: verdict.reason, next: now + wait })
+          return [meta.attempt, Duration.millis(wait)] as [number, Duration.Duration]
+        })
+      }
       const retry = retryable(error, opts.provider)
       if (!retry) return Cause.done(meta.attempt)
       if (meta.attempt > RETRY_MAX_RETRIES) return Cause.done(meta.attempt)

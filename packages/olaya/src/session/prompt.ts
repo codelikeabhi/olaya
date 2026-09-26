@@ -15,6 +15,7 @@ import { Provider } from "@/provider/provider"
 
 import { type Tool as AITool, tool, jsonSchema } from "ai"
 import type { JSONSchema7 } from "@ai-sdk/provider"
+import { FailoverAvailability } from "@/failover/availability"
 import { SessionCompaction } from "./compaction"
 import { SystemPrompt } from "./system"
 import { Instruction } from "./instruction"
@@ -45,7 +46,7 @@ import { Truncate } from "@/tool/truncate"
 import { Image } from "@/image/image"
 import { decodeDataUrl } from "@/util/data-url"
 import { Process } from "@/util/process"
-import { Cause, Effect, Exit, Latch, Layer, Option, Scope, Context, Schema, Types } from "effect"
+import { Cause, Duration, Effect, Exit, Latch, Layer, Option, Scope, Context, Schema, Types } from "effect"
 import { InstanceState } from "@/effect/instance-state"
 import { TaskTool, type TaskPromptOps } from "@/tool/task"
 import { SessionRunState } from "./run-state"
@@ -1178,7 +1179,32 @@ const layer = Layer.effect(
         // The latest completed step's usage, reported to plugins once and handed to model selection.
         let usage: StepUsage | undefined
         let prefix: SessionCompaction.Prefix | undefined
+        // The model this run failed over to, as provider/model; it holds for the rest of the run.
+        let failedOver: string | undefined
         const session = yield* sessions.get(sessionID).pipe(Effect.orDie)
+
+        /**
+         * The next model to continue on after a failure, waiting while every model in the chain is
+         * cooling. Undefined when none can come back (all disabled) or `failover.max_wait` passes.
+         */
+        const nextModel = Effect.fnUntraced(function* (models: string[], reason: string) {
+          const limit = (yield* config.get()).failover?.max_wait
+          const started = Date.now()
+          while (true) {
+            const now = Date.now()
+            const next = FailoverAvailability.pick(models, now)
+            if (next) return next
+            const at = FailoverAvailability.earliest(models)
+            if (at === undefined || (limit !== undefined && at - started > limit * 60_000)) return undefined
+            yield* status.set(sessionID, {
+              type: "retry",
+              attempt: 0,
+              message: `Every model is unavailable (${reason}). Continuing when one returns.`,
+              next: at,
+            })
+            yield* Effect.sleep(Duration.millis(Math.max(1_000, at - now)))
+          }
+        })
 
         while (true) {
           yield* status.set(sessionID, { type: "busy" })
@@ -1281,16 +1307,34 @@ const layer = Layer.effect(
               history: msgs,
             }).pipe(Effect.ignore, Effect.forkIn(scope))
 
-          const model = yield* selectModel(
-            yield* getModel(lastUser.model.providerID, lastUser.model.modelID, sessionID),
-            {
-              sessionID,
-              agent: lastUser.agent,
-              step,
-              point: step === 1 ? "start" : lastFinished?.summary ? "compaction" : "step",
-              usage,
-            },
-          )
+          // With a fallback chain, a preferred model still cooling from an earlier failure is skipped.
+          const fallbacks = (yield* config.get()).failover?.models ?? []
+          const chain = fallbacks.length
+            ? FailoverAvailability.chain(`${lastUser.model.providerID}/${lastUser.model.modelID}`, fallbacks)
+            : []
+          if (chain.length && !failedOver && !FailoverAvailability.available(chain[0]!)) {
+            failedOver = yield* nextModel(chain, FailoverAvailability.get(chain[0]!)?.reason ?? "unavailable")
+            if (!failedOver) {
+              yield* events.publish(Session.Event.Error, {
+                sessionID,
+                error: new NamedError.Unknown({ message: "No model in the fallback chain is available" }).toObject(),
+              })
+              break
+            }
+          }
+          const model = failedOver
+            ? yield* getModel(
+                ProviderV2.ID.make(failedOver.slice(0, failedOver.indexOf("/"))),
+                ModelV2.ID.make(failedOver.slice(failedOver.indexOf("/") + 1)),
+                sessionID,
+              )
+            : yield* selectModel(yield* getModel(lastUser.model.providerID, lastUser.model.modelID, sessionID), {
+                sessionID,
+                agent: lastUser.agent,
+                step,
+                point: step === 1 ? "start" : lastFinished?.summary ? "compaction" : "step",
+                usage,
+              })
           const task = tasks.pop()
 
           if (task?.type === "subtask") {
@@ -1306,7 +1350,16 @@ const layer = Layer.effect(
               auto: task.auto,
               overflow: task.overflow,
               prefix,
+              model,
             })
+            if (typeof result === "object") {
+              // the summary request's provider failed: compact again on the next model
+              const entry = FailoverAvailability.mark(`${model.providerID}/${model.id}`, result)
+              failedOver = yield* nextModel(chain, entry.reason)
+              prefix = undefined
+              if (!failedOver) break
+              continue
+            }
             if (result === "stop") break
             continue
           }
@@ -1469,6 +1522,35 @@ const layer = Layer.effect(
                 return "break" as const
               }
             }
+
+            if (result === "failover" && handle.failure) {
+              const failed = `${model.providerID}/${model.id}`
+              const entry = FailoverAvailability.mark(failed, handle.failure)
+              // Tool calls that already ran are real: keep the step, and the next model continues from
+              // their results rather than running them again.
+              const parts = yield* MessageV2.parts(handle.message.id).pipe(
+                Effect.provideService(Database.Service, database),
+              )
+              if (parts.some((part) => part.type === "tool" && part.state.status === "completed")) {
+                handle.message.error = undefined
+                handle.message.finish = "tool-calls"
+                yield* sessions.updateMessage(handle.message)
+              }
+              failedOver = yield* nextModel(chain, entry.reason)
+              prefix = undefined // the failed model's cached prefix is no use to the next one
+              yield* Effect.logInfo("failover", {
+                "session.id": sessionID,
+                from: failed,
+                to: failedOver,
+                reason: entry.reason,
+                until: entry.until,
+              })
+              if (failedOver) return "continue" as const
+              if (handle.message.error)
+                yield* events.publish(Session.Event.Error, { sessionID, error: handle.message.error })
+              return "break" as const
+            }
+            if (chain.length) FailoverAvailability.recovered(`${model.providerID}/${model.id}`)
 
             if (result === "stop") return "break" as const
             if (result === "compact") {

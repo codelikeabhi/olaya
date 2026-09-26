@@ -10,6 +10,7 @@ import { SessionProcessor } from "./processor"
 import { Agent } from "@/agent/agent"
 import { Plugin } from "@/plugin"
 import type { LLM } from "./llm"
+import type { FailoverClassify } from "@/failover/classify"
 import type { RetentionItem } from "@olaya/plugin"
 import { Config } from "@/config/config"
 import { NotFoundError } from "@/storage/storage"
@@ -216,7 +217,9 @@ export interface Interface {
     auto: boolean
     overflow?: boolean
     prefix?: Prefix
-  }) => Effect.Effect<"continue" | "stop">
+    /** The model the session is on now, used when no prefix is shared (after a failover, not the failed one). */
+    model?: Provider.Model
+  }) => Effect.Effect<"continue" | "stop" | FailoverClassify.Verdict>
   readonly create: (input: {
     sessionID: SessionID
     agent: string
@@ -371,6 +374,7 @@ const layer = Layer.effect(
       auto: boolean
       overflow?: boolean
       prefix?: Prefix
+      model?: Provider.Model
     }) {
       const parent = input.messages.findLast((m) => m.info.id === input.parentID)
       if (!parent || parent.info.role !== "user") {
@@ -410,6 +414,7 @@ const layer = Layer.effect(
       const model = agent.model
         ? yield* provider.getModel(agent.model.providerID, agent.model.modelID).pipe(Effect.orDie)
         : (prefix?.model ??
+          input.model ??
           (yield* provider.getModel(userMessage.model.providerID, userMessage.model.modelID).pipe(Effect.orDie)))
       const cfg = yield* config.get()
       const history = compactionPart && messages.at(-1)?.info.id === input.parentID ? messages.slice(0, -1) : messages
@@ -548,6 +553,9 @@ const layer = Layer.effect(
           ? yield* summarise(undefined)
           : first
 
+      // the summary request's provider failed: the loop moves to the next model and compacts there
+      if (result === "failover" && processor.failure) return processor.failure
+
       if (result === "compact") {
         processor.message.error = new SessionV1.ContextOverflowError({
           message: replay
@@ -650,7 +658,7 @@ const layer = Layer.effect(
         }
       }
 
-      if (processor.message.error) return "stop"
+      if (processor.message.error || result === "failover") return "stop"
       if (result === "continue") {
         yield* events.publish(Event.Compacted, { sessionID: input.sessionID })
       }

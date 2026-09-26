@@ -24,10 +24,13 @@ import { errorMessage } from "@/util/error"
 import { isRecord } from "@/util/record"
 import { EventV2Bridge } from "@/event-v2-bridge"
 import { Database } from "@olaya/core/database/database"
+import { FailoverClassify } from "@/failover/classify"
+import { FailoverFailure } from "@/failover/failure"
 import { Usage, type LLMEvent } from "@olaya/llm"
 
 const DOOM_LOOP_THRESHOLD = 3
-export type Result = "compact" | "stop" | "continue"
+/** "failover": the step failed in a way the next model in the fallback chain can pick up. */
+export type Result = "compact" | "stop" | "continue" | "failover"
 
 export interface Handle {
   readonly message: SessionV1.Assistant
@@ -45,6 +48,8 @@ export interface Handle {
     },
   ) => Effect.Effect<void>
   readonly process: (streamInput: LLM.StreamInput) => Effect.Effect<Result>
+  /** Why the step failed over, after `process` returned "failover". */
+  readonly failure?: FailoverClassify.Verdict
 }
 
 type Input = {
@@ -70,6 +75,7 @@ interface ProcessorContext extends Input {
   snapshot: string | undefined
   blocked: boolean
   needsCompaction: boolean
+  failure?: FailoverClassify.Verdict
   currentText: SessionV1.TextPart | undefined
   reasoningMap: Record<string, SessionV1.ReasoningPart>
 }
@@ -630,6 +636,22 @@ const layer = Layer.effect(
           yield* events.publish(Session.Event.Error, { sessionID: ctx.sessionID, error })
           return
         }
+        const cfg = yield* config.get()
+        if (cfg.failover?.models?.length) {
+          const verdict = FailoverClassify.classify(FailoverFailure.failureOf(error, input.model.providerID))
+          // a context error the provider phrased its own way: compact, as for the ones parse() knows
+          if (verdict.action === "shrink" && cfg.compaction?.auto !== false && !ctx.assistantMessage.summary) {
+            ctx.needsCompaction = true
+            return
+          }
+          // The loop continues on the next model, so no error event and no idle status: `olaya run`
+          // exits on the first idle.
+          if (["switch", "switch-until", "disable", "repair"].includes(verdict.action)) {
+            ctx.assistantMessage.error = error
+            ctx.failure = verdict
+            return
+          }
+        }
         ctx.assistantMessage.error = error
         yield* events.publish(Session.Event.Error, {
           sessionID: ctx.assistantMessage.sessionID,
@@ -644,7 +666,9 @@ const layer = Layer.effect(
           messageID: input.assistantMessage.id,
         })
         ctx.needsCompaction = false
-        ctx.shouldBreak = (yield* config.get()).experimental?.continue_loop_on_deny !== true
+        ctx.failure = undefined
+        const cfg = yield* config.get()
+        ctx.shouldBreak = cfg.experimental?.continue_loop_on_deny !== true
 
         return yield* Effect.gen(function* () {
           yield* Effect.gen(function* () {
@@ -674,6 +698,7 @@ const layer = Layer.effect(
             Effect.retry(
               SessionRetry.policy({
                 provider: input.model.providerID,
+                failover: Boolean(cfg.failover?.models?.length),
                 parse,
                 set: (info) => {
                   return status.set(ctx.sessionID, {
@@ -691,6 +716,7 @@ const layer = Layer.effect(
           )
 
           if (ctx.needsCompaction) return "compact"
+          if (ctx.failure) return "failover"
           if (ctx.blocked || ctx.assistantMessage.error) return "stop"
           return "continue"
         })
@@ -699,6 +725,9 @@ const layer = Layer.effect(
       return {
         get message() {
           return ctx.assistantMessage
+        },
+        get failure() {
+          return ctx.failure
         },
         updateToolCall,
         completeToolCall,

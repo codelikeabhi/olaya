@@ -88,6 +88,22 @@ export const Info = Schema.Struct({
       }),
     }),
   ).annotate({ description: "Model routing: which models Olaya's decision layer may choose between" }),
+  failover: Schema.optional(
+    Schema.Struct({
+      models: Schema.optional(Schema.mutable(Schema.Array(Schema.String))).annotate({
+        description:
+          "Models to continue on, in order, as provider/model, when the current model's provider runs out of quota, rate-limits for long, fails or stalls. The whole working context moves with the task",
+      }),
+      wait_for_reset: Schema.optional(NonNegativeInt).annotate({
+        description:
+          "Minutes. If a model earlier in the list becomes available again within this time, wait for it instead of moving further down (default: 0, never wait)",
+      }),
+      max_wait: Schema.optional(NonNegativeInt).annotate({
+        description:
+          "Minutes. When every model is unavailable, how long to wait for one before ending the run (default: no limit)",
+      }),
+    }),
+  ).annotate({ description: "Failover: keep a task running on other models when a provider fails" }),
   default_agent: Schema.optional(Schema.String).annotate({
     description:
       "Default agent to use when none is specified. Must be a primary agent. Falls back to 'build' if not set or if the specified agent is invalid.",

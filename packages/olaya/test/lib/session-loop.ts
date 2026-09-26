@@ -172,6 +172,8 @@ const model = (id: string) => ({
 export const project = Effect.fn("test.project")(function* (
   source?: string,
   routing?: { enabled?: boolean; models: string[] },
+  /** Further top-level config, such as a `failover` chain. */
+  extra: Record<string, unknown> = {},
 ) {
   const { directory } = yield* TestInstance
   const llm = yield* TestLLMServer
@@ -181,6 +183,7 @@ export const project = Effect.fn("test.project")(function* (
     $schema: "https://opencode.ai/config.json",
     ...(source ? { plugin: [pathToFileURL(plugin).href] } : {}),
     ...(routing ? { routing } : {}),
+    ...extra,
     provider: {
       test: {
         name: "Test",

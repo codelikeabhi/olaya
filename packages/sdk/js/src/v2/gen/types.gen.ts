@@ -1938,6 +1938,11 @@ export type Config = {
     enabled?: boolean
     models?: Array<string>
   }
+  failover?: {
+    models?: Array<string>
+    wait_for_reset?: number
+    max_wait?: number
+  }
   default_agent?: string
   subagent_depth?: number
   username?: string
