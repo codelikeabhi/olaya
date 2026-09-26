@@ -1066,6 +1066,8 @@ it.instance("subtask child inherits parent session external_directory allow", ()
 
 noLLMServer.instance("prompt tools replace previous prompt tool rules", () =>
   Effect.gen(function* () {
+    // A configured provider: Olaya has no key-less default provider (upstream's Zen is opt-in).
+    yield* writeConfig((yield* TestInstance).directory, cfg)
     const prompt = yield* SessionPrompt.Service
     const sessions = yield* Session.Service
     const session = yield* sessions.create({ title: "Prompt tools" })

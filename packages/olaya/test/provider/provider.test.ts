@@ -2077,10 +2077,11 @@ it.effect("olaya loader keeps paid models when config apiKey is present", () =>
         .pipe(provideInstanceEffect(directory))
         .pipe(Effect.provide(instanceStoreLayer), Effect.provide(AppNodeBuilder.build(CrossSpawnSpawner.node)))
 
-    const none = paid(yield* listIn(noneDir))
+    // Olaya hides upstream's hosted providers until the user opts in; a key opts in.
+    const none = yield* listIn(noneDir)
     const keyedCount = paid(yield* listIn(keyedDir))
 
-    expect(none).toBe(0)
+    expect(none[ProviderV2.ID.make("opencode")]).toBeUndefined()
     expect(keyedCount).toBeGreaterThan(0)
   }).pipe(provideMultiInstance),
 )
@@ -2096,7 +2097,8 @@ it.effect("olaya loader keeps paid models when auth exists", () =>
         .pipe(provideInstanceEffect(directory))
         .pipe(Effect.provide(instanceStoreLayer), Effect.provide(AppNodeBuilder.build(CrossSpawnSpawner.node)))
 
-    const none = paid(yield* listIn(noneDir))
+    // Olaya hides upstream's hosted providers until the user opts in; logging in opts in.
+    const none = yield* listIn(noneDir)
 
     const authPath = path.join(Global.Path.data, "auth.json")
     const original = yield* Effect.promise(() => Filesystem.readText(authPath).catch(() => undefined))
@@ -2112,7 +2114,7 @@ it.effect("olaya loader keeps paid models when auth exists", () =>
 
     const keyedCount = paid(yield* listIn(keyedDir))
 
-    expect(none).toBe(0)
+    expect(none[ProviderV2.ID.make("opencode")]).toBeUndefined()
     expect(keyedCount).toBeGreaterThan(0)
   }).pipe(provideMultiInstance),
 )
