@@ -24,6 +24,7 @@ Everything is off by default. Enable it with environment variables:
 | `OLAYA_LAYA_PYTHON` | interpreter that has `laya` installed |
 | `OLAYA_LAYA_URL` | attach to a sidecar you started yourself instead of spawning one |
 | `OLAYA_LAYA_TIMEOUT_MS` | per-decision ceiling (default 400) |
+| `OLAYA_LAYA_DEVICE` | force a device (`mps`, `cuda`, `cpu`); unset lets Laya pick. On Apple Silicon MPS measured 65 ms p50 against 333 ms on CPU at the 471-token state budget, and CPU exceeds the default timeout at p95. |
 | `OLAYA_LAYA_STDERR` | route the sidecar's stderr to a file for diagnostics |
 | `OLAYA_LAYA_SHADOW_DIR` | override the shadow log location |
 
