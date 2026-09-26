@@ -1229,11 +1229,18 @@ const layer = Layer.effect(
                     .getModel(ProviderV2.ID.make(next.slice(0, slash)), ModelV2.ID.make(next.slice(slash + 1)))
                     .pipe(Effect.option)
                 : undefined
-            if (next && resolved && (Option.isNone(resolved) || !resolved.value.limit.context)) {
-              FailoverAvailability.mark(next, {
-                action: "disable",
-                reason: Option.isNone(resolved) ? "model not found" : "no context window declared (set limit.context)",
-              })
+            // An agent's work needs tool calls, so a model without them is no fallback.
+            const unusable =
+              resolved &&
+              (Option.isNone(resolved)
+                ? "model not found"
+                : !resolved.value.limit.context
+                  ? "no context window declared (set limit.context)"
+                  : !resolved.value.capabilities.toolcall
+                    ? "does not support tool calls"
+                    : undefined)
+            if (next && unusable) {
+              FailoverAvailability.mark(next, { action: "disable", reason: unusable })
               continue
             }
             if (next) return next

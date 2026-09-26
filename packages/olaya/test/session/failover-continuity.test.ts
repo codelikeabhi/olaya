@@ -142,3 +142,28 @@ it.instance(
     }),
   30_000,
 )
+
+it.instance(
+  "a fallback that can't call tools is skipped",
+  () =>
+    Effect.gen(function* () {
+      yield* project(
+        undefined,
+        undefined,
+        { failover: { models: ["test/chat-only", "test/cheap-model"] } },
+        {
+          "chat-only": { ...model("chat-only"), tool_call: false },
+        },
+      )
+      const { bodies } = yield* run(
+        Effect.gen(function* () {
+          const llm = yield* TestLLMServer
+          yield* llm.pushMatch(on("test-model"), httpError(429, quota))
+          yield* llm.pushMatch(on("cheap-model"), reply().text("done").stop().item())
+        }),
+      )
+      expect((bodies as unknown as Body[]).map((b) => b.model)).toEqual(["test-model", "cheap-model"])
+      expect(FailoverAvailability.get("test/chat-only")?.reason).toBe("does not support tool calls")
+    }),
+  30_000,
+)

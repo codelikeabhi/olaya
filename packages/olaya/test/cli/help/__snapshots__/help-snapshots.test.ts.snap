@@ -84,6 +84,8 @@ Options:
   -c, --continue     continue the last session                                             [boolean]
   -s, --session      session id to continue                                                 [string]
       --fork         fork the session before continuing (requires --continue or --session) [boolean]
+      --supervise    keep an unattended task going: if the process crashes or exits with an error,
+                     restart it on the same session                                        [boolean]
       --share        share the session                                                     [boolean]
   -m, --model        model to use in the format of provider/model                           [string]
       --agent        agent to use                                                           [string]
