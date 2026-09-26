@@ -5,6 +5,7 @@ import semver from "semver"
 import { Filesystem } from "@/util/filesystem"
 import { isRecord } from "@/util/record"
 import { Npm } from "@olaya/core/npm"
+import { PluginSDK } from "@/config/plugin-sdk"
 
 // Old npm package names for plugins that are now built-in
 export const DEPRECATED_PLUGIN_PACKAGES = ["opencode-openai-codex-auth", "opencode-copilot-auth"]
@@ -192,11 +193,17 @@ export async function resolvePathPluginTarget(spec: string) {
 }
 
 export async function checkPluginCompatibility(target: string, olayaVersion: string, pkg?: PluginPackage) {
-  if (!semver.valid(olayaVersion) || semver.major(olayaVersion) === 0) return
   const hit = pkg ?? (await readPluginPackage(target).catch(() => undefined))
   if (!hit) return
   const engines = hit.json.engines
   if (!isRecord(engines)) return
+  // An OpenCode plugin's range is about OpenCode's plugin API, so it is checked against the // olaya-rename:keep
+  // upstream release Olaya's API matches, never against Olaya's own version.
+  const upstream = engines.opencode // olaya-rename:keep
+  if (typeof upstream === "string" && !semver.satisfies(PluginSDK.version, upstream)) {
+    throw new Error(`Plugin requires OpenCode ${upstream}; Olaya provides the OpenCode ${PluginSDK.version} plugin API`) // olaya-rename:keep
+  }
+  if (!semver.valid(olayaVersion) || semver.major(olayaVersion) === 0) return
   const range = engines.olaya
   if (typeof range !== "string") return
   if (!semver.satisfies(olayaVersion, range)) {
