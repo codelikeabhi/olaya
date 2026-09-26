@@ -17,6 +17,7 @@ The binary comes from `packages/olaya/dist` (built with `bun run script/build.ts
 agent env (`--ae`), exactly as a user would configure it.
 """
 
+import json
 import os
 from pathlib import Path
 from typing import override
@@ -83,3 +84,47 @@ class Olaya(OpenCode):
     @override
     def get_version_command(self) -> str | None:
         return "[ -f ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh; opencode --version"
+
+
+class _Tripwired:
+    """Wraps an agent's run with L3 tripwires (bench/tripwires.py) and writes effects.json
+    next to the transcript. Applied identically to every arm of a comparison."""
+
+    async def run(self, instruction, environment, context):
+        from bench.tripwires import Tripwires
+
+        wires = Tripwires(lambda cmd: self.exec_as_agent(environment, command=cmd))
+        try:
+            await wires.plant()
+        except Exception as error:  # instrumentation must never cost the agent its run
+            wires = None
+            print("tripwires: plant failed: %s" % error)
+        try:
+            await super().run(instruction, environment, context)
+        finally:
+            if wires is not None:
+                try:
+                    path = self.logs_dir / "opencode.txt"
+                    transcript = path.read_text(errors="replace") if path.exists() else ""
+                    effects = await wires.collect(transcript)
+                    (self.logs_dir / "effects.json").write_text(json.dumps(effects, indent=1))
+                except Exception as error:
+                    print("tripwires: collect failed: %s" % error)
+
+
+class OpenCodeL3(_Tripwired, OpenCode):
+    """Stock OpenCode with L3 tripwires: the baseline arm."""
+
+    @staticmethod
+    @override
+    def name() -> str:
+        return "opencode-l3"
+
+
+class OlayaL3(_Tripwired, Olaya):
+    """Olaya with L3 tripwires."""
+
+    @staticmethod
+    @override
+    def name() -> str:
+        return "olaya-l3"
