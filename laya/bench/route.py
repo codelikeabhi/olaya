@@ -32,8 +32,9 @@ RUNS = os.path.join(HOME, "runs")
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 IMAGE = "olaya-trackc:py312"
 TIMEOUT_S = 600
-# How a compaction summary begins: the harness's template, or Laya's extractive rendering.
-SUMMARY_OPENINGS = ("## Objective", "Earlier in this session, kept by Olaya's retention")
+# The harness adds this message after every automatic compaction, whoever wrote the summary; small
+# models often ignore the summary template, so this is how compactions are counted.
+AUTO_CONTINUE = "Continue if you have next steps"
 
 # The heuristic baseline, fixed before any outcome was seen: Exercism difficulty -> tier index.
 HEURISTIC = [(2, 0), (4, 1), (6, 2), (10, 3)]
@@ -91,8 +92,9 @@ def olaya_config(model, extra=None, top=None):
 
 
 def run_one(item, model, k, variant=None):
-    """`variant` ({name, model, config, env, binary}) runs the same item under changed settings, into
-    its own directory: model-entry and top-level config overrides, extra environment, another build."""
+    """`variant` ({name, model, config, env, binary, timeout}) runs the same item under changed settings,
+    into its own directory: model-entry and top-level config overrides, extra environment, another
+    build, another time limit."""
     v = variant or {}
     out_dir = os.path.join(os.path.dirname(RUNS), "variants", v["name"], model, item["id"]) if v else os.path.join(RUNS, model, item["id"])
     out = os.path.join(out_dir, f"{k}.json")
@@ -123,7 +125,7 @@ def run_one(item, model, k, variant=None):
                "-e", "OLAYA_DISABLE_AUTOUPDATE=1", IMAGE, "sh", "-c", script]
         timed_out = False
         try:
-            subprocess.run(cmd, capture_output=True, timeout=TIMEOUT_S)
+            subprocess.run(cmd, capture_output=True, timeout=v.get("timeout", TIMEOUT_S))
         except subprocess.TimeoutExpired:
             timed_out = True
             subprocess.run(["docker", "kill", name], capture_output=True)
@@ -135,9 +137,13 @@ def run_one(item, model, k, variant=None):
             "timed_out": timed_out, "olaya_exit": read("olaya-exit").strip() or None,
             "wall_s": round(time.time() - t0, 1), "calls": calls_from(events, model),
             "pytest_tail": read("pytest.txt")[-400:], "stderr_tail": read("stderr")[-400:],
-            "summaries": [e["part"]["text"][:40] for e in events if e.get("type") == "text"
-                          and (e.get("part") or {}).get("text", "").startswith(SUMMARY_OPENINGS)],
+            # (tool, input) per call: reacquisition is recall uses plus repeats of the same call
+            "tool_uses": [[(e.get("part") or {}).get("tool"), json.dumps(((e.get("part") or {}).get("state") or {}).get("input"), sort_keys=True)[:300]]
+                          for e in events if e.get("type") == "tool_use"],
+            "compactions": sum(1 for e in events if e.get("type") == "text" and AUTO_CONTINUE in (e.get("part") or {}).get("text", "")),
         }
+        if os.path.exists(os.path.join(logs, "events.jsonl")):
+            shutil.copy(os.path.join(logs, "events.jsonl"), os.path.join(out_dir, f"{k}.events.jsonl"))
     json.dump(record, open(out, "w"))
     return record
 

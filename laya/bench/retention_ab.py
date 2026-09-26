@@ -15,6 +15,7 @@ resolve rate, steps and cache-aware cost. It never writes G9's live-ab.json.
 """
 
 import argparse
+import glob
 import json
 import os
 import random
@@ -24,24 +25,36 @@ from . import cachesim
 from . import route
 from .run import REPORTS
 
-# Usable history is limit.input - reserved = 10k tokens, with a 4k output allowance inside the model's
+# Usable history is limit.input - reserved = 10k tokens, with a 5k output allowance inside the model's
 # real 16k window, and a 1k verbatim tail so one compaction does not trigger the next at once.
-LIMIT = {"limit": {"context": 16_384, "input": 11_000, "output": 4_096}}
+LIMIT = {"limit": {"context": 16_384, "input": 11_000, "output": 5_000}}
 COMPACTION = {"compaction": {"reserved": 1_000, "preserve_recent_tokens": 1_000}}
 ARMS = {"compaction": {}, "retention": {"OLAYA_LAYA_RETENTION": "live"}}
 
 
 def variant(arm, binary):
-    return {"name": f"retention-ab-{arm}", "model": LIMIT, "config": COMPACTION, "env": ARMS[arm], "binary": binary}
+    # forced compaction adds summary requests, and local models write long; 20 minutes per run
+    return {"name": f"retention-ab-{arm}", "model": LIMIT, "config": COMPACTION, "env": ARMS[arm], "binary": binary,
+            "timeout": 1200}
 
 
-def run(model, binary):
+def solvable(model):
+    """Items the model solved in Track C's first pass: where retention can make a difference.
+    On an item the model cannot solve anyway, both arms fail and the pair says nothing."""
+    return {r["item"] for f in glob.glob(os.path.join(route.RUNS, model, "*", "0.json")) if (r := json.load(open(f)))["passed"]}
+
+
+def run(model, binary, only_solvable=False):
     items = [json.loads(l) for l in open(route.ITEMS)]
+    if only_solvable:
+        keep = solvable(model)
+        items = [it for it in items if it["id"] in keep]
+        print(f"{len(items)} items {model} solved in Track C", flush=True)
     for it in items:  # arms alternate per item, so drift in machine load hits both alike
         for arm in ARMS:
             r = route.run_one(it, model, 0, variant(arm, binary))
             print(f"{arm:10} {it['id']:28} passed={r['passed']} steps={len(r['calls'])} "
-                  f"compactions={len(r.get('summaries', []))} {r['wall_s']}s", flush=True)
+                  f"compactions={r.get('compactions', 0)} {r['wall_s']}s", flush=True)
 
 
 def paired(a, b, rng=None, n=2000):
@@ -50,6 +63,12 @@ def paired(a, b, rng=None, n=2000):
     d = [y - x for x, y in zip(a, b)]
     means = sorted(sum(rng.choice(d) for _ in d) / len(d) for _ in range(n))
     return {"delta": round(sum(d) / len(d), 4), "lcb95": round(means[int(0.025 * n)], 4), "ucb95": round(means[int(0.975 * n) - 1], 4)}
+
+
+def reacquisitions(r):
+    """Calls to `recall` plus repeats of an identical earlier call (re-reading the same file)."""
+    uses = [tuple(u) for u in r.get("tool_uses", [])]
+    return sum(1 for tool, _ in uses if tool == "recall") + len(uses) - len(set(uses))
 
 
 def report(model):
@@ -65,8 +84,9 @@ def report(model):
     cost = lambda r: cachesim.bill([cachesim.Call(**c) for c in r["calls"]]).total
     summary = {arm: {"resolved": round(sum(per(arm, lambda r: r["passed"])) / max(1, len(both)), 4),
                      "mean_steps": round(sum(per(arm, lambda r: len(r["calls"]))) / max(1, len(both)), 2),
-                     "mean_compactions": round(sum(per(arm, lambda r: len(r.get("summaries", [])))) / max(1, len(both)), 2),
+                     "mean_compactions": round(sum(per(arm, lambda r: r.get("compactions", 0))) / max(1, len(both)), 2),
                      "mean_cost": round(sum(per(arm, cost)) / max(1, len(both)), 6),
+                     "mean_reacquisitions": round(sum(per(arm, reacquisitions)) / max(1, len(both)), 2),
                      "timeouts": sum(per(arm, lambda r: r["timed_out"]))} for arm in ARMS}
     base = summary["compaction"]
     rep = {
@@ -76,7 +96,8 @@ def report(model):
         "resolve_delta": paired(per("compaction", lambda r: float(r["passed"])), per("retention", lambda r: float(r["passed"]))) if both else None,
         "cost_reduction": round(1 - summary["retention"]["mean_cost"] / base["mean_cost"], 4) if base["mean_cost"] else None,
         "turns_increase": round(summary["retention"]["mean_steps"] / base["mean_steps"] - 1, 4) if base["mean_steps"] else None,
-        "note": "pilot: 32 pairs cannot certify the -5 pp margin; not G9's live-ab.json",
+        "reacquisition_increase": round(summary["retention"]["mean_reacquisitions"] - base["mean_reacquisitions"], 2),
+        "note": "pilot on items the model solved in Track C: it cannot certify the -5 pp margin; not G9's live-ab.json",
     }
     os.makedirs(os.path.join(REPORTS, "retention"), exist_ok=True)
     path = os.path.join(REPORTS, "retention", "pilot-ab.json")
@@ -88,6 +109,7 @@ def report(model):
 def self_test():
     p = paired([0, 0, 1, 1], [1, 1, 1, 1])
     assert p["delta"] == 0.5 and p["lcb95"] <= 0.5 <= p["ucb95"]
+    assert reacquisitions({"tool_uses": [["read", "a"], ["read", "a"], ["recall", "h"], ["bash", "x"]]}) == 2
     same = paired([1, 0, 1], [1, 0, 1])
     assert same == {"delta": 0.0, "lcb95": 0.0, "ucb95": 0.0}
     return True
@@ -97,11 +119,12 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run"); r.add_argument("--model", default="qwen3-8b-16k"); r.add_argument("--binary", required=True)
+    r.add_argument("--solvable", action="store_true", help="only items the model solved in Track C")
     p = sub.add_parser("report"); p.add_argument("--model", default="qwen3-8b-16k")
     sub.add_parser("demo")
     a = ap.parse_args(argv)
     if a.cmd == "run":
-        run(a.model, a.binary)
+        run(a.model, a.binary, a.solvable)
     elif a.cmd == "report":
         report(a.model)
     else:
