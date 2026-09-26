@@ -32,6 +32,11 @@ PROXY = {
     "qwen3:4b": "claude-sonnet-5",
     "qwen3:8b": "claude-opus-5-5",
     "qwen3:14b": "claude-fable-5-1",
+    # the same models with a 16k context window, which the agent's system prompt needs
+    "qwen3-0.6b-16k": "claude-haiku-4-5",
+    "qwen3-4b-16k": "claude-sonnet-5",
+    "qwen3-8b-16k": "claude-opus-5-5",
+    "qwen3-14b-16k": "claude-fable-5-1",
 }
 
 TTL_S = {"5m": 300, "1h": 3600}
