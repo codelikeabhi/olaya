@@ -70,3 +70,42 @@ Both reply paths produce labelled training rows:
     python test_service.py                                    # sidecar self-check, no model needed
     bun test test/laya                                        # unit tests, from packages/olaya
     OLAYA_LAYA_INTEGRATION=1 OLAYA_LAYA_PYTHON=... bun test test/laya/integration.test.ts
+
+## From training to live mode
+
+Live mode lets the decision layer approve an action instead of asking you. It only acts on a
+checkpoint that passed certification: a statistical bound on how often it would approve
+something you should have been asked about. The pipeline, all local:
+
+```sh
+cd laya
+# 1. data: synthetic task-conditioned items, real agent actions, soft teacher labels
+.venv/bin/python -m train.synth --out bench/items/synth-v3.jsonl
+.venv/bin/python -m train.replay --out ~/.local/share/olaya/laya/data/replay.jsonl
+.venv/bin/python -m train.teacher --items <items> --out <labelled items>
+
+# 2. train (Apple Silicon: --device mps) and verify the checkpoint
+.venv/bin/python -m train.train --data ~/.local/share/olaya/laya/data/<dataset> --out <checkpoint>
+.venv/bin/python -m train.verify <checkpoint>
+
+# 3. label a gold set yourself (only human labels can certify), rejects first
+.venv/bin/python -m train.label --items <items> --out ~/.local/share/olaya/laya/gold/gold-v1.jsonl
+
+# 4. certify: writes a pass/fail gate into the checkpoint's manifest
+.venv/bin/python -m train.certify <checkpoint> --gold ~/.local/share/olaya/laya/gold/gold-v1.jsonl
+
+# 5. serve it; live mode acts only if the gate passed, only above its threshold
+OLAYA_LAYA_MODEL=<checkpoint> .venv/bin/python service.py
+OLAYA_LAYA_ENABLED=1 OLAYA_LAYA_MODE=live OLAYA_LAYA_URL=http://127.0.0.1:<port> olaya
+```
+
+Certification needs at least 300 should-ask items in each half of the gold set. Below 299, a
+1% false-approve bound cannot be shown at 95% confidence even with zero mistakes. Every
+approval in live mode is written to the local audit log (`kind: "auto-approved"`).
+
+## Benchmarks
+
+- `python -m bench.run`: OlayaBench Track A (should this action run without asking?)
+- `python -m bench.inject`: Track B (does this tool output carry instructions to the agent?)
+- `bench/harbor_olaya.py`: Harbor adapters for end-to-end harness runs, with L3 tripwires and gated variants
+- `python -m bench.combined`: one report across the decision layer and the harness
