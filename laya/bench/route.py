@@ -42,11 +42,13 @@ HEURISTIC = [(2, 0), (4, 1), (6, 2), (10, 3)]
 
 
 # ------------------------------------------------------------------ items
-def build(exercism, n, seed=0):
+def build(exercism, n, seed=0, max_difficulty=None, out=ITEMS):
+    """Items sampled across Exercism's difficulty bands, or with `max_difficulty` only from the
+    easy end (task 2.3: an item set the small tiers can partly solve)."""
     config = json.load(open(os.path.join(exercism, "config.json")))
     pool = [e for e in config["exercises"]["practice"] if e.get("status", "active") not in ("deprecated", "wip")]
-    bands = [(1, 2), (3, 4), (5, 5), (6, 10)]
-    per = [n * 1 // 4, n * 3 // 8, n * 1 // 8]
+    bands = [(1, 2), (3, 4), (5, 5), (6, 10)] if max_difficulty is None else [(1, max_difficulty)]
+    per = [n * 1 // 4, n * 3 // 8, n * 1 // 8] if max_difficulty is None else []
     per.append(n - sum(per))
     rng = random.Random(seed)
     items = []
@@ -60,10 +62,10 @@ def build(exercism, n, seed=0):
             items.append({"id": e["slug"], "difficulty": e.get("difficulty", 1), "dir": d,
                           "solution": meta["files"]["solution"], "test": meta["files"]["test"], "instructions": docs})
     os.makedirs(HOME, exist_ok=True)
-    with open(ITEMS, "w") as f:
+    with open(out, "w") as f:
         for it in items:
             f.write(json.dumps(it) + "\n")
-    print(f"{len(items)} items -> {ITEMS}")
+    print(f"{len(items)} items -> {out}")
 
 
 def task_text(item):
@@ -168,8 +170,8 @@ def calls_from(events, model):
     return calls
 
 
-def run(tiers, k, only=None):
-    items = [json.loads(l) for l in open(ITEMS)]
+def run(tiers, k, only=None, items_path=ITEMS):
+    items = [json.loads(l) for l in open(items_path)]
     if only:
         items = [it for it in items if it["id"] in only]
     for model in tiers:            # one tier at a time keeps one model resident
@@ -186,7 +188,9 @@ def table(tiers):
     for ti, model in enumerate(tiers):
         base = os.path.join(RUNS, model)
         for item in sorted(os.listdir(base)) if os.path.isdir(base) else []:
-            runs = [json.load(open(os.path.join(base, item, f))) for f in sorted(os.listdir(os.path.join(base, item)))]
+            # run records are <k>.json; the directory also keeps each run's events and shadow logs
+            runs = [json.load(open(os.path.join(base, item, f))) for f in sorted(os.listdir(os.path.join(base, item)))
+                    if f.endswith(".json") and f[:-5].isdigit()]
             costs = [cachesim.bill([cachesim.Call(**c) for c in r["calls"]]).total for r in runs]
             out.setdefault(item, {})[ti] = {"p": sum(r["passed"] for r in runs) / len(runs),
                                             "cost": sum(costs) / len(costs), "runs": len(runs),
@@ -307,16 +311,18 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("build"); b.add_argument("--exercism", required=True); b.add_argument("--n", type=int, default=32)
+    b.add_argument("--max-difficulty", type=int); b.add_argument("--out", default=ITEMS)
     r = sub.add_parser("run"); r.add_argument("--tiers", required=True); r.add_argument("--k", type=int, default=2); r.add_argument("--only")
+    r.add_argument("--items", default=ITEMS)
     p = sub.add_parser("report"); p.add_argument("--tiers", default="qwen3-0.6b-16k,qwen3-4b-16k,qwen3-8b-16k,qwen3-14b-16k")
     sh = sub.add_parser("shadow-smoke"); sh.add_argument("--model", default="qwen3-4b-16k"); sh.add_argument("--pool", default="qwen3-0.6b-16k")
     sh.add_argument("--binary", required=True); sh.add_argument("--n", type=int, default=4)
     sub.add_parser("demo")
     a = ap.parse_args(argv)
     if a.cmd == "build":
-        build(a.exercism, a.n)
+        build(a.exercism, a.n, max_difficulty=a.max_difficulty, out=a.out)
     elif a.cmd == "run":
-        run(a.tiers.split(","), a.k, set(a.only.split(",")) if a.only else None)
+        run(a.tiers.split(","), a.k, set(a.only.split(",")) if a.only else None, a.items)
     elif a.cmd == "report":
         report(a.tiers.split(","))
     elif a.cmd == "shadow-smoke":
