@@ -355,7 +355,16 @@ export interface Hooks {
    *   Leave it unset for the default compaction.
    */
   "experimental.session.retention"?: (
-    input: { sessionID: string; items: RetentionItem[]; previous?: string },
+    input: {
+      sessionID: string
+      items: RetentionItem[]
+      previous?: string
+      /**
+       * The most tokens a written summary may take: half the session model's usable window, less
+       * what stays after compaction (system prompt, tools, the recent tail). Absent when unknown.
+       */
+      room?: number
+    },
     output: { summary?: string },
   ) => Promise<void>
   /**

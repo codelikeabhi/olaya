@@ -475,11 +475,25 @@ const layer = Layer.effect(
       const futile =
         last !== undefined &&
         history.slice(last.assistantIndex + 1).filter((m) => m.info.role === "assistant").length <= 1
+      // What a written summary may take: half the session model's usable window, less what stays
+      // (the last context minus the part being summarised). A summary that kept more than the model's
+      // short one could leave no room and compact again at once (GPT pilot, 2026-09-27).
+      const latest = history.findLast((m) => m.info.role === "assistant")?.info as SessionV1.Assistant | undefined
+      const context = latest ? latest.tokens.input + latest.tokens.cache.read + latest.tokens.cache.write : 0
+      const window = context
+        ? usable({
+            cfg,
+            model:
+              input.model ??
+              (yield* provider.getModel(userMessage.model.providerID, userMessage.model.modelID).pipe(Effect.orDie)),
+          })
+        : 0
+      const room = context && window > 0 ? Math.floor(window / 2) - (context - Token.estimate(conversation)) : undefined
       const retained = futile
         ? {}
         : yield* plugin.trigger(
             "experimental.session.retention",
-            { sessionID: input.sessionID, items: retentionItems(msgs), previous: previousSummary },
+            { sessionID: input.sessionID, items: retentionItems(msgs), previous: previousSummary, room },
             {} as { summary?: string },
           )
       if (futile)

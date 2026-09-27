@@ -232,8 +232,23 @@ export function handler(options: RetentionOptions): NonNullable<Hooks["experimen
       const items: Item[] = [...earlier, ...input.items.map((item) => ({ ...item, turn: item.turn + offset }))]
       if (!items.length) return
       const tokens = items.reduce((sum, item) => sum + size(item), 0)
-      const budget = Math.min(options.cap, Math.floor(options.budget * tokens))
+      const budget = Math.min(options.cap, Math.floor(options.budget * tokens), input.room ?? Infinity)
       const chosen = plan(items, budget)
+      // Pinned items alone may not fit the room the harness gives: then the model's shorter summary
+      // is the one that makes room (checked before the recall log, with a margin for the handles).
+      if (input.room !== undefined && Token.estimate(render(items, chosen)) > 0.9 * input.room) {
+        await options.shadow?.retention({
+          sessionID: input.sessionID,
+          mode: options.mode,
+          items: items.length,
+          tokens,
+          budget,
+          kept: 0,
+          outcomes: { keep: 0, tail: 0, stub: 0, drop: 0 },
+          declined: `no room: ${input.room} tokens`,
+        })
+        return
+      }
       const handles = new Map<number, string>()
       if (options.mode === "live" && options.recallDir) {
         // Logged before the summary replaces the history: a handle must never point at nothing.

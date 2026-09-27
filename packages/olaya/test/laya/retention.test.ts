@@ -268,6 +268,18 @@ describe("laya retention policy", () => {
     expect(records).toBe(1)
     await fs.rm(dir, { recursive: true, force: true })
   })
+
+  test("a summary that wouldn't fit the room the harness gives is declined, and one that fits is kept inside it", async () => {
+    const tight: { summary?: string } = {}
+    await handler({ mode: "live", budget: 0.2, cap: 24_000 })({ sessionID: "s", items: session, room: 50 }, tight)
+    expect(tight.summary).toBeUndefined() // the model's shorter summary makes room instead
+    const roomy: { summary?: string } = {}
+    await handler({ mode: "live", budget: 0.2, cap: 24_000 })({ sessionID: "s", items: session, room: 100_000 }, roomy)
+    expect(roomy.summary).toContain("Never edit tests/legacy_ab12/")
+    const unbounded: { summary?: string } = {}
+    await handler({ mode: "live", budget: 0.2, cap: 24_000 })({ sessionID: "s", items: session }, unbounded)
+    expect(roomy.summary).toBe(unbounded.summary!)
+  })
 })
 
 it.instance(
@@ -281,7 +293,7 @@ it.instance(
           'import { writeFileSync } from "fs"',
           "export default async () => ({",
           '  "experimental.session.retention": async (input, output) => {',
-          `    writeFileSync(${JSON.stringify(seen)}, JSON.stringify(input.items))`,
+          `    writeFileSync(${JSON.stringify(seen)}, JSON.stringify({ items: input.items, room: input.room }))`,
           '    output.summary = "kept: fix the failing test"',
           "  },",
           "})",
@@ -302,8 +314,11 @@ it.instance(
       expect(system(bodies[1])).toBe(system(bodies[0]))
       const compaction = messages.find((m) => m.info.role === "assistant" && m.info.summary)
       expect(JSON.stringify(compaction?.parts)).toContain("kept: fix the failing test")
-      const items = JSON.parse(yield* Effect.promise(() => fs.readFile(seen, "utf8")))
+      const { items, room } = JSON.parse(yield* Effect.promise(() => fs.readFile(seen, "utf8")))
       expect(items[0]).toEqual({ role: "user", text: "fix the failing test", turn: 0 })
+      // the harness says how much a written summary may take: here the step filled the window, so none
+      expect(typeof room).toBe("number")
+      expect(room).toBeLessThan(0)
     }),
   30_000,
 )
