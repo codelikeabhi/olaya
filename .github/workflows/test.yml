@@ -146,7 +146,10 @@ jobs:
         run: bun --cwd packages/app test:e2e:local
         env:
           CI: true
-        timeout-minutes: 30
+          # GitHub's standard Windows runner times out a different test each run with 5 browsers in
+          # parallel (upstream's Blacksmith runners took 5); Linux passes with 5
+          PLAYWRIGHT_WORKERS: ${{ runner.os == 'Windows' && '2' || '5' }}
+        timeout-minutes: ${{ runner.os == 'Windows' && 45 || 30 }}
 
       - name: Upload Playwright artifacts
         if: always()
