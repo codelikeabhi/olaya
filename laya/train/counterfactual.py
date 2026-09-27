@@ -28,7 +28,12 @@ from . import data as D
 from . import retain
 
 STUB = "[...]"
-MAX_CTX = 8192
+# 4k tokens of history before the actions: attention cost grows with the square of this, and 8k made a
+# forward pass tens of seconds on the laptop GPU
+MAX_CTX = 4096
+# room held back in every comparison for a restated block (blocks are 100-250 tokens), so all of a
+# state's scores see the same stretch of history
+RESERVE = 320
 RESULT_CHARS = 600
 
 
@@ -52,8 +57,10 @@ def targets(s):
 
 
 @torch.no_grad()
-def logprob(model, tok, history, segments, device):
-    """Sum of log p over the scored segments, given the history (left-truncated to fit)."""
+def logprob(model, tok, history, segments, device, keep="", reserve=0):
+    """Sum of log p over the scored segments, given `keep` and then the history, left-truncated to
+    fit MAX_CTX (`keep` itself is never cut). `reserve` holds back room as if `keep` were there, so
+    a comparison with and without it sees the same stretch of history."""
     ids, scored = [], []
     for context, target in segments:
         for text, score in ((context, False), (target, True)):
@@ -61,7 +68,9 @@ def logprob(model, tok, history, segments, device):
                 piece = tok(text, add_special_tokens=False)["input_ids"]
                 ids += piece
                 scored += [score] * len(piece)
-    prefix = tok(history, add_special_tokens=False)["input_ids"][-max(0, MAX_CTX - len(ids)):]
+    kept = tok(keep, add_special_tokens=False)["input_ids"] if keep else []
+    room = MAX_CTX - len(ids) - max(len(kept), reserve)
+    prefix = kept + tok(history, add_special_tokens=False)["input_ids"][-max(0, room):]
     ids, scored = prefix + ids, [False] * len(prefix) + scored
     x = torch.tensor([ids], device=device)
     # only the scored positions go through the output head: a full 8k x vocab logit matrix is
@@ -73,15 +82,41 @@ def logprob(model, tok, history, segments, device):
 
 
 def deltas(model, tok, s, candidates, device):
-    """Log-probability drop of the post-cut actions when each candidate block is stubbed."""
+    """Log-probability drop of the post-cut actions without each candidate block.
+
+    The history is left-truncated to fit the window, and most blocks of a long session lie before it,
+    where stubbing them changes nothing. One baseline per state (the history as it was); then a block
+    inside the kept window is scored as baseline minus the history with it stubbed, and a block
+    before the window as the history with the block restated at the front minus the baseline. The
+    same room is held back in every pass, so all of a state's scores see the same stretch."""
     h = s["items"][: s["cut"]]
     segments = targets(s)
-    base = logprob(model, tok, "".join(render(it) for it in h), segments, device)
+    rendered = [render(it) for it in h]
+    history = "".join(rendered)
+    base = logprob(model, tok, history, segments, device, reserve=RESERVE)
+    start = window_start(tok, history, segments)
     out = []
     for i, block, state in candidates:
-        without = [dict(it, text=it["text"].replace(block, STUB, 1)) if j == i else it for j, it in enumerate(h)]
-        out.append((i, block, state, base - logprob(model, tok, "".join(render(it) for it in without), segments, device)))
+        at = sum(len(r) for r in rendered[:i]) + rendered[i].find(block)
+        if at >= start:  # in the window: take it out
+            without = "".join(render(dict(it, text=it["text"].replace(block, STUB, 1))) if j == i else r
+                              for j, (it, r) in enumerate(zip(h, rendered)))
+            d = base - logprob(model, tok, without, segments, device, reserve=RESERVE)
+        else:  # before the window: bring it into view
+            restated = f"EARLIER OUTPUT ({h[i].get('call') or h[i]['role']}):\n{block}\n"
+            d = logprob(model, tok, history, segments, device, keep=restated, reserve=RESERVE) - base
+        out.append((i, block, state, d))
     return out
+
+
+def window_start(tok, history, segments):
+    """The character offset where the kept part of the history begins."""
+    target = sum(len(tok(c + t, add_special_tokens=False)["input_ids"]) for c, t in segments)
+    enc = tok(history, add_special_tokens=False, return_offsets_mapping=True)
+    first = len(enc["input_ids"]) - max(0, MAX_CTX - target - RESERVE)
+    if first >= len(enc["input_ids"]):
+        return len(history)  # no room left: every block lies before the window
+    return enc["offset_mapping"][first][0] if first > 0 else 0
 
 
 def label(model_name, n_states, device, per_state=12, seed=0, name="retain-cf", positive_rate=0.078):
@@ -151,6 +186,7 @@ def merge(n_each=1500, cf_weight=2.0, seed=0, name="retain-v2"):
 
 def self_test():
     """Mechanics on a tiny random model: a stubbed block changes the score, rows are well formed."""
+    global MAX_CTX
     from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM
 
     # any tokenizer will do for mechanics; Laya's is already cached (in an older snapshot)
@@ -167,6 +203,15 @@ def self_test():
     assert segments == [("", "CALL edit(a.py, 'tenant_d477')\n"), ("RESULT Edit applied.\n", "")], segments
     out = deltas(model, tok, s, [(1, "E KeyError: 'tenant_d477'", {}), (2, "def f(): pass", {})], "cpu")
     assert len(out) == 2 and all(math.isfinite(d) for *_, d in out) and any(d != 0 for *_, d in out), out
+    # a block far before the kept window still counts (the first run scored every such block 0)
+    long = dict(s, items=[s["items"][0], s["items"][1], *[{"role": "tool", "call": f"read(f{n}.py)", "text": "x = 1\n" * 400, "turn": 2}
+                                                          for n in range(8)], *s["items"][2:]], cut=s["cut"] + 8)
+    MAX_CTX, saved = 256, MAX_CTX
+    try:
+        far = deltas(model, tok, long, [(1, "E KeyError: 'tenant_d477'", {})], "cpu")
+    finally:
+        MAX_CTX = saved
+    assert far[0][3] != 0, far
     return True
 
 
