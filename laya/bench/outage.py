@@ -50,9 +50,13 @@ SCENARIOS = ["none", "quota", "throttle", "overload", "server", "stall", "drop",
 UPSTREAM = "http://localhost:11434"
 MODEL = "qwen3-8b-16k"
 OUTAGE_S = 60
-# The first runs used an 8k usable window, which the system prompt nearly fills: every scenario
-# compacted over and over. Those sit under "outage-*"; runs with the G9 pilot's window, "outage2-*".
-PREFIX = "outage2-"
+# Earlier runs are kept: "outage-*" had an 8k usable window, which the system prompt nearly fills
+# (every scenario compacted over and over); "outage2-*" sampled, so a fault run and its baseline
+# diverged by chance. "outage3-*": the G9 pilot's window, and greedy decoding (GREEDY).
+PREFIX = "outage3-"
+# Forced on every chat request, so a fault run and its baseline stay identical up to the fault and
+# a difference after it is the failover's doing.
+GREEDY = {"temperature": 0, "seed": 7}
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -95,6 +99,8 @@ async def serve(port, scenario, after, log_path):
         path = request.match_info["path"]
         body = await request.read()
         chat = request.method == "POST" and path.endswith("chat/completions")
+        if chat:
+            body = json.dumps({**json.loads(body), **GREEDY}).encode()
         if chat and provider == "a":
             state["a"] += 1
         f = fault(scenario, provider, state["a"], after, state["fault_at"]) if chat else None
