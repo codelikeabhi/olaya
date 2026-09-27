@@ -1,13 +1,15 @@
 """Does a harness nudge help? A seeded paired A/B on Track C, one feature at a time.
 
-    python -m bench.loop_ab run --binary <build> [--feature loop-guard|verify] [--model qwen3-8b-16k]
+    python -m bench.loop_ab run --binary <build> [--feature loop-guard|verify|action] [--model qwen3-8b-16k]
     python -m bench.loop_ab report [--feature ...]     # <feature>/ab.json
 
 - loop-guard: a reminder after three repeated or identically failing tool calls (on by default;
   the "off" arm sets OLAYA_DISABLE_LOOP_GUARD);
 - verify: HR1, one "check your work" nudge before the run ends (off by default; the "on" arm sets
   OLAYA_EXPERIMENTAL_VERIFY_BEFORE_EXIT). Its Terminal-Bench ablation sat on the floor (qwen3:8b
-  solved nothing either way); Track C's 8b solve rate is 28%.
+  solved nothing either way); Track C's 8b solve rate is 28%;
+- action: when a run is about to end on a sentence announcing its next step with no tool call, one
+  "take that step now" nudge (on by default; "off" sets OLAYA_DISABLE_ACTION_NUDGE).
 
 Every Track C item runs once per arm, on one build, through Track E's proxy with no fault, which
 puts the same seed on every request. Both arms are identical until the nudge first fires, so a
@@ -34,6 +36,8 @@ FEATURES = {
                    "marker": '"loop_guard_nudge":true'},
     "verify": {"prefix": "verify-ab", "env": {"off": {}, "on": {"OLAYA_EXPERIMENTAL_VERIFY_BEFORE_EXIT": "1"}},
                "marker": '"loop_exit_nudge":true'},
+    "action": {"prefix": "action-ab", "env": {"off": {"OLAYA_DISABLE_ACTION_NUDGE": "1"}, "on": {}},
+               "marker": '"action_nudge":true'},
 }
 HERE = os.path.dirname(os.path.abspath(__file__))
 
