@@ -24,7 +24,8 @@ is the failover mechanism's doing, not model quality's.
 Metrics (thresholds in gates.json, F6):
 - session_stops: fault runs that ended with an error exit or timed out;
 - success_delta_lcb95: paired pass rate, fault minus baseline, lower 95% bound;
-- duplicate_tool_calls: edits, writes or shell commands repeated identically after the switch;
+- duplicate_tool_calls: file changes repeated identically after the switch, or one call executed twice
+  (re-running a command such as the tests is normal work and does not count);
 - lost_tool_results: tool calls completed before the switch whose results the fallback never saw;
 - needles_after_switch: runs whose first request to `b` still carries the task's planted codename;
 - failover_p95_s: first fault to first answer from `b`.
@@ -224,8 +225,12 @@ def analyse(record, proxy_log, events, needle):
               and (u.get("state") or {}).get("status") == "completed"]
     after = [u for u in uses if t_switch and ((u.get("state") or {}).get("time") or {}).get("start", 0) >= t_switch]
     key = lambda u: (u.get("tool"), json.dumps((u.get("state") or {}).get("input"), sort_keys=True))
-    side = {"edit", "write", "bash", "apply_patch"}
-    duplicates = sum(1 for u in after if u.get("tool") in side and key(u) in {key(b) for b in before})
+    # A file change issued again after the switch means the fallback didn't see it happen; the same
+    # call executed twice would be the harness's own doing. Re-running a command (tests, ls) is
+    # normal work, so shell calls don't count.
+    side = {"edit", "write", "apply_patch", "multiedit"}
+    ids = [u.get("callID") for u in uses if (u.get("state") or {}).get("status") == "completed" and u.get("callID")]
+    duplicates = sum(1 for u in after if u.get("tool") in side and key(u) in {key(b) for b in before}) + len(ids) - len(set(ids))
     body = json.dumps(b_first["body"]) if switched else ""
     lost = sum(1 for u in before if u.get("callID") and u["callID"] not in body) if switched else 0
     return {
@@ -303,6 +308,9 @@ def self_test():
     again = {"tool": "edit", "callID": "call_2", "state": {"status": "completed", "input": {"f": 1}, "time": {"start": 1_007_000, "end": 1_007_500}}}
     facts = analyse({"timed_out": False, "olaya_exit": "0"}, log, [{"type": "tool_use", "part": edit}, {"type": "tool_use", "part": again}], "ZX-abc")
     assert facts == {"switched": True, "faulted": True, "stopped": False, "duplicates": 1, "lost": 0, "needle": True, "failover_s": 4.0}, facts
+    test = {"tool": "bash", "callID": "call_3", "state": {"status": "completed", "input": {"c": "pytest"}, "time": {"start": 1_001_000, "end": 1_002_000}}}
+    rerun = {"tool": "bash", "callID": "call_4", "state": {"status": "completed", "input": {"c": "pytest"}, "time": {"start": 1_007_000, "end": 1_007_500}}}
+    assert analyse({"timed_out": False, "olaya_exit": "0"}, log, [{"type": "tool_use", "part": test}, {"type": "tool_use", "part": rerun}], "ZX-abc")["duplicates"] == 0
     assert lcb_paired([0.0, 0.0, 0.0]) == 0.0 and lcb_paired([]) is None
     return True
 
