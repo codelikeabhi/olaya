@@ -54,8 +54,11 @@ it.instance(
           yield* llm.text("done")
         }),
       )
-      const summary = JSON.stringify(bodies[2])
-      expect(summary).toContain("characters truncated")
+      // the compaction request, found by content: a title request can arrive anywhere in the list
+      const summary = (bodies as unknown[])
+        .map((b) => JSON.stringify(b))
+        .find((b) => b.includes("characters truncated"))
+      expect(summary).toBeDefined()
       expect(summary).toContain(error)
     }),
   30_000,
