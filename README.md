@@ -80,6 +80,9 @@ then returns to your model once it is available again:
   outage is waited out on your model instead of ending the session.
 - **If the process itself dies,** `olaya run --supervise` restarts the task on the same session.
   Restarts back off and are capped at 6 an hour.
+- **If the model loops** (the same tool call three times running, or three failures with the same
+  error), it is told to re-read the current state and change approach, at most 3 times a run.
+  `OLAYA_DISABLE_LOOP_GUARD=1` turns this off.
 - **Privacy.** Every model in the chain receives the task's context, including code, when it
   takes over. A local model keeps it on your machine. A local model needs a declared
   `limit.context`, because local servers drop old messages silently when it is exceeded.
