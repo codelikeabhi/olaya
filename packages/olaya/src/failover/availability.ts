@@ -18,15 +18,28 @@ export type Entry = { state: "cooling" | "disabled"; until: number; reason: stri
 const BACKOFF_MINUTES = [1, 5, 15, 60]
 const DISABLED_MS = 6 * 3_600_000
 
-// ponytail: last writer wins between processes; the file is a few lines, rewritten on each change.
+// Shared by every Olaya process on the machine: re-read whenever another process has written it,
+// and replaced atomically, so parallel runs and a long-lived server see each other's cooldowns.
+// ponytail: two processes marking in the same instant can still drop one entry; per-key files or
+// a lock if that ever matters.
 let file: string | undefined
 const where = () => (file ??= path.join(Global.Path.data, "failover", "availability.json"))
-let loaded = false
+/** The file's mtime when last read or written by this process; -1 before the first read. */
+let seen = -1
 const entries = new Map<string, Entry>()
 
+const mtime = () => {
+  try {
+    return fs.statSync(where()).mtimeMs
+  } catch {
+    return 0
+  }
+}
+
 function load() {
-  if (loaded) return
-  loaded = true
+  const now = mtime()
+  if (now === seen) return
+  seen = now
   const raw = (() => {
     try {
       return JSON.parse(fs.readFileSync(where(), "utf8")) as Record<string, Entry>
@@ -34,13 +47,17 @@ function load() {
       return {}
     }
   })()
+  entries.clear()
   for (const [model, entry] of Object.entries(raw)) entries.set(model, entry)
 }
 
 function save() {
   try {
     fs.mkdirSync(path.dirname(where()), { recursive: true })
-    fs.writeFileSync(where(), JSON.stringify(Object.fromEntries(entries), null, 1))
+    const tmp = `${where()}.${process.pid}.tmp`
+    fs.writeFileSync(tmp, JSON.stringify(Object.fromEntries(entries), null, 1))
+    fs.renameSync(tmp, where())
+    seen = mtime()
   } catch {
     // a read-only data directory leaves availability per process, as before it was saved
   }
@@ -85,14 +102,13 @@ export function recovered(model: string) {
 
 export function clear() {
   entries.clear()
-  loaded = true
   save()
 }
 
 /** Point the store at another file (tests), dropping what is in memory. */
 export function useFile(next: string) {
   file = next
-  loaded = false
+  seen = -1
   entries.clear()
 }
 

@@ -29,6 +29,22 @@ describe("availability store", () => {
     expect(FailoverAvailability.available("anthropic/claude-opus-5-5")).toBe(true)
   })
 
+  test("parallel processes see each other's cooldowns, and a save keeps the other's entries", () => {
+    const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "avail-")), "availability.json")
+    FailoverAvailability.useFile(file)
+    expect(FailoverAvailability.available("openai/gpt-6")).toBe(true)
+    // another `olaya run` marks a model while this one is running
+    const other = { state: "cooling", until: Date.now() + 3_600_000, reason: "usage limit reached", failures: 1 }
+    fs.writeFileSync(file, JSON.stringify({ "openai/gpt-6": other }))
+    fs.utimesSync(file, new Date(), new Date(Date.now() + 5_000))
+    expect(FailoverAvailability.available("openai/gpt-6")).toBe(false)
+    FailoverAvailability.mark("moonshotai/kimi-k2", { action: "switch", reason: "overloaded" })
+    expect(Object.keys(JSON.parse(fs.readFileSync(file, "utf8"))).sort()).toEqual([
+      "moonshotai/kimi-k2",
+      "openai/gpt-6",
+    ])
+  })
+
   test("backoff grows with repeated failures and starts over after a success", () => {
     const now = Date.now()
     const verdict = { action: "switch" as const, reason: "overloaded" }
