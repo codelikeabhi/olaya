@@ -467,11 +467,25 @@ const layer = Layer.effect(
       yield* plugin.trigger("experimental.chat.messages.transform", {}, { messages: msgs })
       const conversation = msgs.map(serialize).filter(Boolean).join("\n\n")
       // A plugin may write the summary itself (Laya's extractive retention); then no request is sent.
-      const retained = yield* plugin.trigger(
-        "experimental.session.retention",
-        { sessionID: input.sessionID, items: retentionItems(msgs), previous: previousSummary },
-        {} as { summary?: string },
-      )
+      // Not when the last compaction bought at most one step before the context overflowed again:
+      // what was kept did not fit, and a plugin asked again keeps the same and compacts on every step
+      // (a Claude pilot ran 232). The model's shorter summary makes room. (A marker on the summary
+      // part is no use: an assistant part's metadata goes to the provider.)
+      const last = prior.at(-1)
+      const futile =
+        last !== undefined &&
+        history.slice(last.assistantIndex + 1).filter((m) => m.info.role === "assistant").length <= 1
+      const retained = futile
+        ? {}
+        : yield* plugin.trigger(
+            "experimental.session.retention",
+            { sessionID: input.sessionID, items: retentionItems(msgs), previous: previousSummary },
+            {} as { summary?: string },
+          )
+      if (futile)
+        yield* Effect.logInfo("retained summary did not make room; the model summarises", {
+          sessionID: input.sessionID,
+        })
       const nextPrompt =
         compacting.prompt ??
         [

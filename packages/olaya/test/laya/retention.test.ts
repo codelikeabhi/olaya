@@ -469,3 +469,37 @@ it.instance(
     }),
   30_000,
 )
+
+it.instance(
+  "a plugin summary that did not make room is not asked for again: the model summarises instead",
+  () =>
+    Effect.gen(function* () {
+      const { directory } = yield* TestInstance
+      const calls = path.join(directory, "calls.txt")
+      yield* project(
+        [
+          'import { appendFileSync } from "fs"',
+          "export default async () => ({",
+          '  "experimental.session.retention": async (input, output) => {',
+          `    appendFileSync(${JSON.stringify(calls)}, "x")`,
+          '    output.summary = "kept: fix the failing test"',
+          "  },",
+          "})",
+          "",
+        ].join("\n"),
+      )
+      const { bodies } = yield* run(
+        Effect.gen(function* () {
+          const llm = yield* TestLLMServer
+          yield* llm.text("working", overflowing) // compaction 1: the plugin's summary
+          yield* llm.text("still working", overflowing) // overflows again at once: it did not make room
+          yield* llm.text("Summary: fixing the failing test.") // compaction 2: the model's summary
+          yield* llm.text("done")
+        }),
+      )
+      expect(yield* Effect.promise(() => fs.readFile(calls, "utf8"))).toBe("x") // asked once
+      const sent = (bodies as unknown[]).map((b) => JSON.stringify(b)).filter((b) => !b.includes("Generate a title"))
+      expect(sent).toHaveLength(4) // two steps, one summary request, the step after it
+    }),
+  30_000,
+)
