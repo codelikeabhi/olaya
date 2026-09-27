@@ -118,7 +118,7 @@ def run_one(item, model, k, variant=None, timeout=TIMEOUT_S):
     v = variant or {}
     if v.get("secrets") and not os.path.exists(SECRETS):
         raise FileNotFoundError(f"{SECRETS} is missing: this variant needs cloud API keys (KEY=value lines)")
-    out_dir = os.path.join(os.path.dirname(RUNS), "variants", v["name"], model, item["id"]) if v else os.path.join(RUNS, model, item["id"])
+    out_dir = os.path.join(os.path.dirname(RUNS), "variants", v["name"], model, item["id"]) if v.get("name") else os.path.join(RUNS, model, item["id"])
     out = os.path.join(out_dir, f"{k}.json")
     if os.path.exists(out):
         return json.load(open(out))
@@ -178,9 +178,10 @@ def run_through_limits(item, model, k, variant, wait=1800):
         if r["passed"] or not any(QUOTA.search(m) for m in r.get("errors", []) + r.get("retries", [])):
             return r
         base = os.path.join(os.path.dirname(RUNS), "variants")
-        shutil.move(os.path.join(base, variant["name"], model, item["id"]),
-                    os.path.join(base, "_archive", f"{variant['name']}-{model}-{item['id']}-limit-{int(time.time())}"))
-        print(f"usage limit on {item['id']} ({variant['name']}): set aside, again in {wait // 60} min", flush=True)
+        tag = variant.get("name") or "tiers"
+        shutil.move(os.path.join(base, variant["name"], model, item["id"]) if variant.get("name") else os.path.join(RUNS, model, item["id"]),
+                    os.path.join(base, "_archive", f"{tag}-{model}-{item['id']}-limit-{int(time.time())}"))
+        print(f"usage limit on {item['id']} ({tag}): set aside, again in {wait // 60} min", flush=True)
         time.sleep(wait)
 
 
@@ -270,15 +271,23 @@ def calls_from(events, model):
     return calls
 
 
-def run(tiers, k, only=None, items_path=ITEMS, timeout=TIMEOUT_S):
+def run(tiers, k, only=None, items_path=ITEMS, timeout=TIMEOUT_S, signin=None, binary_path=None):
+    """`signin`: the tiers are that provider's models, reached through the owner's sign-in (e.g.
+    openai: gpt-6-luna, gpt-6-sol), and runs wait out the plan's usage limits."""
     items = [json.loads(l) for l in open(items_path)]
     if only:
         items = [it for it in items if it["id"] in only]
-    for model in tiers:            # one tier at a time keeps one model resident
-        for rep in range(k):
-            for it in items:
-                r = run_one(it, model, rep, timeout=timeout)
-                print(f"{model:16} {it['id']:28} k={rep} passed={r['passed']} steps={len(r['calls'])} {r['wall_s']}s", flush=True)
+    # one tier at a time keeps one local model resident; a cloud ladder goes task by task, so a stop
+    # at the plan's limit leaves every finished task with all its tiers
+    order = [(m, rep, it) for m in tiers for rep in range(k) for it in items] if not signin else \
+            [(m, rep, it) for rep in range(k) for it in items for m in tiers]
+    for model, rep, it in order:
+        if signin:
+            r = run_through_limits(it, model, rep, {"cli_model": f"{signin}/{model}", "signin": signin,
+                                                    "binary": binary_path, "timeout": timeout})
+        else:
+            r = run_one(it, model, rep, {"binary": binary_path} if binary_path else None, timeout=timeout)
+        print(f"{model:16} {it['id']:28} k={rep} passed={r['passed']} steps={len(r['calls'])} {r['wall_s']}s", flush=True)
 
 
 # ------------------------------------------------------------------ metrics
@@ -291,7 +300,8 @@ def table(tiers):
             # run records are <k>.json; the directory also keeps each run's events and shadow logs
             runs = [json.load(open(os.path.join(base, item, f))) for f in sorted(os.listdir(os.path.join(base, item)))
                     if f.endswith(".json") and f[:-5].isdigit()]
-            costs = [cachesim.bill([cachesim.Call(**c) for c in r["calls"]]).total for r in runs]
+            # a sign-in run carries its list price; local runs are billed by the cache simulator
+            costs = [r["list_cost"] if "list_cost" in r else cachesim.bill([cachesim.Call(**c) for c in r["calls"]]).total for r in runs]
             out.setdefault(item, {})[ti] = {"p": sum(r["passed"] for r in runs) / len(runs),
                                             "cost": sum(costs) / len(costs), "runs": len(runs),
                                             "difficulty": runs[0]["difficulty"]}
@@ -415,6 +425,8 @@ def main(argv=None):
     r = sub.add_parser("run"); r.add_argument("--tiers", required=True); r.add_argument("--k", type=int, default=2); r.add_argument("--only")
     r.add_argument("--items", default=ITEMS)
     r.add_argument("--timeout", type=int, default=TIMEOUT_S, help="seconds per run (small single-function tasks: 180)")
+    r.add_argument("--signin", help="the tiers are this provider's models through the owner's sign-in (openai)")
+    r.add_argument("--binary", help="the Linux build to run (default: this checkout's dist)")
     p = sub.add_parser("report"); p.add_argument("--tiers", default="qwen3-0.6b-16k,qwen3-4b-16k,qwen3-8b-16k,qwen3-14b-16k")
     sh = sub.add_parser("shadow-smoke"); sh.add_argument("--model", default="qwen3-4b-16k"); sh.add_argument("--pool", default="qwen3-0.6b-16k")
     sh.add_argument("--binary", required=True); sh.add_argument("--n", type=int, default=4)
@@ -423,7 +435,7 @@ def main(argv=None):
     if a.cmd == "build":
         build(a.exercism, a.n, max_difficulty=a.max_difficulty, out=a.out)
     elif a.cmd == "run":
-        run(a.tiers.split(","), a.k, set(a.only.split(",")) if a.only else None, a.items, a.timeout)
+        run(a.tiers.split(","), a.k, set(a.only.split(",")) if a.only else None, a.items, a.timeout, a.signin, a.binary)
     elif a.cmd == "report":
         report(a.tiers.split(","))
     elif a.cmd == "shadow-smoke":

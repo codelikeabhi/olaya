@@ -45,7 +45,8 @@ STUB_CHARS = 1200
 ALPHA, DELTA = 0.05, 0.05
 
 
-def question(t, n=len(TIERS)):
+def question(t, n=None):
+    n = n or len(TIERS)
     return {f"tier_{t}": {"type": "noul", "instructions":
                           f"Will a tier-{t + 1} model (of {n}; tier {n} is the strongest) solve this coding task?"}}
 
@@ -223,7 +224,7 @@ def score(tab, checkpoint, device=None):
     return {i: got[i] for i in ids}
 
 
-def report(checkpoint, device=None):
+def report(checkpoint, device=None, out="latest.json"):
     tab = outcomes()
     raw = score(tab, checkpoint, device)
     calib = [i for i in raw if split(i) == "calib"]
@@ -240,7 +241,7 @@ def report(checkpoint, device=None):
     rep = {
         "gate": "G4", "generated": time.strftime("%Y-%m-%d %H:%M"), "checkpoint": checkpoint,
         "decision_point": "D0 (task start), no scout turns",
-        "tiers": TIERS, "priced_as": [cachesim.PROXY[t] for t in TIERS],
+        "tiers": TIERS, "priced_as": [cachesim.PROXY.get(t, t) for t in TIERS],
         "items": {"train": sum(split(i) == "train" for i in tab), "calib": len(calib), "test": len(test)},
         "threshold": None if tau == INF else round(tau, 4), "certified": tau != INF,
         "platt": [[round(a, 4), round(b, 4)] for a, b in platt],
@@ -252,7 +253,7 @@ def report(checkpoint, device=None):
         "self_test": "pass" if self_test() else "fail",
     }
     os.makedirs(os.path.join(REPORTS, "router"), exist_ok=True)
-    path = os.path.join(REPORTS, "router", "latest.json")
+    path = os.path.join(REPORTS, "router", out)
     json.dump(rep, open(path, "w"), indent=2)
     print(json.dumps({k: rep[k] for k in ("items", "threshold", "certified", "metrics")}, indent=2))
     print("->", path)
@@ -283,16 +284,22 @@ def self_test():
 
 
 def main(argv=None):
+    global TIERS
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("build"); b.add_argument("--name", default="route-v1")
     r = sub.add_parser("report"); r.add_argument("--checkpoint", required=True); r.add_argument("--device")
+    r.add_argument("--out", default="latest.json", help="file under reports/router (G4 reads latest.json)")
+    for x in (b, r):
+        x.add_argument("--tiers", default=",".join(TIERS), help="the ladder, cheapest first (default: the local proxy ladder)")
     sub.add_parser("demo")
     a = ap.parse_args(argv)
+    if a.cmd in ("build", "report"):
+        TIERS = a.tiers.split(",")
     if a.cmd == "build":
         build(a.name)
     elif a.cmd == "report":
-        report(a.checkpoint, a.device)
+        report(a.checkpoint, a.device, a.out)
     else:
         print("router self-test", "passed" if self_test() else "FAILED")
 
