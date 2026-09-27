@@ -60,6 +60,7 @@ import { eq } from "drizzle-orm"
 import { SessionTable } from "@olaya/core/session/sql"
 import { SessionReminders } from "./reminders"
 import { LoopGuard } from "./loop-guard"
+import { usable } from "./overflow"
 import { SessionTools } from "./tools"
 import { LLMEvent } from "@olaya/llm"
 
@@ -1502,6 +1503,32 @@ const layer = Layer.effect(
               auto: true,
             })
             continue
+          }
+          // A plugin may choose a better moment than overflow: Laya's live retention compacts early
+          // when the history is large or the prompt cache has gone cold, if the rewrite saves enough.
+          const cfg = yield* config.get()
+          if (lastFinished && counted && lastFinished.summary !== true && cfg.compaction?.auto !== false) {
+            const point = yield* plugin.trigger(
+              "experimental.session.compaction.point",
+              {
+                sessionID,
+                tokens: counted.total,
+                window: usable({ cfg, model, outputTokenMax: flags.outputTokenMax }),
+                idleMs: Date.now() - (lastFinished.time.completed ?? Date.now()),
+                ...SessionCompaction.retentionInput(msgs),
+              },
+              { compact: false },
+            )
+            if (point.compact) {
+              yield* compaction.create({
+                sessionID,
+                agent: lastUser.agent,
+                model: lastUser.model,
+                user: lastUser,
+                auto: true,
+              })
+              continue
+            }
           }
 
           const agent = yield* agents.get(lastUser.agent)

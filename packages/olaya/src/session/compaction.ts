@@ -127,6 +127,13 @@ function retentionItems(messages: SessionV1.WithParts[]) {
   })
 }
 
+/** The history since the last compaction as retention items, with that compaction's summary. */
+export function retentionInput(messages: SessionV1.WithParts[]) {
+  const prior = completedCompactions(messages)
+  const hidden = new Set(prior.flatMap((item) => [item.userIndex, item.assistantIndex]))
+  return { items: retentionItems(messages.filter((_, i) => !hidden.has(i))), previous: prior.at(-1)?.summary }
+}
+
 function summaryText(message: SessionV1.WithParts) {
   const text = message.parts
     .filter((part): part is SessionV1.TextPart => part.type === "text")

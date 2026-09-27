@@ -14,7 +14,7 @@ import { ShadowLog, type Reply } from "./shadow"
 import { liveHandler, shadowHandler } from "./judgment"
 import { observe } from "./inject"
 import type { SessionContext } from "./state"
-import { handler as retentionHandler, recallTool } from "./retention"
+import { compactionPoint, handler as retentionHandler, recallTool } from "./retention"
 import { handler as routingHandler } from "./routing"
 
 export const SHADOW_DIR = path.join(Global.Path.data, "laya-shadow")
@@ -74,7 +74,14 @@ export const LayaPlugin: Plugin = async (input, options) => {
             shadow: new ShadowLog(shadowDir),
             recallDir: RECALL_DIR,
           }),
-          ...(config.retention === "live" && { tool: { recall: recallTool(RECALL_DIR) } }),
+          ...(config.retention === "live" && {
+            tool: { recall: recallTool(RECALL_DIR) },
+            "experimental.session.compaction.point": compactionPoint({
+              mode: "live",
+              budget: config.retentionBudget,
+              cap: RETENTION_CAP_TOKENS,
+            }),
+          }),
         }
   const routing =
     config.routing === "off"

@@ -199,6 +199,28 @@ export function recallTool(dir: string) {
  * The `experimental.session.retention` handler. Shadow mode records the plan and changes nothing;
  * live mode supplies the rendering as the summary. Any failure leaves the default compaction.
  */
+/**
+ * When to compact before the window is full (design D5): the context has reached 60% of the window
+ * (at most 120k tokens), or the prompt cache has gone cold with at least 40k tokens of context, so
+ * the next request pays full price anyway. Only when the rewrite would remove at least 20k tokens and
+ * half the history: a rewrite also costs a cache rebuild, so a small one is worse than none.
+ */
+export function compactionPoint(
+  options: RetentionOptions,
+): NonNullable<Hooks["experimental.session.compaction.point"]> {
+  return async (input, output) => {
+    const early = input.tokens >= Math.min(0.6 * input.window, 120_000)
+    const cold = input.idleMs >= 5 * 60_000 && input.tokens >= 40_000
+    if (!early && !cold) return
+    const earlier = parse(input.previous)
+    const offset = earlier.length ? Math.max(...earlier.map((item) => item.turn)) + 1 : 0
+    const items: Item[] = [...earlier, ...input.items.map((item) => ({ ...item, turn: item.turn + offset }))]
+    const tokens = items.reduce((sum, item) => sum + size(item), 0)
+    const kept = Token.estimate(render(items, plan(items, Math.min(options.cap, Math.floor(options.budget * tokens)))))
+    output.compact = tokens - kept >= Math.max(20_000, tokens / 2)
+  }
+}
+
 export function handler(options: RetentionOptions): NonNullable<Hooks["experimental.session.retention"]> {
   return async (input, output) => {
     try {

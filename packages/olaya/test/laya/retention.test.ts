@@ -10,11 +10,22 @@ import os from "os"
 import path from "path"
 import { pathToFileURL } from "url"
 import { Todo } from "../../src/session/todo"
-import { handler, parse, pins, plan, recallTool, render, stub, textOf, type Item } from "../../src/laya/retention"
+import {
+  compactionPoint,
+  handler,
+  parse,
+  pins,
+  plan,
+  recallTool,
+  render,
+  stub,
+  textOf,
+  type Item,
+} from "../../src/laya/retention"
 import { ShadowLog } from "../../src/laya/shadow"
 import { Token } from "../../src/util/token"
 import { TestInstance } from "../fixture/fixture"
-import { TestLLMServer } from "../lib/llm-server"
+import { reply, TestLLMServer } from "../lib/llm-server"
 import { it, project, run } from "../lib/session-loop"
 
 type Body = { messages: { role: string; content: unknown }[]; tools?: unknown }
@@ -246,6 +257,85 @@ it.instance(
       expect(JSON.stringify(compaction?.parts)).toContain("kept: fix the failing test")
       const items = JSON.parse(yield* Effect.promise(() => fs.readFile(seen, "utf8")))
       expect(items[0]).toEqual({ role: "user", text: "fix the failing test", turn: 0 })
+    }),
+  30_000,
+)
+
+describe("when to compact before the window is full", () => {
+  const decide = async (input: { tokens: number; window: number; idleMs?: number; items: Item[] }) => {
+    const output = { compact: false }
+    await compactionPoint({ mode: "live", budget: 0.2, cap: 24_000 })(
+      { sessionID: "ses_1", idleMs: 0, ...input },
+      output,
+    )
+    return output.compact
+  }
+  // a long run: a task, then many large test and read outputs
+  const bulky: Item[] = [
+    { role: "user", text: "fix the failing tests", turn: 0 },
+    ...Array.from(
+      { length: 40 },
+      (_, i): Item => ({
+        role: "tool",
+        call: `read({"filePath":"/src/f${i}.py"})`,
+        text: `line of source code ${i}\n`.repeat(300),
+        turn: i + 1,
+      }),
+    ),
+  ]
+  // mostly the user's own words, which are always kept
+  const pinned: Item[] = Array.from(
+    { length: 40 },
+    (_, i): Item => ({ role: "user", text: `requirement ${i}: `.repeat(400), turn: i }),
+  )
+
+  test("not before 60% of the window, or 120k tokens", async () => {
+    expect(await decide({ tokens: 100_000, window: 200_000, items: bulky })).toBe(false)
+    expect(await decide({ tokens: 121_000, window: 200_000, items: bulky })).toBe(true)
+    expect(await decide({ tokens: 130_000, window: 1_000_000, items: bulky })).toBe(true)
+  })
+
+  test("a cold cache is a free moment to compact, from 40k tokens", async () => {
+    expect(await decide({ tokens: 45_000, window: 200_000, idleMs: 6 * 60_000, items: bulky })).toBe(true)
+    expect(await decide({ tokens: 30_000, window: 200_000, idleMs: 6 * 60_000, items: bulky })).toBe(false)
+  })
+
+  test("not when the rewrite would save too little", async () => {
+    expect(await decide({ tokens: 150_000, window: 200_000, items: pinned })).toBe(false)
+  })
+})
+
+it.instance(
+  "a plugin can compact before the window is full",
+  () =>
+    Effect.gen(function* () {
+      yield* project(
+        [
+          "export default async () => ({",
+          '  "experimental.session.compaction.point": async (input, output) => {',
+          "    if (input.tokens >= 4000 && input.items.length > 0) output.compact = true",
+          "  },",
+          "})",
+          "",
+        ].join("\n"),
+      )
+      const { bodies, assistants } = yield* run(
+        Effect.gen(function* () {
+          const llm = yield* TestLLMServer
+          yield* llm.push(
+            reply()
+              .tool("todowrite", { todos: [{ content: "keep going", status: "pending", priority: "high", id: "1" }] })
+              .usage({ input: 5000, output: 10 })
+              .item(),
+          )
+          yield* llm.push(reply().text("Summary: a todo is noted.").stop().item())
+          yield* llm.push(reply().text("done").stop().item())
+        }),
+      )
+      const sent = (bodies as { messages?: unknown[] }[]).filter((b) => !JSON.stringify(b).includes("Generate a title"))
+      expect(sent).toHaveLength(3) // the step, the compaction (window 100k, far from full), the next step
+      expect(assistants.some((a) => a.summary)).toBe(true)
+      expect(assistants.at(-1)!.finish).toBe("stop")
     }),
   30_000,
 )

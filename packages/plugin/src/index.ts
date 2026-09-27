@@ -359,6 +359,25 @@ export interface Hooks {
     output: { summary?: string },
   ) => Promise<void>
   /**
+   * Called before a step whose context has not overflowed, to choose an earlier compaction point:
+   * the history is already large, or the prompt cache has gone cold so the next request pays full
+   * price anyway. `tokens` is the latest step's context, `window` the usable context, `idleMs` the
+   * time since that step finished, and `items`/`previous` the history since the last compaction.
+   *
+   * - `compact`: Set to `true` to compact before the step.
+   */
+  "experimental.session.compaction.point"?: (
+    input: {
+      sessionID: string
+      tokens: number
+      window: number
+      idleMs: number
+      items: RetentionItem[]
+      previous?: string
+    },
+    output: { compact: boolean },
+  ) => Promise<void>
+  /**
    * Called after compaction succeeds and before a synthetic user
    * auto-continue message is added.
    *
