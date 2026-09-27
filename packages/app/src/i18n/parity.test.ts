@@ -117,7 +117,7 @@ describe("i18n parity", () => {
         })
       }
     }
-  })
+  }, 60_000) // imports every locale module: over 5 s cold on GitHub's Windows runner
 
   test("non-English locales preserve English placeholders", async () => {
     for (const domain of domains) {
