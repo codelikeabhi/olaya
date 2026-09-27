@@ -22,7 +22,7 @@ Because both providers serve the same model, a difference between a scenario and
 is the failover mechanism's doing, not model quality's.
 
 Metrics (thresholds in gates.json, F6):
-- session_stops: fault runs that ended with an error exit or timed out;
+- session_stops: fault runs that ended with an error exit, or timed out when their baseline did not;
 - success_delta_lcb95: paired pass rate, fault minus baseline, lower 95% bound;
 - duplicate_tool_calls: file changes repeated identically after the switch, or one call executed twice
   (re-running a command such as the tests is normal work and does not count);
@@ -236,7 +236,8 @@ def analyse(record, proxy_log, events, needle):
     return {
         "switched": switched,
         "faulted": bool(faults),
-        "stopped": record["timed_out"] or record.get("olaya_exit") not in ("0", None),
+        # an error exit; a timeout counts only when the baseline finished in time (report() pairs them)
+        "stopped": record.get("olaya_exit") not in ("0", None),
         "duplicates": duplicates,
         "lost": lost,
         "needle": (needle in body) if switched else None,
@@ -262,6 +263,11 @@ def report():
         read = lambda name: [json.loads(l) for l in open(os.path.join(d, name))] if os.path.exists(os.path.join(d, name)) else []
         runs[(scenario, rec["item"])] = (rec, analyse(rec, read("0.proxy.jsonl"), read("0.events.jsonl"), codename(rec["item"])))
     faults = [(s, i) for (s, i) in runs if s != "none" and ("none", i) in runs]
+    # A timeout is the failover's doing only if the same item's baseline didn't time out as well:
+    # a slow or looping model times out with or without a fault.
+    for s, i in faults:
+        rec, facts = runs[(s, i)]
+        facts["stopped"] = facts["stopped"] or (rec["timed_out"] and not runs[("none", i)][0]["timed_out"])
     diffs = [float(runs[(s, i)][0]["passed"]) - float(runs[("none", i)][0]["passed"]) for s, i in faults]
     facts = [runs[k][1] for k in faults]
     switched = [f for f in facts if f["switched"]]
