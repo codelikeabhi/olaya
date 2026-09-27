@@ -83,7 +83,14 @@ then returns to your model once it is available again:
   Restarts back off and are capped at 6 an hour.
 - **If the model loops** (the same tool call three times running, or three failures with the same
   error), it is told to re-read the current state and change approach, at most 3 times a run.
-  `OLAYA_DISABLE_LOOP_GUARD=1` turns this off.
+- **If the model stops mid-thought** ("Let me check the file." with no tool call), it is asked to
+  take that step or say it is done.
+
+| Environment variable | Effect |
+|---|---|
+| `OLAYA_DISABLE_LOOP_GUARD=1` | no reminders when the model repeats itself |
+| `OLAYA_DISABLE_ACTION_NUDGE=1` | a run may end on an announced step |
+| `OLAYA_EXPERIMENTAL_VERIFY_BEFORE_EXIT=1` | one "check your work" message before a run ends |
 - **Privacy.** Every model in the chain receives the task's context, including code, when it
   takes over. A local model keeps it on your machine. A local model needs a declared
   `limit.context`, because local servers drop old messages silently when it is exceeded.
