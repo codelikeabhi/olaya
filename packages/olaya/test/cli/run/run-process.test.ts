@@ -71,14 +71,17 @@ describe("olaya run (non-interactive subprocess)", () => {
     "exits nonzero promptly when the model is unknown (regression for #27371)",
     ({ olaya }) =>
       Effect.gen(function* () {
+        // Olaya: 30 s, not 15. On GitHub's standard runners (upstream uses faster Blacksmith ones) with
+        // turbo running every package's tests at once, a prompt exit took 15.4 s. A hang still fails:
+        // it is killed at the timeout, which the duration check rejects.
         const result = yield* olaya.run("say hi", {
           model: "test/nonexistent-model",
-          timeoutMs: 15_000,
+          timeoutMs: 30_000,
         })
         expect(result.exitCode).not.toBe(0)
-        expect(result.durationMs).toBeLessThan(15_000)
+        expect(result.durationMs).toBeLessThan(30_000)
       }),
-    30_000,
+    60_000,
   )
 
   // The test provider's SSE error item is interpreted by the SDK as an unknown
