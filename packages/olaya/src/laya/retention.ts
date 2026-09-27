@@ -219,7 +219,8 @@ export function compactionPoint(
     const items: Item[] = [...earlier, ...input.items.map((item) => ({ ...item, turn: item.turn + offset }))]
     const tokens = items.reduce((sum, item) => sum + size(item), 0)
     const kept = Token.estimate(render(items, plan(items, Math.min(options.cap, Math.floor(options.budget * tokens)))))
-    output.compact = tokens - kept >= Math.max(20_000, tokens / 2)
+    // only ever sets it: another handler (restart-smart routing) may already have asked
+    if (tokens - kept >= Math.max(20_000, tokens / 2)) output.compact = true
   }
 }
 

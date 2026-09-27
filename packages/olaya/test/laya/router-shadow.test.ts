@@ -7,7 +7,7 @@ import fs from "fs/promises"
 import os from "os"
 import path from "path"
 import type { PoolModel, StepUsage } from "@olaya/plugin"
-import { handler } from "../../src/laya/routing"
+import { handler, restartPoint, RESTART_TOKENS, type RoutingState } from "../../src/laya/routing"
 import { ShadowLog } from "../../src/laya/shadow"
 
 const model = (modelID: string, output: number): PoolModel => ({
@@ -207,5 +207,70 @@ describe("laya router", () => {
     expect(output.model).toBeUndefined()
     await one({ sessionID: "t", agent: "build", step: 1, point: "start", model: sonnet } as never, output)
     expect(output.model).toBeUndefined()
+  })
+})
+
+describe("restart-smart escalation", () => {
+  // a doom loop after 11 quiet steps on Sonnet, with the given context size
+  const run = async (context: number, mode: "live" | "shadow", after: ("compaction" | "step")[]) => {
+    const sessions = new Map<string, RoutingState>()
+    const route = handler({ mode, start: "default" }, sessions)
+    const point = restartPoint(sessions)
+    const call = async (
+      step: number,
+      kind: "start" | "step" | "compaction",
+      signals: Partial<StepUsage["signals"]> = {},
+    ) => {
+      const output: { model?: { providerID: string; modelID: string }; reason?: string } = {}
+      const used = usage(step - 1, signals)
+      used.tokens.input = context
+      await route(
+        {
+          sessionID: "s",
+          agent: "build",
+          step,
+          point: kind,
+          model: sonnet,
+          ...(step > 1 && { usage: used }),
+          routing: { enabled: true, pool },
+        },
+        output,
+      )
+      const compact = { compact: false }
+      await point({ sessionID: "s", tokens: context, window: 200_000, idleMs: 0, items: [] }, compact)
+      return { model: output.model?.modelID, reason: output.reason, compact: compact.compact }
+    }
+    await call(1, "start")
+    for (let step = 2; step <= 12; step++) await call(step, "step")
+    const trigger = await call(13, "step", { identicalRun: 3 })
+    const next = []
+    for (const [i, kind] of after.entries()) next.push(await call(14 + i, kind))
+    return { trigger, next }
+  }
+
+  test("with a small context the escalation is immediate", async () => {
+    const r = await run(10_000, "live", [])
+    expect(r.trigger.model).toBe("claude-opus-5-5")
+    expect(r.trigger.compact).toBe(false)
+  })
+
+  test("with a large context it asks for a compaction and escalates after it", async () => {
+    const r = await run(RESTART_TOKENS, "live", ["compaction"])
+    expect(r.trigger.model).toBeUndefined() // held: the history is not sent to the stronger model
+    expect(r.trigger.compact).toBe(true)
+    expect(r.next[0]!.model).toBe("claude-opus-5-5")
+    expect(r.next[0]!.compact).toBe(false)
+  })
+
+  test("if no compaction comes within two steps, it escalates anyway", async () => {
+    const r = await run(RESTART_TOKENS, "live", ["step", "step"])
+    expect(r.next[0]!.model).toBeUndefined()
+    expect(r.next[1]!.model).toBe("claude-opus-5-5")
+    expect(r.next[1]!.reason).toContain("no compaction came")
+  })
+
+  test("shadow mode never asks for a compaction", async () => {
+    const r = await run(RESTART_TOKENS, "shadow", [])
+    expect(r.trigger.compact).toBe(false)
   })
 })

@@ -7,7 +7,7 @@
 
 import path from "path"
 import { Global } from "@olaya/core/global"
-import type { Plugin } from "@olaya/plugin"
+import type { Hooks, Plugin } from "@olaya/plugin"
 import { resolve } from "./config"
 import { Sidecar } from "./sidecar"
 import { ShadowLog, type Reply } from "./shadow"
@@ -15,7 +15,7 @@ import { liveHandler, shadowHandler } from "./judgment"
 import { observe } from "./inject"
 import type { SessionContext } from "./state"
 import { compactionPoint, handler as retentionHandler, recallTool } from "./retention"
-import { handler as routingHandler } from "./routing"
+import { handler as routingHandler, restartPoint, type RoutingState } from "./routing"
 
 export const SHADOW_DIR = path.join(Global.Path.data, "laya-shadow")
 /** Full text of what live retention shortened or dropped, one append-only file per session. */
@@ -74,26 +74,39 @@ export const LayaPlugin: Plugin = async (input, options) => {
             shadow: new ShadowLog(shadowDir),
             recallDir: RECALL_DIR,
           }),
-          ...(config.retention === "live" && {
-            tool: { recall: recallTool(RECALL_DIR) },
-            "experimental.session.compaction.point": compactionPoint({
-              mode: "live",
-              budget: config.retentionBudget,
-              cap: RETENTION_CAP_TOKENS,
-            }),
-          }),
+          ...(config.retention === "live" && { tool: { recall: recallTool(RECALL_DIR) } }),
         }
+  const routed = new Map<string, RoutingState>()
   const routing =
     config.routing === "off"
       ? {}
       : {
-          "experimental.model.select": routingHandler({
-            mode: config.routing,
-            start: config.routingStart,
-            shadow: new ShadowLog(shadowDir),
-          }),
+          "experimental.model.select": routingHandler(
+            {
+              mode: config.routing,
+              start: config.routingStart,
+              shadow: new ShadowLog(shadowDir),
+            },
+            routed,
+          ),
         }
-  const layers = { ...retention, ...routing }
+  // Live retention and routing's restart-smart may both ask for an earlier compaction; each only
+  // ever sets `compact`.
+  const points = [
+    ...(config.retention === "live"
+      ? [compactionPoint({ mode: "live", budget: config.retentionBudget, cap: RETENTION_CAP_TOKENS })]
+      : []),
+    ...(config.routing === "off" ? [] : [restartPoint(routed)]),
+  ]
+  const layers = {
+    ...retention,
+    ...routing,
+    ...(points.length && {
+      "experimental.session.compaction.point": (async (input, output) => {
+        for (const point of points) await point(input, output)
+      }) satisfies NonNullable<Hooks["experimental.session.compaction.point"]>,
+    }),
+  }
   if (!config.enabled) return layers
 
   const sidecar = new Sidecar(config)

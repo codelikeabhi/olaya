@@ -7,6 +7,11 @@
  *   row, no test progress over 3 runs, or 4 edits to one file since the last test run;
  * - D4, compaction: stay (the ratchet never steps down).
  *
+ * Restart-smart (design D4): escalating with a large context would send the whole history, uncached,
+ * to a pricier model. Live, the escalation instead waits for a compaction it asks for, and the
+ * stronger model starts from the rebuilt, small context. If no compaction comes within two steps
+ * (auto compaction off), it escalates anyway.
+ *
  * Guardrails (spec "Guardrails"): at most 2 escalations per task, at least 10 steps between
  * switches, and no switch while an edit waits for its test run; a trigger then waits for the
  * next safe step. Shadow mode records every decision and changes nothing. Live mode (uncertified
@@ -28,10 +33,16 @@ type State = {
   malformedRun: number
   failures: number[]
   pending?: string
+  /** An escalation held for a compaction (restart-smart): the tier, why, and when it was held. */
+  restart?: { tier: number; reason: string; step: number }
+  /** Live and turned on by the user: only then does a held escalation ask for a compaction. */
+  live?: boolean
 }
 
 const MAX_ESCALATIONS = 2
 const MIN_STEPS_BETWEEN_SWITCHES = 10
+/** Context from which an escalation restarts from a compaction instead of carrying the history. */
+export const RESTART_TOKENS = 40_000
 
 export const byPrice = (pool: PoolModel[]) =>
   [...pool].sort((a, b) => a.cost.output - b.cost.output || a.cost.input - b.cost.input)
@@ -66,6 +77,21 @@ export function decide(state: State, input: Input, start: RoutingOptions["start"
     state.tier = pool.findIndex((m) => same(m, input.model))
     return { reason: "start: prompt's model" }
   }
+  // steps count per run, so a hold from an earlier user turn has a larger step than this one
+  const due = state.restart && (input.step - state.restart.step >= 2 || input.step < state.restart.step)
+  if (state.restart && (input.point === "compaction" || due)) {
+    const held = state.restart
+    state.restart = undefined
+    state.tier = held.tier
+    state.escalations++
+    state.lastSwitch = input.step
+    return {
+      tier: held.tier,
+      reason:
+        input.point === "compaction" ? `${held.reason} (after compaction)` : `${held.reason} (no compaction came)`,
+    }
+  }
+  if (state.restart) return { reason: `${state.restart.reason}: waiting for the compaction` }
   state.pending = trigger(state, input.usage) ?? state.pending
   if (!state.pending) return { reason: "no trigger" }
   // an edit is waiting for its test run: switching now would hand a half-done change to another
@@ -85,18 +111,27 @@ export function decide(state: State, input: Input, start: RoutingOptions["start"
   const next = state.tier >= 0 ? state.tier + 1 : pool.findIndex((m) => m.cost.output > price)
   if (next < 0 || next >= pool.length) return { reason: `${state.pending}: already on the strongest model` }
   const reason = `escalate: ${state.pending}`
+  state.pending = undefined
+  const context = input.usage
+    ? input.usage.tokens.input + input.usage.tokens.cacheRead + input.usage.tokens.cacheWrite
+    : 0
+  if (state.live && input.point === "step" && context >= RESTART_TOKENS) {
+    state.restart = { tier: next, reason, step: input.step }
+    return { reason: `${reason}: restart-smart, compacting first` }
+  }
   state.tier = next
   state.escalations++
   state.lastSwitch = input.step
-  state.pending = undefined
   return { tier: next, reason }
 }
 
 /** The `experimental.model.select` handler. Any failure leaves the harness's model. */
-export function handler(options: RoutingOptions): NonNullable<Hooks["experimental.model.select"]> {
+export function handler(
+  options: RoutingOptions,
   // ponytail: per-process memory, one small record per session; a restarted process starts a
   // session's routing afresh at its next step, from the model it is on.
-  const sessions = new Map<string, State>()
+  sessions = new Map<string, State>(),
+): NonNullable<Hooks["experimental.model.select"]> {
   return async (input, output) => {
     try {
       const state = sessions.get(input.sessionID) ?? {
@@ -107,6 +142,7 @@ export function handler(options: RoutingOptions): NonNullable<Hooks["experimenta
         failures: [],
       }
       sessions.set(input.sessionID, state)
+      state.live = options.mode === "live" && input.routing.enabled
       const t0 = performance.now()
       const decision = decide(state, input, options.start)
       // The harness resolves the prompt's model at every step, so the routed model is restated
@@ -135,3 +171,15 @@ export function handler(options: RoutingOptions): NonNullable<Hooks["experimenta
     }
   }
 }
+
+/** Asks for a compaction while an escalation waits for one (restart-smart); shares `handler`'s sessions. */
+export function restartPoint(
+  sessions: Map<string, State>,
+): NonNullable<Hooks["experimental.session.compaction.point"]> {
+  return async (input, output) => {
+    const state = sessions.get(input.sessionID)
+    if (state?.live && state.restart) output.compact = true
+  }
+}
+
+export type RoutingState = State
