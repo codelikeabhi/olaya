@@ -107,7 +107,7 @@ it.instance(
         Effect.gen(function* () {
           const llm = yield* TestLLMServer
           for (let i = 0; i < 3; i++) yield* llm.push(reply().tool("read", { filePath: missing }).item())
-          yield* llm.push(reply().text("I'll look at the directory instead").stop().item())
+          yield* llm.push(reply().text("The file does not exist, so there is nothing to fix.").stop().item())
         }),
       )
       expect(bodies).toHaveLength(4)
@@ -162,6 +162,66 @@ it.instance(
       expect(JSON.stringify(after.messages)).toContain("times in a row") // the reminder is there
       expect(JSON.stringify(after.messages)).toContain("SYSTEM-MARKER-XYZ")
       expect((after.tools ?? []).map((t) => t.function?.name)).toContain("StructuredOutput")
+    }),
+  30_000,
+)
+
+describe("ending on an announced step", () => {
+  test("endings from the benchmark runs that announced a step and stopped", () => {
+    for (const text of [
+      "I'll need to read the current state of the file to proceed accurately. Let me check the file.",
+      "Next, I'll work on fixing the `reversed` method to properly reverse the list. Let me make that change now.",
+      "I'll try a different approach. Let's first read the current content of luhn.py.",
+      "I will proceed to run the tests to verify the implementation. Let me execute the tests using `python -m pytest -q`.",
+    ])
+      expect(LoopGuard.announcedAction(text)).toBe(true)
+  })
+
+  test("a sign-off, a question or a plain summary is left alone", () => {
+    for (const text of [
+      "These changes should fix the errors. Let me know if you need further adjustments.",
+      "The tests pass. Shall I also update the README?",
+      "Fixed the off-by-one in mean(); all 12 tests pass.",
+      "",
+    ])
+      expect(LoopGuard.announcedAction(text)).toBe(false)
+  })
+})
+
+it.instance(
+  "a run that ends on an announced step is asked to take it, once",
+  () =>
+    Effect.gen(function* () {
+      yield* project()
+      const { bodies, messages } = yield* run(
+        Effect.gen(function* () {
+          const llm = yield* TestLLMServer
+          yield* llm.push(reply().text("I need to see the code first. Let me check the file.").stop().item())
+          yield* llm.push(reply().text("Done: the fix is in and the tests pass.").stop().item())
+        }),
+      )
+      const sent = (bodies as { messages?: unknown[] }[]).filter((b) => !JSON.stringify(b).includes("Generate a title"))
+      expect(sent).toHaveLength(2)
+      expect(JSON.stringify(sent[1]!.messages)).toContain("you called no tool")
+      expect(messages.filter((m) => m.parts.some((p) => p.type === "text" && p.metadata?.action_nudge))).toHaveLength(1)
+    }),
+  30_000,
+)
+
+it.instance(
+  "a run that ends with a sign-off is not nudged",
+  () =>
+    Effect.gen(function* () {
+      yield* project()
+      const { bodies } = yield* run(
+        Effect.gen(function* () {
+          const llm = yield* TestLLMServer
+          yield* llm.push(reply().text("Fixed it. Let me know if you need anything else.").stop().item())
+        }),
+      )
+      expect(
+        (bodies as { messages?: unknown[] }[]).filter((b) => !JSON.stringify(b).includes("Generate a title")),
+      ).toHaveLength(1)
     }),
   30_000,
 )

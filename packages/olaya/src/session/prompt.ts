@@ -1330,26 +1330,28 @@ const layer = Layer.effect(
                 callID: orphan.callID,
               })
             }
+            const text = (lastAssistantMsg?.parts ?? [])
+              .filter((part): part is SessionV1.TextPart => part.type === "text")
+              .map((part) => part.text)
+              .join("\n")
             const exit = yield* plugin.trigger(
               "experimental.loop.exit",
-              {
-                sessionID,
-                agent: lastUser.agent,
-                step,
-                text: (lastAssistantMsg?.parts ?? [])
-                  .filter((part): part is SessionV1.TextPart => part.type === "text")
-                  .map((part) => part.text)
-                  .join("\n"),
-              },
+              { sessionID, agent: lastUser.agent, step, text },
               { continue: false } as { continue: boolean; prompt?: string },
             )
+            // ending on "Let me check the file." with no tool call: the step it announced never ran
+            const announced = !exit.continue && !truthy("OLAYA_DISABLE_ACTION_NUDGE") && LoopGuard.announcedAction(text)
+            if (announced) {
+              exit.continue = true
+              exit.prompt = LoopGuard.ACTION_NUDGE
+            }
             if (!exit.continue && truthy("OLAYA_EXPERIMENTAL_VERIFY_BEFORE_EXIT") && exitNudges === 0) {
               exit.continue = true
               exit.prompt = VERIFY_BEFORE_EXIT
             }
             if (exit.continue && exit.prompt && exitNudges < MAX_EXIT_NUDGES) {
               exitNudges++
-              yield* nudge(lastUser, exit.prompt, { loop_exit_nudge: true })
+              yield* nudge(lastUser, exit.prompt, announced ? { action_nudge: true } : { loop_exit_nudge: true })
               yield* Effect.logInfo("loop exit deferred", { "session.id": sessionID, nudges: exitNudges })
               continue
             }

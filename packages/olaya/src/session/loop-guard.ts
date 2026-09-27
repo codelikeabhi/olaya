@@ -52,4 +52,22 @@ export function loopNudge(msgs: SessionV1.WithParts[]) {
   return undefined
 }
 
+/**
+ * A run about to end on a sentence announcing the model's own next step ("Let me check the file."),
+ * with no tool call made. Half the failed runs of the local benchmarks ended this way (11 of 21,
+ * 2026-09-27); the work stopped because nothing asked for the next step.
+ */
+export function announcedAction(text: string) {
+  const trimmed = text.trim()
+  if (!trimmed || trimmed.endsWith("?")) return false // a question to the user is theirs to answer
+  const last = trimmed
+    .split(/(?<=[.!])\s+/)
+    .slice(-2)
+    .join(" ")
+  return /\b(?:let me(?! know)|let's|i'll|i will|i'm going to|i am going to|next,? i|now i)\b/i.test(last)
+}
+
+export const ACTION_NUDGE =
+  "You ended by saying what you would do next, but you called no tool, so nothing happened. If there is more to do, do it now with a tool call. If the task is complete, say so briefly."
+
 export * as LoopGuard from "./loop-guard"
