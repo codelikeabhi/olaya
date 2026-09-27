@@ -21,6 +21,7 @@ for a paired A/B at k = 5 on an agreed task set and budget, which this is not.
 import argparse
 import json
 import os
+import random
 import time
 
 from . import route
@@ -74,15 +75,76 @@ def protocol_failures(r):
     return sum(1 for tool, _ in r.get("tool_uses", []) if tool == "invalid")
 
 
-def report(pool="claude"):
-    base = os.path.join(os.path.dirname(route.RUNS), "variants")
+def run_dir(pool, arm, item):
+    return os.path.join(os.path.dirname(route.RUNS), "variants", f"routing-ab-{arm}", name(pool), item)
+
+
+def load(pool):
+    """arm -> item -> run record, and the items both arms ran."""
     runs = {arm: {} for arm in ARMS}
     for arm in ARMS:
-        d = os.path.join(base, f"routing-ab-{arm}", name(pool))
+        d = os.path.dirname(run_dir(pool, arm, "x"))
         for f in os.listdir(d) if os.path.isdir(d) else []:
             if os.path.exists(os.path.join(d, f, "0.json")):
                 runs[arm][f] = json.load(open(os.path.join(d, f, "0.json")))
-    both = sorted(i for i in runs["routed"] if i in runs["strongest"])
+    return runs, sorted(i for i in runs["routed"] if i in runs["strongest"])
+
+
+def uncached(pool, arm, item):
+    """(prompt tokens not read from a cache, all prompt tokens) over a run's steps: cache writes on
+    Anthropic, uncached input on OpenAI, which caches without a write price."""
+    path = os.path.join(run_dir(pool, arm, item), "0.events.jsonl")
+    fresh = total = 0
+    for e in (json.loads(l) for l in open(path) if l.startswith("{")) if os.path.exists(path) else ():
+        if e.get("type") == "step_finish":
+            tok = (e.get("part") or {}).get("tokens") or {}
+            cache = tok.get("cache") or {}
+            fresh += (tok.get("input") or 0) + (cache.get("write") or 0)
+            total += (tok.get("input") or 0) + (cache.get("write") or 0) + (cache.get("read") or 0)
+    return fresh, total
+
+
+def ratio_ucb(a, b, n=2000, rng=None):
+    """Point ratio sum(b)/sum(a) and its percentile-bootstrap 95% upper bound over pairs."""
+    rng = rng or random.Random(0)
+    boot = sorted(sum(b[j] for j in s) / max(1e-12, sum(a[j] for j in s))
+                  for s in ([rng.randrange(len(a)) for _ in a] for _ in range(n)))
+    return round(sum(b) / max(1e-12, sum(a)), 4), round(boot[int(0.975 * n) - 1], 4)
+
+
+def gate(pool="chatgpt"):
+    """G6's report, router/live-ab.json, from this pool's pairs. Its deviations from the design (k and
+    tiers) are written into it."""
+    runs, both = load(pool)
+    if not both:
+        raise SystemExit("no pairs yet")
+    cost_ratio, cost_ucb = ratio_ucb([cost(runs["strongest"][i]) for i in both], [cost(runs["routed"][i]) for i in both])
+    share = {a: [uncached(pool, a, i) for i in both] for a in ARMS}
+    share = {a: sum(f for f, _ in v) / max(1, sum(t for _, t in v)) for a, v in share.items()}
+    resolve = paired([float(runs["strongest"][i]["passed"]) for i in both], [float(runs["routed"][i]["passed"]) for i in both])
+    rep = {
+        "gate": "G6", "generated": time.strftime("%Y-%m-%d %H:%M"), "pool": pool, **{k: POOLS[pool][k] for k in ("cheap", "strong")},
+        "pairs": len(both), "k": 1,
+        "metrics": {"resolve_delta_lcb95": resolve["lcb95"], "cost_ratio_ucb95": cost_ucb,
+                    "protocol_failures": sum(protocol_failures(runs["routed"][i]) for i in both),
+                    "cache_write_share_ratio": round(share["routed"] / share["strongest"], 4) if share["strongest"] else None},
+        "detail": {"resolve_delta": resolve, "cost_ratio": cost_ratio, "uncached_prompt_share": {a: round(v, 4) for a, v in share.items()},
+                   "resolved": {a: round(sum(runs[a][i]["passed"] for i in both) / len(both), 4) for a in ARMS},
+                   "escalated_runs": sum(len(runs["routed"][i].get("steps_by_model") or {}) > 1 for i in both)},
+        "deviations": ["k = 1 run per arm and task, not the design's k = 5",
+                       {"chatgpt": "OpenAI tiers through the owner's ChatGPT sign-in, priced at OpenAI's list prices, not Claude tiers billed by Anthropic",
+                        "local": "local qwen3 tiers priced as Claude tiers", "claude": ""}[pool],
+                       "Track C Exercism tasks, not the agreed Harbor set"],
+    }
+    os.makedirs(os.path.join(REPORTS, "router"), exist_ok=True)
+    path = os.path.join(REPORTS, "router", "live-ab.json")
+    json.dump(rep, open(path, "w"), indent=2)
+    print(json.dumps({k: rep[k] for k in ("pairs", "metrics", "detail")}, indent=1))
+    print("->", path)
+
+
+def report(pool="claude"):
+    runs, both = load(pool)
     n = max(1, len(both))
     arm = lambda a: {"resolved": round(sum(runs[a][i]["passed"] for i in both) / n, 4),
                      "mean_cost": round(sum(cost(runs[a][i]) for i in both) / n, 4),
@@ -107,9 +169,12 @@ def main(argv=None):
     r = sub.add_parser("run"); r.add_argument("--binary", required=True); r.add_argument("--only", required=True)
     r.add_argument("--budget", type=float); r.add_argument("--pool", choices=POOLS, default="claude")
     p = sub.add_parser("report"); p.add_argument("--pool", choices=POOLS, default="claude")
+    g = sub.add_parser("gate"); g.add_argument("--pool", choices=POOLS, default="chatgpt")
     a = ap.parse_args(argv)
     if a.cmd == "run":
         run(a.binary, set(a.only.split(",")), a.budget, a.pool)
+    elif a.cmd == "gate":
+        gate(a.pool)
     else:
         report(a.pool)
 
