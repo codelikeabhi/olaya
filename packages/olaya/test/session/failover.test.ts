@@ -238,3 +238,57 @@ it.instance(
     }),
   60_000,
 )
+
+it.instance(
+  "with failover on and no fallbacks, a failure waiting can't fix stops the session as before and marks nothing",
+  () =>
+    Effect.gen(function* () {
+      yield* project(undefined, undefined, { failover: {} })
+      const { bodies, assistants } = yield* run(
+        Effect.gen(function* () {
+          const llm = yield* TestLLMServer
+          yield* llm.push(httpErrorItem(401, { error: { message: "invalid api key" } }))
+        }),
+      )
+      expect(bodies).toHaveLength(1)
+      expect(assistants.at(-1)!.error).toBeDefined()
+      expect(FailoverAvailability.get("test/test-model")).toBeUndefined() // the next run tries again
+    }),
+  30_000,
+)
+
+it.instance(
+  "a rejected history with no fallbacks stops instead of waiting forever",
+  () =>
+    Effect.gen(function* () {
+      yield* project(undefined, undefined, { failover: {} })
+      const rejected = { error: { message: "messages.1: unexpected tool_use_id found in tool_result blocks" } }
+      const { assistants } = yield* run(
+        Effect.gen(function* () {
+          const llm = yield* TestLLMServer
+          for (let i = 0; i < 3; i++) yield* llm.push(httpErrorItem(400, rejected))
+        }),
+      )
+      expect(assistants.at(-1)!.error).toBeDefined()
+      expect(FailoverAvailability.get("test/test-model")).toBeUndefined()
+    }),
+  30_000,
+)
+
+it.instance(
+  "a disabled preferred model is tried once in a new run, and cleared when it answers",
+  () =>
+    Effect.gen(function* () {
+      yield* project(undefined, undefined, chain)
+      FailoverAvailability.mark("test/test-model", { action: "disable", reason: "credentials rejected" })
+      const { bodies } = yield* run(
+        Effect.gen(function* () {
+          const llm = yield* TestLLMServer
+          yield* llm.pushMatch(on("test-model"), textItem("the key works again"))
+        }),
+      )
+      expect((bodies as unknown as Body[]).map((b) => b.model)).toEqual(["test-model"])
+      expect(FailoverAvailability.get("test/test-model")).toBeUndefined()
+    }),
+  30_000,
+)

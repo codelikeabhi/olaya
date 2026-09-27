@@ -24,20 +24,23 @@ const DISABLED_MS = 6 * 3_600_000
 // a lock if that ever matters.
 let file: string | undefined
 const where = () => (file ??= path.join(Global.Path.data, "failover", "availability.json"))
-/** The file's mtime when last read or written by this process; -1 before the first read. */
-let seen = -1
+/** The file's identity when last read or written by this process; undefined before the first read. */
+let seen: string | undefined
 const entries = new Map<string, Entry>()
 
-const mtime = () => {
+// Every write is a rename, so a new inode: with size and mtime, a change shows even within one
+// tick of a coarse filesystem clock.
+const identity = (file: string) => {
   try {
-    return fs.statSync(where()).mtimeMs
+    const stat = fs.statSync(file)
+    return `${stat.ino}:${stat.size}:${stat.mtimeMs}`
   } catch {
-    return 0
+    return "absent"
   }
 }
 
 function load() {
-  const now = mtime()
+  const now = identity(where())
   if (now === seen) return
   seen = now
   const raw = (() => {
@@ -56,8 +59,10 @@ function save() {
     fs.mkdirSync(path.dirname(where()), { recursive: true })
     const tmp = `${where()}.${process.pid}.tmp`
     fs.writeFileSync(tmp, JSON.stringify(Object.fromEntries(entries), null, 1))
+    // taken before the rename, so a write another process makes right after is still seen as new
+    const written = identity(tmp)
     fs.renameSync(tmp, where())
-    seen = mtime()
+    seen = written
   } catch {
     // a read-only data directory leaves availability per process, as before it was saved
   }
@@ -94,10 +99,17 @@ export function get(model: string) {
   return entries.get(model)
 }
 
-/** A success: the model's backoff starts over. */
-export function recovered(model: string) {
+/**
+ * A success: the model's backoff starts over. A cooldown still in the future was written by
+ * another process while this request was in flight (this one never picks a cooling model), so it
+ * stays; a disabled model that answered has had its key fixed.
+ */
+export function recovered(model: string, now = Date.now()) {
   load()
-  if (entries.delete(model)) save()
+  const entry = entries.get(model)
+  if (!entry || (entry.state === "cooling" && entry.until > now)) return
+  entries.delete(model)
+  save()
 }
 
 export function clear() {
@@ -108,7 +120,7 @@ export function clear() {
 /** Point the store at another file (tests), dropping what is in memory. */
 export function useFile(next: string) {
   file = next
-  seen = -1
+  seen = undefined
   entries.clear()
 }
 

@@ -24,7 +24,11 @@ describe("availability store", () => {
     FailoverAvailability.useFile(file) // a new process reading the same file
     expect(FailoverAvailability.available("anthropic/claude-opus-5-5")).toBe(false)
     expect(FailoverAvailability.get("anthropic/claude-opus-5-5")?.reason).toBe("usage limit reached")
+    // a success while the reset is still ahead came from a request already in flight: the mark stays
     FailoverAvailability.recovered("anthropic/claude-opus-5-5")
+    expect(FailoverAvailability.get("anthropic/claude-opus-5-5")).toBeDefined()
+    // after the reset, a success clears it
+    FailoverAvailability.recovered("anthropic/claude-opus-5-5", Date.now() + 3_600_001)
     FailoverAvailability.useFile(file)
     expect(FailoverAvailability.available("anthropic/claude-opus-5-5")).toBe(true)
   })
@@ -51,7 +55,7 @@ describe("availability store", () => {
     expect(FailoverAvailability.mark("m", verdict, now).until).toBe(now + 60_000)
     expect(FailoverAvailability.mark("m", verdict, now).until).toBe(now + 5 * 60_000)
     expect(FailoverAvailability.mark("m", verdict, now).until).toBe(now + 15 * 60_000)
-    FailoverAvailability.recovered("m")
+    FailoverAvailability.recovered("m", now + 15 * 60_000) // it answers once its cooldown is over
     expect(FailoverAvailability.mark("m", verdict, now).until).toBe(now + 60_000)
   })
 

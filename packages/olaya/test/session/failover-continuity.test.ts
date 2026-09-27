@@ -8,6 +8,11 @@ import { FailoverAvailability } from "../../src/failover/availability"
 import { ProviderTransform } from "../../src/provider/transform"
 import { httpError, reply, TestLLMServer } from "../lib/llm-server"
 import { it, model, project, run } from "../lib/session-loop"
+import { SessionPrompt } from "../../src/session/prompt"
+import { Session } from "../../src/session/session"
+import { SessionV1 as V1 } from "@olaya/core/v1/session"
+import { ProviderV2 } from "@olaya/core/provider"
+import { ModelV2 } from "@olaya/core/model"
 
 afterEach(() => FailoverAvailability.clear())
 
@@ -207,6 +212,98 @@ it.instance(
       expect(FailoverAvailability.get("test/summarizer")?.state).toBe("disabled")
       expect(FailoverAvailability.get("test/test-model")).toBeUndefined() // the session's model was never blamed
       expect(assistants.at(-1)!.finish).toBe("stop")
+    }),
+  30_000,
+)
+
+it.instance(
+  "when compaction's shared-prefix model fails, compaction moves to the session's model instead of retrying it",
+  () =>
+    Effect.gen(function* () {
+      // routing runs the first step on cheap-model; its window overflows, and compaction shares
+      // that step's prefix, so it goes to cheap-model too, which is out of quota
+      yield* project(
+        [
+          "export default async () => ({",
+          '  "experimental.model.select": async (input, output) => {',
+          '    if (input.point === "start") output.model = { providerID: "test", modelID: "cheap-model" }',
+          "  },",
+          "})",
+          "",
+        ].join("\n"),
+        undefined,
+        { failover: {} },
+        {
+          "test-model": { ...model("test-model"), limit: { context: 3000, output: 500 } },
+          "cheap-model": { ...model("cheap-model"), limit: { context: 3000, output: 500 } },
+        },
+      )
+      const { bodies, assistants } = yield* run(
+        Effect.gen(function* () {
+          const llm = yield* TestLLMServer
+          yield* llm.pushMatch(
+            on("cheap-model"),
+            reply()
+              .tool("todowrite", { todos: [{ content: "x", status: "pending", priority: "high", id: "1" }] })
+              .usage({ input: 5000, output: 10 })
+              .item(),
+          )
+          for (let i = 0; i < 6; i++) yield* llm.pushMatch(on("cheap-model"), httpError(429, quota))
+          yield* llm.pushMatch(on("test-model"), reply().text("Summary: todo noted.").stop().item())
+          yield* llm.pushMatch(on("test-model"), reply().text("done").stop().item())
+        }),
+      )
+      const models = (bodies as unknown as Body[])
+        .filter((b) => !JSON.stringify(b).includes("Generate a title"))
+        .map((b) => b.model)
+      expect(models).toEqual(["cheap-model", "cheap-model", "test-model", "test-model"])
+      expect(FailoverAvailability.get("test/cheap-model")?.state).toBe("disabled")
+      expect(assistants.at(-1)!.finish).toBe("stop")
+    }),
+  30_000,
+)
+
+it.instance(
+  "after an automatic compaction the run keeps its structured output and system prompt",
+  () =>
+    Effect.gen(function* () {
+      yield* project(
+        undefined,
+        undefined,
+        {},
+        { "test-model": { ...model("test-model"), limit: { context: 3000, output: 500 } } },
+      )
+      const llm = yield* TestLLMServer
+      const prompt = yield* SessionPrompt.Service
+      const sessions = yield* Session.Service
+      const chat = yield* sessions.create({
+        title: "Format",
+        permission: [{ permission: "*", pattern: "*", action: "allow" }],
+      })
+      yield* prompt.prompt({
+        sessionID: chat.id,
+        agent: "build",
+        model: { providerID: ProviderV2.ID.make("test"), modelID: ModelV2.ID.make("test-model") },
+        noReply: true,
+        system: "SYSTEM-MARKER-XYZ",
+        format: new V1.OutputFormatJsonSchema({ type: "json_schema", schema: { type: "object" }, retryCount: 2 }),
+        parts: [{ type: "text", text: "fix the failing test" }],
+      })
+      yield* llm.push(
+        reply()
+          .tool("todowrite", { todos: [{ content: "x", status: "pending", priority: "high", id: "1" }] })
+          .usage({ input: 5000, output: 10 })
+          .item(),
+      )
+      yield* llm.push(reply().text("Summary: todo noted.").stop().item())
+      yield* llm.push(reply().tool("StructuredOutput", {}).item())
+      yield* prompt.loop({ sessionID: chat.id })
+      const bodies = (
+        (yield* llm.inputs) as { messages?: unknown[]; tools?: { function?: { name?: string } }[] }[]
+      ).filter((b) => !JSON.stringify(b).includes("Generate a title"))
+      const after = bodies[2]! // the step after the summary
+      expect(JSON.stringify(after.messages)).toContain("SYSTEM-MARKER-XYZ")
+      expect((after.tools ?? []).map((t) => t.function?.name)).toContain("StructuredOutput")
     }),
   30_000,
 )

@@ -16,6 +16,7 @@ import { Provider } from "@/provider/provider"
 import { type Tool as AITool, tool, jsonSchema } from "ai"
 import type { JSONSchema7 } from "@ai-sdk/provider"
 import { FailoverAvailability } from "@/failover/availability"
+import { FailoverClassify } from "@/failover/classify"
 import { SessionCompaction } from "./compaction"
 import { SystemPrompt } from "./system"
 import { Instruction } from "./instruction"
@@ -1197,8 +1198,7 @@ const layer = Layer.effect(
             role: "user",
             sessionID,
             time: { created: Date.now() },
-            agent: lastUser.agent,
-            model: lastUser.model,
+            ...MessageV2.settings(lastUser),
           })
           yield* sessions.updatePart({
             id: PartID.ascending(),
@@ -1389,10 +1389,17 @@ const layer = Layer.effect(
               prefix = undefined
             }
           }
-          if (chain.length && !failedOver && !FailoverAvailability.available(chain[0]!)) {
+          // A disabled preferred model is still tried once per run: the user may have fixed the key.
+          if (
+            chain.length &&
+            !failedOver &&
+            FailoverAvailability.get(chain[0]!)?.state === "cooling" &&
+            !FailoverAvailability.available(chain[0]!)
+          ) {
             const next = yield* nextModel(chain, FailoverAvailability.get(chain[0]!)?.reason ?? "unavailable")
             // the preferred model back is not a failover: it goes through model selection as usual
             failedOver = next === chain[0] ? undefined : next
+            prefix = undefined
             if (!next) {
               yield* events.publish(Session.Event.Error, {
                 sessionID,
@@ -1441,9 +1448,16 @@ const layer = Layer.effect(
               model,
             })
             if (typeof result === "object") {
+              if (chain.length === 1 && result.model === chain[0] && !FailoverClassify.clearsWithTime(result.failure)) {
+                yield* events.publish(Session.Event.Error, {
+                  sessionID,
+                  error: new NamedError.Unknown({ message: `Compaction failed: ${result.failure.reason}` }).toObject(),
+                })
+                break
+              }
               const entry = FailoverAvailability.mark(result.model, result.failure)
               // the compaction agent's own model failed: compact again, on the session's model
-              if (result.model !== `${model.providerID}/${model.id}`) continue
+              if (result.own) continue
               // the session's model failed: compact again on the next one
               const next = yield* nextModel(chain, entry.reason)
               failedOver = next === chain[0] ? undefined : next
@@ -1479,7 +1493,13 @@ const layer = Layer.effect(
             lastFinished.summary !== true &&
             (yield* compaction.isOverflow({ tokens: counted, model }))
           ) {
-            yield* compaction.create({ sessionID, agent: lastUser.agent, model: lastUser.model, auto: true })
+            yield* compaction.create({
+              sessionID,
+              agent: lastUser.agent,
+              model: lastUser.model,
+              user: lastUser,
+              auto: true,
+            })
             continue
           }
 
@@ -1635,6 +1655,14 @@ const layer = Layer.effect(
 
             if (result === "failover" && handle.failure) {
               const failed = `${model.providerID}/${model.id}`
+              // With no other model to move to, only what clears with time is waited out. A bad key or
+              // a rejected history would fail the same way again: stop with the provider's own error,
+              // and mark nothing on disk that would block the next run.
+              if (chain.length === 1 && failed === chain[0] && !FailoverClassify.clearsWithTime(handle.failure)) {
+                if (handle.message.error)
+                  yield* events.publish(Session.Event.Error, { sessionID, error: handle.message.error })
+                return "break" as const
+              }
               const entry = FailoverAvailability.mark(failed, handle.failure)
               // Tool calls that already ran are real: keep the step, and the next model continues from
               // their results rather than running them again.
@@ -1677,6 +1705,7 @@ const layer = Layer.effect(
                 sessionID,
                 agent: lastUser.agent,
                 model: lastUser.model,
+                user: lastUser,
                 auto: true,
                 overflow: !handle.message.finish,
               })

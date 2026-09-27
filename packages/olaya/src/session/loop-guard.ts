@@ -19,9 +19,17 @@ export function loopNudge(msgs: SessionV1.WithParts[]) {
   const tools = msgs
     .slice(since + 1)
     .flatMap((m) => m.parts.filter((part): part is SessionV1.ToolPart => part.type === "tool"))
+    // calls a provider failure cut off are the harness's leftovers, not the model repeating itself
+    .filter((part) => !(part.state.status === "error" && part.state.metadata?.interrupted === true))
   const last = tools.slice(-REPEATS)
   if (last.length < REPEATS) return undefined
-  const call = (part: SessionV1.ToolPart) => part.tool + "\u0000" + JSON.stringify(part.state.input ?? null)
+  // the same call with the same result: polling a job or a log until it changes is not a loop
+  const call = (part: SessionV1.ToolPart) =>
+    [
+      part.tool,
+      JSON.stringify(part.state.input ?? null),
+      part.state.status === "completed" ? part.state.output : part.state.status === "error" ? part.state.error : "",
+    ].join("\u0000")
   const error = (part: SessionV1.ToolPart) =>
     part.state.status === "error" ? part.tool + "\u0000" + part.state.error.split("\n")[0] : undefined
   const tool = last[0]!.tool

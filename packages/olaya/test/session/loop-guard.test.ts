@@ -8,11 +8,16 @@ import type { SessionV1 } from "@olaya/core/v1/session"
 import { LoopGuard } from "../../src/session/loop-guard"
 import { reply, TestLLMServer } from "../lib/llm-server"
 import { it, project, run } from "../lib/session-loop"
+import { SessionPrompt } from "../../src/session/prompt"
+import { Session } from "../../src/session/session"
+import { SessionV1 as V1 } from "@olaya/core/v1/session"
+import { ProviderV2 } from "@olaya/core/provider"
+import { ModelV2 } from "@olaya/core/model"
 
-const tool = (name: string, input: unknown, error?: string) => ({
+const tool = (name: string, input: unknown, error?: string, output = "ok") => ({
   type: "tool",
   tool: name,
-  state: error ? { status: "error", input, error } : { status: "completed", input, output: "ok" },
+  state: error ? { status: "error", input, error } : { status: "completed", input, output },
 })
 const history = (...parts: unknown[]) =>
   [
@@ -44,6 +49,21 @@ describe("loop guard", () => {
     ).toBeUndefined()
   })
 
+  test("polling until the output changes is not a loop", () => {
+    const poll = (output: string) => tool("bash", { command: "gh run view 42" }, undefined, output)
+    expect(LoopGuard.loopNudge(history(poll("queued"), poll("in_progress"), poll("in_progress")))).toBeUndefined()
+    expect(LoopGuard.loopNudge(history(poll("queued"), poll("queued"), poll("queued")))).toBeDefined()
+  })
+
+  test("calls a provider failure cut off are not counted as the model repeating itself", () => {
+    const cut = {
+      type: "tool",
+      tool: "bash",
+      state: { status: "error", input: {}, error: "Tool execution aborted", metadata: { interrupted: true } },
+    }
+    expect(LoopGuard.loopNudge(history(cut, cut, cut))).toBeUndefined()
+  })
+
   test("calls before the latest user message don't count, so a reminder starts the count again", () => {
     const read = tool("read", { filePath: "/a.py" })
     const msgs = history(read, read, read)
@@ -73,6 +93,50 @@ it.instance(
         m.parts.some((part) => part.type === "text" && part.metadata?.loop_guard_nudge),
       )
       expect(reminders).toHaveLength(1)
+    }),
+  30_000,
+)
+
+it.instance(
+  "the reminder keeps the run's system prompt and structured output",
+  () =>
+    Effect.gen(function* () {
+      const { directory } = yield* project()
+      const llm = yield* TestLLMServer
+      const prompt = yield* SessionPrompt.Service
+      const sessions = yield* Session.Service
+      const chat = yield* sessions.create({
+        title: "Loop",
+        permission: [{ permission: "*", pattern: "*", action: "allow" }],
+      })
+      yield* prompt.prompt({
+        sessionID: chat.id,
+        agent: "build",
+        model: { providerID: ProviderV2.ID.make("test"), modelID: ModelV2.ID.make("test-model") },
+        noReply: true,
+        system: "SYSTEM-MARKER-XYZ",
+        format: new V1.OutputFormatJsonSchema({
+          type: "json_schema",
+          schema: { type: "object", properties: { a: { type: "string" } } },
+          retryCount: 2,
+        }),
+        parts: [{ type: "text", text: "fix the failing test" }],
+      })
+      for (let i = 0; i < 3; i++)
+        yield* llm.push(
+          reply()
+            .tool("read", { filePath: `${directory}/missing.py` })
+            .item(),
+        )
+      yield* llm.push(reply().tool("StructuredOutput", { a: "done" }).item())
+      yield* prompt.loop({ sessionID: chat.id })
+      const bodies = (
+        (yield* llm.inputs) as { messages?: unknown[]; tools?: { function?: { name?: string } }[] }[]
+      ).filter((b) => !JSON.stringify(b).includes("Generate a title"))
+      const after = bodies[3]!
+      expect(JSON.stringify(after.messages)).toContain("times in a row") // the reminder is there
+      expect(JSON.stringify(after.messages)).toContain("SYSTEM-MARKER-XYZ")
+      expect((after.tools ?? []).map((t) => t.function?.name)).toContain("StructuredOutput")
     }),
   30_000,
 )

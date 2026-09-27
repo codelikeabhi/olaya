@@ -583,6 +583,21 @@ export const filterCompactedEffect = Effect.fnUntraced(function* (sessionID: Ses
 // ([compaction-user, summary, ...retained tail..., continue-user]), so array
 // position is not chronological. IDs are only a deterministic tie-breaker
 // because imported messages do not necessarily have monotonic IDs.
+/**
+ * What a harness-written user message (a reminder, a compaction, "continue") carries over from the
+ * user's own, since each step reads the run's settings from the latest user message. A stored
+ * format is plain data; the message schema wants it decoded.
+ */
+export function settings(user: SessionV1.User) {
+  return {
+    agent: user.agent,
+    model: user.model,
+    format: user.format && Schema.decodeUnknownSync(SessionV1.Format)({ ...user.format }),
+    system: user.system,
+    tools: user.tools,
+  }
+}
+
 export function latest(msgs: WithParts[]) {
   let user: User | undefined
   let assistant: Assistant | undefined

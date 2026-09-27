@@ -225,6 +225,8 @@ export interface Interface {
     sessionID: SessionID
     agent: string
     model: { providerID: ProviderV2.ID; modelID: ModelV2.ID }
+    /** The user message whose other settings (format, system, tools) the run keeps past the compaction. */
+    user?: SessionV1.User
     auto: boolean
     overflow?: boolean
   }) => Effect.Effect<void>
@@ -234,8 +236,11 @@ export interface Interface {
  * The request shape of the session's latest step. When given, the summary request repeats its
  * system prompt and tool definitions byte for byte, so the provider's prompt cache serves them.
  */
-/** The summary request's provider failed: which model (provider/model), and how. */
-export type Failed = { model: string; failure: FailoverClassify.Verdict }
+/**
+ * The summary request's provider failed: which model (provider/model), how, and whether it was the
+ * compaction agent's own model rather than the session's.
+ */
+export type Failed = { model: string; failure: FailoverClassify.Verdict; own: boolean }
 
 export type Prefix = Pick<LLM.StreamInput, "user" | "agent" | "permission" | "system" | "tools" | "model">
 
@@ -419,7 +424,13 @@ const layer = Layer.effect(
           ? agent.model
           : undefined
       // A compaction model of its own has a cold cache anyway, so the shared prefix would only add tokens.
-      const prefix = own ? undefined : input.prefix
+      // Nor is the prefix shared when its model is cooling after a failure.
+      const prefix =
+        own || !input.prefix
+          ? undefined
+          : FailoverAvailability.available(`${input.prefix.model.providerID}/${input.prefix.model.id}`)
+            ? input.prefix
+            : undefined
       const model = own
         ? yield* provider.getModel(own.providerID, own.modelID).pipe(Effect.orDie)
         : (prefix?.model ??
@@ -564,7 +575,11 @@ const layer = Layer.effect(
 
       // the summary request's provider failed: the loop moves to the next model and compacts there
       if (result === "failover" && processor.failure)
-        return { model: `${model.providerID}/${model.id}`, failure: processor.failure } satisfies Failed
+        return {
+          model: `${model.providerID}/${model.id}`,
+          failure: processor.failure,
+          own: Boolean(own),
+        } satisfies Failed
 
       if (result === "compact") {
         processor.message.error = new SessionV1.ContextOverflowError({
@@ -640,8 +655,7 @@ const layer = Layer.effect(
               role: "user",
               sessionID: input.sessionID,
               time: { created: Date.now() },
-              agent: userMessage.agent,
-              model: userMessage.model,
+              ...MessageV2.settings(userMessage),
             })
             const text =
               (input.overflow
@@ -679,16 +693,18 @@ const layer = Layer.effect(
       sessionID: SessionID
       agent: string
       model: { providerID: ProviderV2.ID; modelID: ModelV2.ID }
+      user?: SessionV1.User
       auto: boolean
       overflow?: boolean
     }) {
       const msg = yield* session.updateMessage({
         id: MessageID.ascending(),
         role: "user",
-        model: input.model,
         sessionID: input.sessionID,
-        agent: input.agent,
         time: { created: Date.now() },
+        ...(input.user && MessageV2.settings(input.user)),
+        agent: input.agent,
+        model: input.model,
       })
       yield* session.updatePart({
         id: PartID.ascending(),

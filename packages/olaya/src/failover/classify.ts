@@ -38,6 +38,13 @@ export type Failure = {
 
 export type Verdict = { action: Action; reason: string; wait?: number; until?: number; retries?: number }
 
+/** The reason given to a failure no rule recognises. */
+export const UNRECOGNISED = "unrecognised failure"
+
+/** Whether waiting and asking the same model again can succeed: not with a bad key, a rejected history or a failure nobody recognised. */
+export const clearsWithTime = (verdict: Verdict) =>
+  verdict.action !== "disable" && verdict.action !== "repair" && verdict.reason !== UNRECOGNISED
+
 /** A throttle longer than this is not waited out: the model is skipped until it ends. */
 export const MAX_WAIT_MS = 60_000
 
@@ -145,7 +152,7 @@ export function classify(failure: Failure, now = Date.now()): Verdict {
   if (failure.kind === "timeout" || failure.kind === "network" || status === 408)
     return { action: "switch", retries: 2, reason: "network or timeout" }
   if (status === 400 || status === 422) return { action: "stop", reason: `request rejected (${status})` }
-  return { action: "switch", retries: 2, reason: "unrecognised failure" }
+  return { action: "switch", retries: 2, reason: UNRECOGNISED }
 }
 
 /** Providers grouped by who defines their error shapes. */
