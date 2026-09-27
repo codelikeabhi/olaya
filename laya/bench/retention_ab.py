@@ -136,6 +136,70 @@ def report(model):
     print("->", path)
 
 
+def cache_hit(model, arm, item):
+    """(prompt tokens read from a cache, all prompt tokens) over a run's steps."""
+    path = os.path.join(os.path.dirname(route.RUNS), "variants", f"retention-ab-{arm}", model, item, "0.events.jsonl")
+    hit = total = 0
+    for e in (json.loads(l) for l in open(path) if l.startswith("{")) if os.path.exists(path) else ():
+        if e.get("type") == "step_finish":
+            tok = (e.get("part") or {}).get("tokens") or {}
+            cache = tok.get("cache") or {}
+            hit += cache.get("read") or 0
+            total += (tok.get("input") or 0) + (cache.get("read") or 0) + (cache.get("write") or 0)
+    return hit, total
+
+
+def gate(model):
+    """G9's report, retention/live-ab.json, from this model's pairs, with its deviations written in."""
+    from .routing_ab import ratio_ucb
+
+    items = load_items()
+    runs = {arm: {} for arm in ARMS}
+    for arm in ARMS:
+        for it in items:
+            path = os.path.join(os.path.dirname(route.RUNS), "variants", f"retention-ab-{arm}", model, it["id"], "0.json")
+            if os.path.exists(path):
+                runs[arm][it["id"]] = json.load(open(path))
+    both = [i for i in runs["compaction"] if i in runs["retention"]]
+    if not both:
+        raise SystemExit("no pairs yet")
+    cost = lambda r: r["list_cost"] if "list_cost" in r else cachesim.bill([cachesim.Call(**c) for c in r["calls"]]).total
+    per = lambda arm, f: [f(runs[arm][i]) for i in both]
+    ratio, ucb = ratio_ucb(per("compaction", cost), per("retention", cost))
+    prompt = lambda r: sum(c["prompt"] for c in r["calls"])
+    mean = lambda xs: sum(xs) / len(xs)
+    hits = {arm: [cache_hit(model, arm, i) for i in both] for arm in ARMS}
+    hit = {arm: sum(h for h, _ in v) / max(1, sum(t for _, t in v)) for arm, v in hits.items()}
+    reacq = {arm: mean(per(arm, reacquisitions)) for arm in ARMS}
+    resolve = paired(per("compaction", lambda r: float(r["passed"])), per("retention", lambda r: float(r["passed"])))
+    rep = {
+        "gate": "G9", "generated": time.strftime("%Y-%m-%d %H:%M"), "model": model, "pairs": len(both), "k": 1,
+        "declared_window": LIMIT["limit"], "compaction_config": COMPACTION["compaction"],
+        "metrics": {
+            "resolve_delta_lcb95": resolve["lcb95"],
+            "input_token_reduction": round(1 - sum(per("retention", prompt)) / max(1, sum(per("compaction", prompt))), 4),
+            "cost_reduction": round(1 - ratio, 4),
+            "cost_reduction_lcb95": round(1 - ucb, 4),
+            "turns_increase": round(mean(per("retention", lambda r: len(r["calls"]))) / max(1e-9, mean(per("compaction", lambda r: len(r["calls"])))) - 1, 4),
+            "reacquisition_increase": round(reacq["retention"] / reacq["compaction"] - 1, 4) if reacq["compaction"] else round(reacq["retention"], 4),
+            "cache_hit_ratio_delta": round(hit["retention"] - hit["compaction"], 4),
+            # none of these tasks carries injected content, so nothing here can be promoted; the
+            # retention tests (provenance pinning) are where that is checked
+            "injected_promotions": None,
+        },
+        "detail": {"resolve_delta": resolve, "resolved": {arm: round(mean(per(arm, lambda r: float(r["passed"]))), 4) for arm in ARMS},
+                   "compactions": {arm: round(mean(per(arm, lambda r: r.get("compactions", 0))), 2) for arm in ARMS},
+                   "cache_hit": {arm: round(v, 4) for arm, v in hit.items()}, "reacquisitions": {arm: round(v, 2) for arm, v in reacq.items()}},
+        "deviations": ["k = 1 run per arm and task", "window forced small so compaction happens every few steps",
+                       "Track C Exercism tasks, not long Harbor tasks", "injected_promotions not measurable here (no injected content)"],
+    }
+    os.makedirs(os.path.join(REPORTS, "retention"), exist_ok=True)
+    path = os.path.join(REPORTS, "retention", "live-ab.json")
+    json.dump(rep, open(path, "w"), indent=2)
+    print(json.dumps({k: rep[k] for k in ("pairs", "metrics", "detail")}, indent=1))
+    print("->", path)
+
+
 def self_test():
     p = paired([0, 0, 1, 1], [1, 1, 1, 1])
     assert p["delta"] == 0.5 and p["lcb95"] <= 0.5 <= p["ucb95"]
@@ -153,12 +217,15 @@ def main(argv=None):
     r.add_argument("--cloud", help="a provider's model, e.g. anthropic/claude-haiku-4-5 (key from the harness secrets file)")
     r.add_argument("--only", help="comma-separated item ids"); r.add_argument("--budget", type=float, help="stop at this spend (USD)")
     p = sub.add_parser("report"); p.add_argument("--model", default="qwen3-8b-16k")
+    g = sub.add_parser("gate"); g.add_argument("--model", required=True)
     sub.add_parser("demo")
     a = ap.parse_args(argv)
     if a.cmd == "run":
         run(a.model, a.binary, a.solvable, a.cloud, set(a.only.split(",")) if a.only else None, a.budget)
     elif a.cmd == "report":
         report(a.model)
+    elif a.cmd == "gate":
+        gate(a.model)
     else:
         print("retention A/B self-test", "passed" if self_test() else "FAILED")
 
