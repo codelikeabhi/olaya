@@ -12,6 +12,13 @@ We want to make it easy for you to contribute to Olaya. Here are the most common
 
 However, any UI or core product feature must go through a design review with the core team before implementation.
 
+## Branches and releases
+
+- `develop` is the default branch. Branch from it (a short name, see `AGENTS.md`) and open your PR against it. Tests and typecheck must pass.
+- `main` holds releases only. It changes through a PR from `develop`, and each merge is tagged `vX.Y.Z`. The tag builds every platform into a draft GitHub release, which a maintainer reviews and publishes.
+- An urgent fix to a release branches from `main`, goes back to `main` by PR, and `main` is then merged into `develop`.
+- Changes from upstream OpenCode arrive through their own branch and a PR into `develop`.
+
 ## Olaya-specific contributions
 
 - **OlayaBench items** (`laya/bench/items/`): task-conditioned groups, meaning the same action

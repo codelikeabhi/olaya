@@ -10,7 +10,7 @@
     "url": "git+https://github.com/codelikeabhi/olaya.git",
     "directory": "packages/http-recorder"
   },
-  "homepage": "https://github.com/codelikeabhi/olaya/tree/dev/packages/http-recorder",
+  "homepage": "https://github.com/codelikeabhi/olaya/tree/develop/packages/http-recorder",
   "bugs": "https://github.com/codelikeabhi/olaya/issues",
   "keywords": [
     "effect",
