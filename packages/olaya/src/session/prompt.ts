@@ -1438,8 +1438,10 @@ const layer = Layer.effect(
               model,
             })
             if (typeof result === "object") {
-              // the summary request's provider failed: compact again on the next model
-              const entry = FailoverAvailability.mark(`${model.providerID}/${model.id}`, result)
+              const entry = FailoverAvailability.mark(result.model, result.failure)
+              // the compaction agent's own model failed: compact again, on the session's model
+              if (result.model !== `${model.providerID}/${model.id}`) continue
+              // the session's model failed: compact again on the next one
               const next = yield* nextModel(chain, entry.reason)
               failedOver = next === chain[0] ? undefined : next
               prefix = undefined

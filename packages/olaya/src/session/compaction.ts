@@ -11,6 +11,7 @@ import { Agent } from "@/agent/agent"
 import { Plugin } from "@/plugin"
 import type { LLM } from "./llm"
 import type { FailoverClassify } from "@/failover/classify"
+import { FailoverAvailability } from "@/failover/availability"
 import type { RetentionItem } from "@olaya/plugin"
 import { Config } from "@/config/config"
 import { NotFoundError } from "@/storage/storage"
@@ -219,7 +220,7 @@ export interface Interface {
     prefix?: Prefix
     /** The model the session is on now, used when no prefix is shared (after a failover, not the failed one). */
     model?: Provider.Model
-  }) => Effect.Effect<"continue" | "stop" | FailoverClassify.Verdict>
+  }) => Effect.Effect<"continue" | "stop" | Failed>
   readonly create: (input: {
     sessionID: SessionID
     agent: string
@@ -233,6 +234,9 @@ export interface Interface {
  * The request shape of the session's latest step. When given, the summary request repeats its
  * system prompt and tool definitions byte for byte, so the provider's prompt cache serves them.
  */
+/** The summary request's provider failed: which model (provider/model), and how. */
+export type Failed = { model: string; failure: FailoverClassify.Verdict }
+
 export type Prefix = Pick<LLM.StreamInput, "user" | "agent" | "permission" | "system" | "tools" | "model">
 
 export class Service extends Context.Service<Service, Interface>()("@olaya/SessionCompaction") {}
@@ -409,10 +413,15 @@ const layer = Layer.effect(
       }
 
       const agent = yield* agents.get("compaction")
+      // A compaction model of its own gives way to the session's while it cools after a failure.
+      const own =
+        agent.model && FailoverAvailability.available(`${agent.model.providerID}/${agent.model.modelID}`)
+          ? agent.model
+          : undefined
       // A compaction model of its own has a cold cache anyway, so the shared prefix would only add tokens.
-      const prefix = agent.model ? undefined : input.prefix
-      const model = agent.model
-        ? yield* provider.getModel(agent.model.providerID, agent.model.modelID).pipe(Effect.orDie)
+      const prefix = own ? undefined : input.prefix
+      const model = own
+        ? yield* provider.getModel(own.providerID, own.modelID).pipe(Effect.orDie)
         : (prefix?.model ??
           input.model ??
           (yield* provider.getModel(userMessage.model.providerID, userMessage.model.modelID).pipe(Effect.orDie)))
@@ -554,7 +563,8 @@ const layer = Layer.effect(
           : first
 
       // the summary request's provider failed: the loop moves to the next model and compacts there
-      if (result === "failover" && processor.failure) return processor.failure
+      if (result === "failover" && processor.failure)
+        return { model: `${model.providerID}/${model.id}`, failure: processor.failure } satisfies Failed
 
       if (result === "compact") {
         processor.message.error = new SessionV1.ContextOverflowError({

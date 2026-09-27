@@ -167,3 +167,46 @@ it.instance(
     }),
   30_000,
 )
+
+it.instance(
+  "when the compaction agent's own model fails, compaction runs on the session's model, which stays",
+  () =>
+    Effect.gen(function* () {
+      // test-model's usable window is 2,500 tokens; the first step used 5,000
+      yield* project(
+        undefined,
+        undefined,
+        { failover: { models: ["test/cheap-model"] }, agent: { compaction: { model: "test/summarizer" } } },
+        {
+          "test-model": { ...model("test-model"), limit: { context: 3000, output: 500 } },
+          summarizer: model("summarizer"),
+        },
+      )
+      const { bodies, assistants } = yield* run(
+        Effect.gen(function* () {
+          const llm = yield* TestLLMServer
+          yield* llm.pushMatch(
+            on("test-model"),
+            reply()
+              .tool("todowrite", {
+                todos: [{ content: "note the constraint", status: "pending", priority: "high", id: "1" }],
+              })
+              .usage({ input: 5000, output: 10 })
+              .item(),
+          )
+          yield* llm.pushMatch(on("summarizer"), httpError(429, quota))
+          yield* llm.pushMatch(
+            on("test-model"),
+            reply().text("Summary: fixing the failing test; todo noted.").stop().item(),
+          )
+          yield* llm.pushMatch(on("test-model"), reply().text("done").stop().item())
+        }),
+      )
+      const sent = bodies as unknown as Body[]
+      expect(sent.map((b) => b.model)).toEqual(["test-model", "summarizer", "test-model", "test-model"])
+      expect(FailoverAvailability.get("test/summarizer")?.state).toBe("disabled")
+      expect(FailoverAvailability.get("test/test-model")).toBeUndefined() // the session's model was never blamed
+      expect(assistants.at(-1)!.finish).toBe("stop")
+    }),
+  30_000,
+)
