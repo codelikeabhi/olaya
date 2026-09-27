@@ -1,11 +1,12 @@
 """Does the loop guard (a reminder after three repeated or identically failing tool calls) help?
 
-    python -m bench.loop_ab run --off <build without it> --on <build with it> [--model qwen3-8b-16k]
+    python -m bench.loop_ab run --binary <build with the guard> [--model qwen3-8b-16k]
     python -m bench.loop_ab report                     # loop-guard/ab.json
 
-Every Track C item runs once per arm through Track E's proxy with no fault, which puts the same seed
-on every request: both arms are identical until the guard first fires, so a paired difference is
-the guard's doing. Items where it never fires pair up as ties.
+Every Track C item runs once per arm, on one build, through Track E's proxy with no fault, which
+puts the same seed on every request. The "off" arm sets OLAYA_DISABLE_LOOP_GUARD. Both arms are
+identical until the guard first fires, so a paired difference is the guard's doing. Items where it
+never fires pair up as ties.
 """
 
 import argparse
@@ -28,6 +29,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 def variant(arm, binary, port, model):
     entry = {"name": model, "tools": True, "options": {"reasoningEffort": "none"}}
     return {"name": f"loop-ab-{arm}", "binary": binary, "cli_model": f"prova/{model}",
+            "env": {"OLAYA_DISABLE_LOOP_GUARD": "1"} if arm == "off" else {},
             "config": {"provider": {"prova": {"npm": "@ai-sdk/openai-compatible", "name": "Seeded Ollama",
                                               "options": {"baseURL": f"http://host.docker.internal:{port}/a/v1"},
                                               "models": {model: entry}}}}}
@@ -41,10 +43,10 @@ def fired(out_dir):
     return sum(1 for l in open(path) if NUDGE in l)
 
 
-def run(off, on, model):
+def run(binary, model):
     items = [json.loads(l) for l in open(route.ITEMS)]
     for it in items:
-        for arm, binary in (("off", off), ("on", on)):
+        for arm in ("off", "on"):
             port = free_port()
             log = os.path.join(os.path.dirname(route.RUNS), "variants", f"loop-ab-{arm}", model, it["id"], "0.proxy.jsonl")
             os.makedirs(os.path.dirname(log), exist_ok=True)
@@ -98,12 +100,12 @@ def report(model):
 def main(argv=None):
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
-    r = sub.add_parser("run"); r.add_argument("--off", required=True); r.add_argument("--on", required=True)
+    r = sub.add_parser("run"); r.add_argument("--binary", required=True)
     r.add_argument("--model", default="qwen3-8b-16k")
     p = sub.add_parser("report"); p.add_argument("--model", default="qwen3-8b-16k")
     a = ap.parse_args(argv)
     if a.cmd == "run":
-        run(a.off, a.on, a.model)
+        run(a.binary, a.model)
     else:
         report(a.model)
 
