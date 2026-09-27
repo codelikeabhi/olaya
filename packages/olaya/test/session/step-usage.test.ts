@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { SessionV1 } from "@olaya/core/v1/session"
-import { stepUsage, testCounts } from "../../src/session/step-usage"
+import { editedFiles, stepUsage, testCounts } from "../../src/session/step-usage"
 
 let seq = 0
 const tool = (name: string, input: Record<string, unknown>, state: { output?: string; error?: string } = {}) =>
@@ -72,6 +72,18 @@ describe("stepUsage", () => {
     expect(stepUsage([before, after], 2, after).signals.sameFileEdits).toBe(2)
     const noTest = assistant([edit("/a.ts"), edit("/a.ts")])
     expect(stepUsage([noTest], 1, noTest).signals.sameFileEdits).toBe(2)
+  })
+
+  test("apply_patch edits count per file they update or add (GPT models edit this way)", () => {
+    const patch = (...files: string[]) =>
+      tool("apply_patch", {
+        patchText: ["*** Begin Patch", ...files.map((f) => `*** Update File: ${f}\n@@\n-a\n+b`), "*** End Patch"].join("\n"),
+      })
+    expect(editedFiles(patch("camicia.py", "util.py", "camicia.py"))).toEqual(["camicia.py", "util.py"])
+    expect(editedFiles(tool("apply_patch", { patchText: "*** Begin Patch\n*** Add File: new.py\n+x\n*** End Patch" }))).toEqual(["new.py"])
+    const run = assistant([bash("pytest -q", "15 failed, 13 passed"), patch("camicia.py"), patch("camicia.py"), patch("camicia.py")])
+    expect(stepUsage([run], 1, run).signals.sameFileEdits).toBe(3)
+    expect(stepUsage([run], 1, run).signals.tests).toEqual({ passed: 13, failed: 15 })
   })
 
   test("test counts appear only when a recognised test command ran", () => {

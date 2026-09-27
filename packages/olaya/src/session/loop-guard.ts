@@ -1,4 +1,5 @@
 import type { SessionV1 } from "@olaya/core/v1/session"
+import { editedFiles } from "./step-usage"
 
 /**
  * Loops across steps: the processor's doom-loop check only sees identical calls within one step,
@@ -37,7 +38,7 @@ export function loopNudge(msgs: SessionV1.WithParts[]) {
   // what a call acts on: the same failure on different files or URLs is not a repeat
   const target = (part: SessionV1.ToolPart) => {
     const input = (part.state.input ?? {}) as Record<string, unknown>
-    return JSON.stringify(input.filePath ?? input.path ?? input.url ?? input.command ?? null)
+    return JSON.stringify(input.filePath ?? input.path ?? input.url ?? input.command ?? (editedFiles(part).join("\n") || null))
   }
   if (last.every((part) => call(part) === call(last[0]!)))
     return `You have made the same \`${last[0]!.tool}\` call ${REPEATS} times in a row. Repeating it will not change the outcome. Step back: check the current state (re-read the file, or look at the latest output), then take a different approach.`

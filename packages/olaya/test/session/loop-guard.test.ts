@@ -94,6 +94,18 @@ describe("loop guard", () => {
     ).toBeUndefined()
   })
 
+  test("apply_patch failures: on different files not a repeat, on one file a loop", () => {
+    const patch = (file: string, n: number) =>
+      tool("apply_patch", { patchText: `*** Begin Patch\n*** Update File: ${file}\n@@\n-x${n}\n+y\n*** End Patch` }, notFound)
+    const write = (file: string) => tool("write", { filePath: file })
+    expect(
+      LoopGuard.loopNudge(history(patch("/a.py", 1), write("/a.py"), patch("/b.py", 2), write("/b.py"), patch("/c.py", 3))),
+    ).toBeUndefined()
+    expect(
+      LoopGuard.loopNudge(history(patch("/a.py", 1), write("/b.py"), patch("/a.py", 2), write("/b.py"), patch("/a.py", 3))),
+    ).toBeDefined()
+  })
+
   test("a metric that keeps improving is progress, not a loop", () => {
     const poll = (loss: string) => tool("bash", { command: "tail -1 train.log" }, undefined, `loss ${loss} acc 81.2%`)
     expect(LoopGuard.loopNudge(history(poll("0.4121"), poll("0.3977"), poll("0.3810")))).toBeUndefined()

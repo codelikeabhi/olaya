@@ -58,14 +58,23 @@ function identicalRun(tools: SessionV1.ToolPart[]) {
   return run === -1 ? tools.length : run
 }
 
+/**
+ * The files one tool call edits: `filePath` for the edit tools, and each file an `apply_patch` updates
+ * or adds (the edit tool GPT models get; without it their edits went uncounted).
+ */
+export function editedFiles(part: SessionV1.ToolPart): string[] {
+  const input = (part.state.input ?? {}) as { filePath?: unknown; patchText?: unknown }
+  if (EDIT_TOOLS.has(part.tool)) return typeof input.filePath === "string" ? [input.filePath] : []
+  if (part.tool !== "apply_patch" || typeof input.patchText !== "string") return []
+  return [...new Set([...input.patchText.matchAll(/^\*\*\* (?:Update|Add) File: (.+)$/gm)].map((m) => m[1]!.trim()))]
+}
+
 /** The most edits to any one file since the last test run. */
 function sameFileEdits(tools: SessionV1.ToolPart[]) {
   const since = tools.findLastIndex((part) => testCounts(part) !== undefined)
   const counts = new Map<string, number>()
-  for (const part of tools.slice(since + 1)) {
-    const file = EDIT_TOOLS.has(part.tool) ? (part.state.input as { filePath?: unknown } | undefined)?.filePath : undefined
-    if (typeof file === "string") counts.set(file, (counts.get(file) ?? 0) + 1)
-  }
+  for (const part of tools.slice(since + 1))
+    for (const file of editedFiles(part)) counts.set(file, (counts.get(file) ?? 0) + 1)
   return Math.max(0, ...counts.values())
 }
 
