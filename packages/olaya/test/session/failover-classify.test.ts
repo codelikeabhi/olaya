@@ -645,6 +645,20 @@ describe("reset times", () => {
 })
 
 describe("failures as the harness records them", () => {
+  test("words in content don't make a network failure, and 'install' is not a stall", () => {
+    const answered = {
+      name: "APIError",
+      data: { message: "Invalid schema for function 'browser_network_requests'", statusCode: 400 },
+    }
+    const quoted = {
+      name: "AI_TypeValidationError",
+      data: { message: 'Type validation failed:\nValue: {"text":"check the network socket"}' },
+    }
+    const install = { name: "UnknownError", data: { message: "npm install failed" } }
+    for (const error of [answered, quoted, install])
+      expect(FailoverFailure.failureOf(error as never, "openai").kind).toBeUndefined()
+  })
+
   test("a refused or cut connection is a network failure that clears with time, however it is worded", () => {
     const api = {
       name: "APIError",

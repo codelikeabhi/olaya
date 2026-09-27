@@ -94,6 +94,11 @@ describe("loop guard", () => {
     ).toBeUndefined()
   })
 
+  test("a metric that keeps improving is progress, not a loop", () => {
+    const poll = (loss: string) => tool("bash", { command: "tail -1 train.log" }, undefined, `loss ${loss} acc 81.2%`)
+    expect(LoopGuard.loopNudge(history(poll("0.4121"), poll("0.3977"), poll("0.3810")))).toBeUndefined()
+  })
+
   test("polling until the output changes is not a loop", () => {
     const poll = (output: string) => tool("bash", { command: "gh run view 42" }, undefined, output)
     expect(LoopGuard.loopNudge(history(poll("queued"), poll("in_progress"), poll("in_progress")))).toBeUndefined()
@@ -203,6 +208,15 @@ describe("ending on an announced step", () => {
       "The tests pass. Shall I also update the README?",
       "Fixed the off-by-one in mean(); all 12 tests pass.",
       "",
+      // from the third review: answers and hand-backs that are not announced steps
+      "Now I have the full picture. Findings:\n\n- `src/auth.ts:42`: token not refreshed\n- `src/db.ts:10`: pool never closed",
+      "Now I've fixed the bug and all 12 tests pass.",
+      "I'll leave running it against production to you.",
+      "I'll wait for your go-ahead before changing anything.",
+      "Let's summarize: the cache key was wrong.",
+      "I will not touch the lockfile without approval.",
+      "Next, I recommend adding a regression test.",
+      "The migration is ready. **Shall I proceed?**",
     ])
       expect(LoopGuard.announcedAction(text)).toBe(false)
   })

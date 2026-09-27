@@ -27,6 +27,10 @@ import { Token } from "../../src/util/token"
 import { TestInstance } from "../fixture/fixture"
 import { reply, TestLLMServer } from "../lib/llm-server"
 import { it, project, run } from "../lib/session-loop"
+import { SessionPrompt } from "../../src/session/prompt"
+import { Session } from "../../src/session/session"
+import { ProviderV2 } from "@olaya/core/provider"
+import { ModelV2 } from "@olaya/core/model"
 
 type Body = { messages: { role: string; content: unknown }[]; tools?: unknown }
 
@@ -340,6 +344,10 @@ describe("when to compact before the window is full", () => {
     expect(await decide({ tokens: 30_000, window: 200_000, idleMs: 6 * 60_000, items: bulky })).toBe(false)
   })
 
+  test("never for a model without a declared window", async () => {
+    expect(await decide({ tokens: 150_000, window: 0, idleMs: 6 * 60_000, items: bulky })).toBe(false)
+  })
+
   test("not when the rewrite would save too little", async () => {
     expect(await decide({ tokens: 150_000, window: 200_000, items: pinned })).toBe(false)
   })
@@ -405,6 +413,56 @@ it.instance(
         expect(JSON.stringify(sent[i]!.messages.slice(0, sent[i - 1]!.messages.length))).toBe(
           JSON.stringify(sent[i - 1]!.messages),
         )
+    }),
+  30_000,
+)
+
+it.instance(
+  "the compaction point is not consulted while a new user request waits for its first step",
+  () =>
+    Effect.gen(function* () {
+      const { directory } = yield* TestInstance
+      const calls = path.join(directory, "calls.txt")
+      yield* project(
+        [
+          'import { appendFileSync } from "fs"',
+          "export default async () => ({",
+          '  "experimental.session.compaction.point": async (input) => {',
+          `    appendFileSync(${JSON.stringify(calls)}, input.tokens + "\\n")`,
+          "  },",
+          "})",
+          "",
+        ].join("\n"),
+      )
+      const llm = yield* TestLLMServer
+      const prompt = yield* SessionPrompt.Service
+      const sessions = yield* Session.Service
+      const chat = yield* sessions.create({
+        title: "Turns",
+        permission: [{ permission: "*", pattern: "*", action: "allow" }],
+      })
+      const ask = (text: string) =>
+        prompt.prompt({
+          sessionID: chat.id,
+          agent: "build",
+          model: { providerID: ProviderV2.ID.make("test"), modelID: ModelV2.ID.make("test-model") },
+          noReply: true,
+          parts: [{ type: "text", text }],
+        })
+      yield* ask("fix the failing test")
+      yield* llm.push(
+        reply()
+          .tool("todowrite", { todos: [{ content: "x", status: "pending", priority: "high", id: "1" }] })
+          .usage({ input: 5000, output: 10 })
+          .item(),
+      )
+      yield* llm.push(reply().text("Fixed.").stop().item())
+      yield* prompt.loop({ sessionID: chat.id })
+      yield* ask("now update the changelog")
+      yield* llm.push(reply().text("Updated.").stop().item())
+      yield* prompt.loop({ sessionID: chat.id })
+      const seen = (yield* Effect.promise(() => fs.readFile(calls, "utf8"))).trim().split("\n")
+      expect(seen).toEqual(["5010"]) // before step 2 of the first turn only
     }),
   30_000,
 )

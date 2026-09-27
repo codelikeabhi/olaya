@@ -1186,6 +1186,8 @@ const layer = Layer.effect(
         // Verify-before-exit nudges sent in this run. Capped at one: the nudge is itself a user
         // turn, so a per-message guard would let the loop nudge its own nudge forever.
         let exitNudges = 0
+        let actionNudged = false
+        let verifyNudged = false
         let loopNudges = 0
         /** A synthetic user message steering the next step; it shows in the transcript. */
         const nudge = Effect.fnUntraced(function* (
@@ -1340,13 +1342,28 @@ const layer = Layer.effect(
               { sessionID, agent: lastUser.agent, step, text },
               { continue: false } as { continue: boolean; prompt?: string },
             )
-            // ending on "Let me check the file." with no tool call: the step it announced never ran
-            const announced = !exit.continue && !truthy("OLAYA_DISABLE_ACTION_NUDGE") && LoopGuard.announcedAction(text)
+            // Ending on "Let me check the file." with no tool call: the step it announced never ran.
+            // Once per run; not after a compaction summary (a manual /compact must not start work), nor
+            // for the plan agent, whose job ends with a plan.
+            const announced =
+              !exit.continue &&
+              !actionNudged &&
+              !lastAssistant.summary &&
+              lastUser.agent !== "plan" &&
+              !truthy("OLAYA_DISABLE_ACTION_NUDGE") &&
+              LoopGuard.announcedAction(text)
             if (announced) {
+              actionNudged = true
               exit.continue = true
               exit.prompt = LoopGuard.ACTION_NUDGE
             }
-            if (!exit.continue && truthy("OLAYA_EXPERIMENTAL_VERIFY_BEFORE_EXIT") && exitNudges === 0) {
+            const verify =
+              !exit.continue &&
+              !verifyNudged &&
+              !lastAssistant.summary &&
+              truthy("OLAYA_EXPERIMENTAL_VERIFY_BEFORE_EXIT")
+            if (verify) {
+              verifyNudged = true
               exit.continue = true
               exit.prompt = VERIFY_BEFORE_EXIT
             }
@@ -1506,8 +1523,17 @@ const layer = Layer.effect(
           }
           // A plugin may choose a better moment than overflow: Laya's live retention compacts early
           // when the history is large or the prompt cache has gone cold, if the rewrite saves enough.
+          // Not while a new user request waits for its first step: compacting then could fold the
+          // request into the summary. Only built when a plugin asks, since it walks the history.
           const cfg = yield* config.get()
-          if (lastFinished && counted && lastFinished.summary !== true && cfg.compaction?.auto !== false) {
+          if (
+            lastFinished &&
+            counted &&
+            lastFinished.summary !== true &&
+            lastFinished.parentID === lastUser.id &&
+            cfg.compaction?.auto !== false &&
+            (yield* plugin.list()).some((hooks) => hooks["experimental.session.compaction.point"])
+          ) {
             const point = yield* plugin.trigger(
               "experimental.session.compaction.point",
               {

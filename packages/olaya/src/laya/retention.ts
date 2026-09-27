@@ -209,6 +209,8 @@ export function compactionPoint(
   options: RetentionOptions,
 ): NonNullable<Hooks["experimental.session.compaction.point"]> {
   return async (input, output) => {
+    // no declared window: the harness never compacts such a model, and neither does this
+    if (input.window <= 0) return
     const early = input.tokens >= Math.min(0.6 * input.window, 120_000)
     const cold = input.idleMs >= 5 * 60_000 && input.tokens >= 40_000
     if (!early && !cold) return

@@ -24,11 +24,11 @@ export function loopNudge(msgs: SessionV1.WithParts[]) {
   const last = tools.slice(-REPEATS)
   if (last.length < REPEATS) return undefined
   // The same call with the same result: polling a job or a log until it changes is not a loop. Test
-  // timings and saved-output file names differ on every run, so decimals and long IDs with digits
-  // don't count as a change; small numbers (a progress count) do.
+  // timings and saved-output file names differ on every run, so durations and long IDs with digits
+  // don't count as a change; other numbers (a progress count, a falling loss) do.
   const outcome = (part: SessionV1.ToolPart) =>
     (part.state.status === "completed" ? part.state.output : part.state.status === "error" ? part.state.error : "")
-      .replace(/\d+\.\d+/g, "#")
+      .replace(/\d+(?:\.\d+)?\s?(?:ms|s|sec|seconds|min)\b/g, "#")
       .replace(/\b(?=[\w-]*\d)[\w-]{8,}\b/g, "#")
   const call = (part: SessionV1.ToolPart) =>
     [part.tool, JSON.stringify(part.state.input ?? null), outcome(part)].join("\u0000")
@@ -56,18 +56,27 @@ export function loopNudge(msgs: SessionV1.WithParts[]) {
  * A run about to end on a sentence announcing the model's own next step ("Let me check the file."),
  * with no tool call made. Half the failed runs of the local benchmarks ended this way (11 of 21,
  * 2026-09-27); the work stopped because nothing asked for the next step.
+ *
+ * Only the last line or sentence counts: a report that ends in a list or a code block is an answer.
+ * Handing back to the user ("I'll wait for your go-ahead"), declining ("I will not…") and questions
+ * are theirs to answer, not announced steps.
  */
 export function announcedAction(text: string) {
-  const trimmed = text.trim()
-  if (!trimmed || trimmed.endsWith("?")) return false // a question to the user is theirs to answer
-  const last = trimmed
-    .split(/(?<=[.!])\s+/)
-    .slice(-2)
-    .join(" ")
-  return /\b(?:let me(?! know)|let's|i'll|i will|i'm going to|i am going to|next,? i|now i)\b/i.test(last)
+  const last = text
+    .trim()
+    .replace(/[*_`"')\]\s]+$/, "")
+    .split(/\n+|(?<=[.!?])\s+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .at(-1)
+  if (!last || last.length > 300 || last.endsWith("?")) return false
+  if (/\b(?:you|your|not|never)\b|n't\b/i.test(last)) return false
+  return /\b(?:let me(?! know)|let's(?! (?:summari[sz]e|recap))|i'll|i will|i'm going to|i am going to|next,? i(?:'ll| will)|now,? i(?:'ll| will))\b/i.test(
+    last,
+  )
 }
 
 export const ACTION_NUDGE =
-  "You ended by saying what you would do next, but you called no tool, so nothing happened. If there is more to do, do it now with a tool call. If the task is complete, say so briefly."
+  "You ended by saying what you would do next, but you called no tool, so nothing happened. If there is more to do, do it now with a tool call. If the task is already complete, give your final answer again in full: only your last message is returned."
 
 export * as LoopGuard from "./loop-guard"
