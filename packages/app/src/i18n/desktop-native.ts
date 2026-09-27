@@ -215,7 +215,10 @@ export function desktopNativePluralCategories(locale: DesktopNativeLocale) {
 
 function locale(value: string) {
   try {
-    return new Intl.Locale(value).maximize()
+    const maximized = new Intl.Locale(value).maximize()
+    // Newer CLDR data maximizes some Arabic-script locales (pa-PK, ur) to Aran, the Nastaliq style of
+    // Arabic; the bundles are tagged Arab, so compare them as one script
+    return maximized.script === "Aran" ? new Intl.Locale(maximized.baseName.replace("-Aran", "-Arab")) : maximized
   } catch {
     return undefined
   }
