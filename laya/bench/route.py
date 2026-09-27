@@ -282,12 +282,14 @@ def calls_from(events, model):
     return calls
 
 
-def run(tiers, k, only=None, items_path=ITEMS, timeout=TIMEOUT_S, signin=None, binary_path=None):
+def run(tiers, k, only=None, items_path=ITEMS, timeout=TIMEOUT_S, signin=None, binary_path=None, reverse=False):
     """`signin`: the tiers are that provider's models, reached through the owner's sign-in (e.g.
     openai: gpt-6-luna, gpt-6-sol), and runs wait out the plan's usage limits."""
     items = [json.loads(l) for l in open(items_path)]
     if only:
         items = [it for it in items if it["id"] in only]
+    if reverse:  # a second runner from the other end: finished runs are skipped, so the two meet midway
+        items.reverse()
     # one tier at a time keeps one local model resident; a cloud ladder goes task by task, so a stop
     # at the plan's limit leaves every finished task with all its tiers
     order = [(m, rep, it) for m in tiers for rep in range(k) for it in items] if not signin else \
@@ -438,6 +440,7 @@ def main(argv=None):
     r.add_argument("--timeout", type=int, default=TIMEOUT_S, help="seconds per run (small single-function tasks: 180)")
     r.add_argument("--signin", help="the tiers are this provider's models through the owner's sign-in (openai)")
     r.add_argument("--binary", help="the Linux build to run (default: this checkout's dist)")
+    r.add_argument("--reverse", action="store_true", help="items last to first (a second runner beside a first)")
     p = sub.add_parser("report"); p.add_argument("--tiers", default="qwen3-0.6b-16k,qwen3-4b-16k,qwen3-8b-16k,qwen3-14b-16k")
     sh = sub.add_parser("shadow-smoke"); sh.add_argument("--model", default="qwen3-4b-16k"); sh.add_argument("--pool", default="qwen3-0.6b-16k")
     sh.add_argument("--binary", required=True); sh.add_argument("--n", type=int, default=4)
@@ -446,7 +449,7 @@ def main(argv=None):
     if a.cmd == "build":
         build(a.exercism, a.n, max_difficulty=a.max_difficulty, out=a.out)
     elif a.cmd == "run":
-        run(a.tiers.split(","), a.k, set(a.only.split(",")) if a.only else None, a.items, a.timeout, a.signin, a.binary)
+        run(a.tiers.split(","), a.k, set(a.only.split(",")) if a.only else None, a.items, a.timeout, a.signin, a.binary, a.reverse)
     elif a.cmd == "report":
         report(a.tiers.split(","))
     elif a.cmd == "shadow-smoke":
