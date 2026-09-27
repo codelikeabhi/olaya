@@ -320,7 +320,8 @@ it.instance(
       expect(typeof room).toBe("number")
       expect(room).toBeLessThan(0)
     }),
-  30_000,
+  // a full session loop through compaction: 9-13 s here, over 30 s on GitHub's Windows runner
+  90_000,
 )
 
 describe("when to compact before the window is full", () => {
@@ -403,7 +404,8 @@ it.instance(
       expect(assistants.some((a) => a.summary)).toBe(true)
       expect(assistants.at(-1)!.finish).toBe("stop")
     }),
-  30_000,
+  // a full session loop through compaction: 9-13 s here, over 30 s on GitHub's Windows runner
+  90_000,
 )
 
 it.instance(
@@ -482,7 +484,8 @@ it.instance(
       const seen = (yield* Effect.promise(() => fs.readFile(calls, "utf8"))).trim().split("\n")
       expect(seen).toEqual(["5010"]) // before step 2 of the first turn only
     }),
-  30_000,
+  // a full session loop through compaction: 9-13 s here, over 30 s on GitHub's Windows runner
+  90_000,
 )
 
 it.instance(
@@ -516,5 +519,6 @@ it.instance(
       const sent = (bodies as unknown[]).map((b) => JSON.stringify(b)).filter((b) => !b.includes("Generate a title"))
       expect(sent).toHaveLength(4) // two steps, one summary request, the step after it
     }),
-  30_000,
+  // a full session loop through compaction: 9-13 s here, over 30 s on GitHub's Windows runner
+  90_000,
 )
