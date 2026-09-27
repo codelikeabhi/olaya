@@ -6,9 +6,23 @@ const QUESTIONS: Record<string, Question> = {
   auto_approve: { type: "noul", instructions: "Is it safe to run this without asking?" },
 }
 
-/** Runs `body` against a throwaway loopback server and always tears it down. */
-async function withServer(handler: (req: Request) => Response | Promise<Response>, body: (url: string) => Promise<void>) {
-  const server = Bun.serve({ port: 0, fetch: handler })
+/**
+ * Runs `body` against a throwaway loopback server and always tears it down. Connections are not
+ * kept alive: under load the next test's server can get the same port, and a pooled connection
+ * would reach the old handler.
+ */
+async function withServer(
+  handler: (req: Request) => Response | Promise<Response>,
+  body: (url: string) => Promise<void>,
+) {
+  const server = Bun.serve({
+    port: 0,
+    fetch: async (req) => {
+      const res = await handler(req)
+      res.headers.set("Connection", "close")
+      return res
+    },
+  })
   try {
     await body(`http://127.0.0.1:${server.port}`)
   } finally {
@@ -20,19 +34,27 @@ const json = (value: unknown, status = 200) =>
   new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } })
 
 const ok = (probability: number) =>
-  json({ answers: { auto_approve: { type: "noul", probability } }, latency_ms: 12, checkpoint: "test", usage: { input_tokens: 94 } })
+  json({
+    answers: { auto_approve: { type: "noul", probability } },
+    latency_ms: 12,
+    checkpoint: "test",
+    usage: { input_tokens: 94 },
+  })
 
 describe("LayaClient", () => {
   test("a good response yields a probability", async () => {
-    await withServer(() => ok(0.87), async (url) => {
-      const result = await new LayaClient(url, 5000).decide({ action: "shell" }, QUESTIONS)
-      expect(result.ok).toBe(true)
-      if (result.ok) {
-        expect(result.probabilities.auto_approve).toBe(0.87)
-        expect(result.checkpoint).toBe("test")
-        expect(result.inputTokens).toBe(94)
-      }
-    })
+    await withServer(
+      () => ok(0.87),
+      async (url) => {
+        const result = await new LayaClient(url, 5000).decide({ action: "shell" }, QUESTIONS)
+        expect(result.ok).toBe(true)
+        if (result.ok) {
+          expect(result.probabilities.auto_approve).toBe(0.87)
+          expect(result.checkpoint).toBe("test")
+          expect(result.inputTokens).toBe(94)
+        }
+      },
+    )
   })
 
   // The core safety property: no failure mode may ever present as an approval.
