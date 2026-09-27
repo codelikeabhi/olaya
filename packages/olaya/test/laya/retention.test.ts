@@ -282,7 +282,10 @@ describe("laya retention policy", () => {
   })
 })
 
-it.instance(
+// Skipped on Windows for now: on GitHub's Windows runner it hung past 90 s in 1 of 3 runs (the first
+// plugin-loading test in this file; its three siblings on the same path pass there). It passes on Linux
+// and macOS. Follow-up in the worklog: reproduce on a Windows machine.
+;(process.platform === "win32" ? it.instance.skip : it.instance)(
   "a plugin-supplied summary replaces the summary request",
   () =>
     Effect.gen(function* () {
