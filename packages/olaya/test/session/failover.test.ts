@@ -205,3 +205,36 @@ it.instance(
     }),
   30_000,
 )
+
+it.instance(
+  "a tool that finished inside the failing step is kept, and the next model doesn't run it again",
+  () =>
+    Effect.gen(function* () {
+      yield* project(undefined, undefined, chain)
+      const { bodies, messages } = yield* run(
+        Effect.gen(function* () {
+          const llm = yield* TestLLMServer
+          // the stream breaks after the tool call, in the same step; the retry then hits the quota
+          yield* llm.pushMatch(
+            on("test-model"),
+            reply()
+              .tool("todowrite", {
+                todos: [{ content: "reproduce the bug", status: "completed", priority: "high", id: "1" }],
+              })
+              .streamError("connection reset")
+              .item(),
+          )
+          yield* llm.pushMatch(on("test-model"), httpErrorItem(429, quota))
+          yield* llm.pushMatch(on("cheap-model"), textItem("done"))
+        }),
+      )
+      const sent = bodies as unknown as Body[]
+      expect(sent.map((b) => b.model)).toEqual(["test-model", "test-model", "cheap-model"])
+      expect(JSON.stringify(sent.at(-1)!.messages)).toContain("reproduce the bug") // the fallback sees the result
+      const todo = yield* Todo.Service
+      expect(yield* todo.get(messages[0]!.info.sessionID)).toHaveLength(1)
+      const calls = messages.flatMap((m) => m.parts.filter((p) => p.type === "tool" && p.tool === "todowrite"))
+      expect(calls).toHaveLength(1)
+    }),
+  60_000,
+)
