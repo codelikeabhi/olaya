@@ -206,7 +206,9 @@ export function withCliFixture<A, E>(
 
     const spawn = Effect.fn("olaya.spawn")(function* (args: string[], opts?: SpawnOpts) {
       const start = Date.now()
-      const timeoutMs = opts?.timeoutMs ?? 30_000
+      // Olaya: more on CI. GitHub's standard runners, with turbo testing every package at once, took
+      // over 30 s for runs that take 5-7 s locally; a hang is still killed and fails.
+      const timeoutMs = opts?.timeoutMs ?? (process.env.CI ? 50_000 : 30_000)
       // stdin: "ignore" so the child doesn't see a piped stdin and block
       // on `Bun.stdin.text()` (see src/cli/cmd/run.ts — non-TTY stdin is
       // consumed as the prompt). The old Process.run wrapper defaulted to

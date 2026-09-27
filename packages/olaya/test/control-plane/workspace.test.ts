@@ -1712,6 +1712,7 @@ describe("workspace waitForSync", () => {
         )
       }),
     { git: true },
-    7000,
+    // the fence waits 25 ms; the rest is the git fixture, which took 7.7 s on GitHub's Windows runner
+    20_000,
   )
 })
