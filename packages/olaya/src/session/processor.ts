@@ -693,10 +693,12 @@ const layer = Layer.effect(
               Stream.takeUntil(() => ctx.needsCompaction),
               Stream.runDrain,
             )
-            // With failover on, a stream that goes quiet counts as stalled, so the next model can
-            // take over. Keep-alive bytes don't count as progress (they never reach this stream), and
-            // a running tool isn't silence: tools run inside the stream and can take many minutes.
-            const stallMs = cfg.failover ? (cfg.failover.stall_timeout ?? 300) * 1000 : 0
+            // A stream that goes quiet counts as stalled: with failover the next model takes over,
+            // without it the step is retried. Keep-alive bytes don't count as progress (they never
+            // reach this stream), and a running tool isn't silence: tools run inside the stream and
+            // can take many minutes. Without a failover block the limit is longer (600 s), since a
+            // slow local model can be silent a long while; `stall_timeout: 0` turns it off.
+            const stallMs = (cfg.failover?.stall_timeout ?? (cfg.failover ? 300 : 600)) * 1000
             const watchdog = Effect.gen(function* () {
               while (true) {
                 yield* Effect.sleep(Duration.millis(Math.min(5_000, stallMs / 2)))

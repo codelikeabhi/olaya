@@ -100,7 +100,7 @@ export const Info = Schema.Struct({
       }),
       stall_timeout: Schema.optional(NonNegativeInt).annotate({
         description:
-          "Seconds without any response from the model, while no tool is running, before the request counts as stalled and the next model takes over (default: 300)",
+          "Seconds without any response from the model, while no tool is running, before the request counts as stalled and the next model takes over (default: 300). Without a failover block, stalls are still caught after 600 s and the step is retried; 0 turns the check off",
       }),
       max_wait: Schema.optional(NonNegativeInt).annotate({
         description:

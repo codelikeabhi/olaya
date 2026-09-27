@@ -164,6 +164,11 @@ describe("session.retry.retryable", () => {
     expect(SessionRetry.retryable(wrap(message), retryProvider)).toEqual({ message })
   })
 
+  test("retries a stalled stream: without failover, the watchdog's stall is retried like a timeout", () => {
+    const message = "Stream stalled: no response for 600s"
+    expect(SessionRetry.retryable(wrap(message), retryProvider)).toEqual({ message })
+  })
+
   test("does not retry unknown json messages", () => {
     const error = wrap(JSON.stringify({ error: { message: "no_kv_space" } }))
     expect(SessionRetry.retryable(error, retryProvider)).toBeUndefined()

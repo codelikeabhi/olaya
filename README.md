@@ -92,7 +92,8 @@ then returns to your model once it is available again:
 | `OLAYA_DISABLE_ACTION_NUDGE=1` | a run may end on an announced step |
 | `OLAYA_EXPERIMENTAL_VERIFY_BEFORE_EXIT=1` | one "check your work" message before a run ends |
 - **Stalls.** A stream silent for `stall_timeout` seconds (default 300) while no tool runs counts as
-  stalled, and the next model takes over; the stalled one is tried again after a growing backoff. Local
+  stalled, and the next model takes over; the stalled one is tried again after a growing backoff.
+  Without a failover block, a stall is still caught after 600 s and the step retried. Local
   servers such as Ollama send a tool call only when it is complete, so set `stall_timeout` above
   the longest one your model writes (output tokens ÷ tokens per second).
 - **Privacy.** Every model in the chain receives the task's context, including code, when it
