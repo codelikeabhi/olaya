@@ -96,11 +96,16 @@ def olaya_config(model, extra=None, top=None, pool=()):
     })
 
 
+SECRETS = os.path.expanduser("~/.local/share/olaya/harness/secrets.env")
+
+
 def run_one(item, model, k, variant=None):
-    """`variant` ({name, model, config, env, binary, timeout, cli_model}) runs the same item under changed settings,
+    """`variant` ({name, model, config, env, binary, timeout, cli_model, secrets}) runs the same item under changed settings,
     into its own directory: model-entry and top-level config overrides, extra environment, another
     build, another time limit."""
     v = variant or {}
+    if v.get("secrets") and not os.path.exists(SECRETS):
+        raise FileNotFoundError(f"{SECRETS} is missing: this variant needs cloud API keys (KEY=value lines)")
     out_dir = os.path.join(os.path.dirname(RUNS), "variants", v["name"], model, item["id"]) if v else os.path.join(RUNS, model, item["id"])
     out = os.path.join(out_dir, f"{k}.json")
     if os.path.exists(out):
@@ -127,6 +132,9 @@ def run_one(item, model, k, variant=None):
                "-v", f"{work}:/work", "-v", f"{pristine}:/pristine:ro", "-v", f"{logs}:/logs", "-v", f"{v.get('binary') or binary()}:/usr/local/bin/olaya:ro",
                "-e", f"OLAYA_CONFIG_CONTENT={olaya_config(model, v.get('model'), v.get('config'), v.get('pool', ()))}", "-e", f"TASK={task_text(item)}",
                *[x for key, value in v.get("env", {}).items() for x in ("-e", f"{key}={value}")],
+               # cloud API keys only for runs that need them, from a file outside the repo; --env-file
+               # keeps them off the command line (and out of `ps`)
+               *(["--env-file", SECRETS] if v.get("secrets") else []),
                "-e", "OLAYA_DISABLE_AUTOUPDATE=1", IMAGE, "sh", "-c", script]
         timed_out = False
         try:
