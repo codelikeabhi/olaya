@@ -496,34 +496,34 @@ export const IndentationFlexibleReplacer: Replacer = function* (content, find) {
   }
 }
 
-export const EscapeNormalizedReplacer: Replacer = function* (content, find) {
-  const unescapeString = (str: string): string => {
-    return str.replace(/\\(n|t|r|'|"|`|\\|\n|\$)/g, (match, capturedChar) => {
-      switch (capturedChar) {
-        case "n":
-          return "\n"
-        case "t":
-          return "\t"
-        case "r":
-          return "\r"
-        case "'":
-          return "'"
-        case '"':
-          return '"'
-        case "`":
-          return "`"
-        case "\\":
-          return "\\"
-        case "\n":
-          return "\n"
-        case "$":
-          return "$"
-        default:
-          return match
-      }
-    })
-  }
+function unescapeString(str: string): string {
+  return str.replace(/\\(n|t|r|'|"|`|\\|\n|\$)/g, (match, capturedChar) => {
+    switch (capturedChar) {
+      case "n":
+        return "\n"
+      case "t":
+        return "\t"
+      case "r":
+        return "\r"
+      case "'":
+        return "'"
+      case '"':
+        return '"'
+      case "`":
+        return "`"
+      case "\\":
+        return "\\"
+      case "\n":
+        return "\n"
+      case "$":
+        return "$"
+      default:
+        return match
+    }
+  })
+}
 
+export const EscapeNormalizedReplacer: Replacer = function* (content, find) {
   const unescapedFind = unescapeString(find)
 
   // Try direct match with unescaped find string
@@ -686,6 +686,20 @@ export function replace(content: string, oldString: string, newString: string, r
   if (oldString === "") {
     throw new Error(
       "oldString cannot be empty when editing an existing file. Provide the exact text to replace, or use write for an intentional full-file replacement.",
+    )
+  }
+
+  // Some models escape their arguments twice, sending a backslash and "n" for every line break. When
+  // oldString has those, no real line breaks, and isn't in the file as written, both strings meant
+  // real line breaks: matching only oldString's would refuse the edit, or write backslashes into
+  // the file.
+  const twice = (text: string) => !text.includes("\n") && text.includes("\\n")
+  if (twice(oldString) && !content.includes(oldString)) {
+    return replace(
+      content,
+      unescapeString(oldString),
+      twice(newString) ? unescapeString(newString) : newString,
+      replaceAll,
     )
   }
 

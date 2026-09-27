@@ -1,9 +1,9 @@
-import { afterEach, describe, expect } from "bun:test"
+import { afterEach, describe, expect, test } from "bun:test"
 import path from "path"
 import fs from "fs/promises"
 import { LayerNode } from "@olaya/core/effect/layer-node"
 import { Cause, Deferred, Effect, Exit, Fiber, Layer } from "effect"
-import { EditTool } from "../../src/tool/edit"
+import { EditTool, replace } from "../../src/tool/edit"
 import { disposeAllInstances, TestInstance } from "../fixture/fixture"
 import { LSP } from "@/lsp/lsp"
 import { FSUtil } from "@olaya/core/fs-util"
@@ -570,5 +570,23 @@ describe("tool.edit", () => {
         expect(yield* load(filepath)).toBe("top = 1\nmiddle = keep\nbottom = 2\n")
       }),
     )
+  })
+})
+
+describe("arguments escaped twice", () => {
+  const file = ["class Cipher:", "    def encode(self, text):", "        pass", ""].join("\n")
+
+  test("escaped line breaks in both strings are read as real ones", () => {
+    // what qwen3-8b sent 77 times in one Track C run: every edit refused as a disproportionate match
+    const old = "class Cipher:\\n    def encode(self, text):\\n        pass"
+    const next = "class Cipher:\\n    def encode(self, text):\\n        return text"
+    expect(replace(file, old, next)).toBe(
+      ["class Cipher:", "    def encode(self, text):", "        return text", ""].join("\n"),
+    )
+  })
+
+  test("a backslash-n the file really contains is matched as written", () => {
+    const code = 'print("a\\nb")\n'
+    expect(replace(code, 'print("a\\nb")', 'print("a\\nc")')).toBe('print("a\\nc")\n')
   })
 })
