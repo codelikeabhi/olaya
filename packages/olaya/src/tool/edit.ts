@@ -741,11 +741,41 @@ export function replace(content: string, oldString: string, newString: string, r
   }
 
   if (notFound) {
+    const near = closestLines(content, oldString)
     throw new Error(
-      "Could not find oldString in the file. It must match exactly, including whitespace, indentation, and line endings.",
+      "Could not find oldString in the file. It must match exactly, including whitespace, indentation, and line endings." +
+        (near ? `\nThe closest lines in the file now:\n${near}` : ""),
     )
   }
   throw new Error("Found multiple matches for oldString. Provide more surrounding context to make the match unique.")
+}
+
+/**
+ * The file's lines most like oldString's first line, numbered, for a not-found error. A model that
+ * misremembers the file (often after an edit it already made) otherwise sends the same failing
+ * edit again and again: Track E saw one 68 times. Empty when nothing is close.
+ */
+function closestLines(content: string, oldString: string) {
+  const target = oldString
+    .split("\n")
+    .find((line) => line.trim())
+    ?.trim()
+  if (!target) return ""
+  const lines = content.split("\n")
+  // ponytail: one Levenshtein per line, on lines no longer than 4x the target; fine for source files
+  const scored = lines.map((line, i) => {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.length > target.length * 4) return { i, score: 0 }
+    return { i, score: 1 - levenshtein(trimmed, target) / Math.max(trimmed.length, target.length) }
+  })
+  const best = scored.reduce((a, b) => (b.score > a.score ? b : a), { i: -1, score: 0 })
+  if (best.score < 0.5) return ""
+  const from = Math.max(0, best.i - 3)
+  const to = Math.min(lines.length, best.i + oldString.split("\n").length + 3)
+  return lines
+    .slice(from, to)
+    .map((line, i) => `${from + i + 1}: ${line}`)
+    .join("\n")
 }
 
 function isDisproportionateMatch(search: string, oldString: string) {

@@ -604,3 +604,25 @@ describe("arguments escaped twice", () => {
     expect(replace(code, 'print("a\\nb")', 'print("a\\nc")')).toBe('print("a\\nc")\n')
   })
 })
+
+describe("when oldString is not in the file", () => {
+  test("the error shows the closest lines as the file is now", () => {
+    // the model already renamed the attribute, remembers the old line, and would send the edit again
+    const file = [
+      "class Cipher:",
+      "    def __init__(self, key=None):",
+      "        self._key = key",
+      "",
+      "    def encode(self):",
+      "        pass",
+      "",
+    ].join("\n")
+    expect(() => replace(file, "self.key = key", "self._key = key")).toThrow("3:         self._key = key")
+  })
+
+  test("nothing close, nothing shown", () => {
+    expect(() => replace("a = 1\nb = 2\n", "completely unrelated text here", "x")).toThrow(
+      /^Could not find oldString[^\n]*$/,
+    )
+  })
+})
