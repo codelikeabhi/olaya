@@ -91,6 +91,10 @@ then returns to your model once it is available again:
 | `OLAYA_DISABLE_LOOP_GUARD=1` | no reminders when the model repeats itself |
 | `OLAYA_DISABLE_ACTION_NUDGE=1` | a run may end on an announced step |
 | `OLAYA_EXPERIMENTAL_VERIFY_BEFORE_EXIT=1` | one "check your work" message before a run ends |
+- **Stalls.** A stream silent for `stall_timeout` seconds (default 300) while no tool runs counts as
+  stalled, and the next model takes over; the stalled one is tried again a minute later. Local
+  servers such as Ollama send a tool call only when it is complete, so set `stall_timeout` above
+  the longest one your model writes (output tokens ÷ tokens per second).
 - **Privacy.** Every model in the chain receives the task's context, including code, when it
   takes over. A local model keeps it on your machine. A local model needs a declared
   `limit.context`, because local servers drop old messages silently when it is exceeded.

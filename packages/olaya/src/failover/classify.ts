@@ -36,7 +36,15 @@ export type Failure = {
   kind?: "context" | "auth" | "timeout" | "stall" | "network" | "aborted" | "refusal"
 }
 
-export type Verdict = { action: Action; reason: string; wait?: number; until?: number; retries?: number }
+export type Verdict = {
+  action: Action
+  reason: string
+  wait?: number
+  until?: number
+  retries?: number
+  /** A fixed cooldown in ms instead of the growing backoff (1, 5, 15, 60 minutes). */
+  cooldown?: number
+}
 
 /** The reason given to a failure no rule recognises. */
 export const UNRECOGNISED = "unrecognised failure"
@@ -148,7 +156,9 @@ export function classify(failure: Failure, now = Date.now()): Verdict {
   }
 
   if (status !== undefined && status >= 500) return { action: "switch", retries: 2, reason: `server error ${status}` }
-  if (failure.kind === "stall") return { action: "switch", retries: 1, reason: "stream stalled" }
+  // Usually a slow provider rather than a broken one (a local server sends a whole tool call at
+  // once), so it is tried again after a minute, not after a growing backoff.
+  if (failure.kind === "stall") return { action: "switch", retries: 1, reason: "stream stalled", cooldown: 60_000 }
   if (failure.kind === "timeout" || failure.kind === "network" || status === 408)
     return { action: "switch", retries: 2, reason: "network or timeout" }
   if (status === 400 || status === 422) return { action: "stop", reason: `request rejected (${status})` }

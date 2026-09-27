@@ -59,8 +59,10 @@ OUTAGE_S = 60
 # `task` with task_id "1" hundreds of times; "outage5-*" still drifted between runs (random tool-call
 # IDs, test timings); "outage6-*" ran build f85db16, whose loop guard missed a task re-delegated 207
 # times. "outage7-*": the G9 pilot's window, a fixed seed and normalised requests (SEED, normalise),
-# on build 944b6b3 (both review rounds, the announced-step nudge), the build the A/Bs use.
-PREFIX = "outage7-"
+# on build 944b6b3 (both review rounds, the announced-step nudge); its 30 s stall limit stalled
+# healthy runs whose model was writing a long tool call. "outage8-*": a 240 s stall limit, on a build
+# where a stall cools for a minute instead of the growing backoff.
+PREFIX = "outage8-"
 # Forced on every chat request: sampling as usual, but the same request gets the same answer, so a
 # fault run and its baseline stay identical up to the fault and a difference after it is the
 # failover's doing.
@@ -199,7 +201,9 @@ def variant(scenario, binary, port):
                 "prova": {"npm": "@ai-sdk/openai-compatible", "name": "Provider A", "options": {"baseURL": f"{base}/a/v1"}, "models": {MODEL: model}},
                 "provb": {"npm": "@ai-sdk/openai-compatible", "name": "Provider B", "options": {"baseURL": f"{base}/b/v1"}, "models": {MODEL: model}},
             },
-            "failover": {"models": [f"provb/{MODEL}"], "stall_timeout": 30}, **COMPACTION,
+            # Ollama sends a tool call only when it is complete: a 5,000-token output cap at ~28
+            # tokens a second is ~180 s of silence, plus prompt processing. 30 s stalled healthy runs.
+            "failover": {"models": [f"provb/{MODEL}"], "stall_timeout": 240}, **COMPACTION,
         },
         "timeout": 1500,
     }
