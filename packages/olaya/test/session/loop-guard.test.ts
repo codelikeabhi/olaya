@@ -49,6 +49,15 @@ describe("loop guard", () => {
     ).toBeUndefined()
   })
 
+  test("re-reading between the same failing edits is still a loop", () => {
+    const read = tool("read", { filePath: "/a.py" })
+    const edit = (n: number) => tool("edit", { filePath: "/a.py", oldString: `v${n}` }, notFound)
+    expect(LoopGuard.loopNudge(history(read, edit(1), read, edit(2), read, edit(3)))).toContain(
+      "`edit` calls all failed",
+    )
+    expect(LoopGuard.loopNudge(history(read, edit(1), read, edit(2), read))).toBeUndefined()
+  })
+
   test("polling until the output changes is not a loop", () => {
     const poll = (output: string) => tool("bash", { command: "gh run view 42" }, undefined, output)
     expect(LoopGuard.loopNudge(history(poll("queued"), poll("in_progress"), poll("in_progress")))).toBeUndefined()

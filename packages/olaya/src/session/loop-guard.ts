@@ -32,12 +32,16 @@ export function loopNudge(msgs: SessionV1.WithParts[]) {
     ].join("\u0000")
   const error = (part: SessionV1.ToolPart) =>
     part.state.status === "error" ? part.tool + "\u0000" + part.state.error.split("\n")[0] : undefined
-  const tool = last[0]!.tool
   if (last.every((part) => call(part) === call(last[0]!)))
-    return `You have made the same \`${tool}\` call ${REPEATS} times in a row. Repeating it will not change the outcome. Step back: check the current state (re-read the file, or look at the latest output), then take a different approach.`
-  const failure = error(last[0]!)
-  if (failure && last.every((part) => error(part) === failure))
-    return `Your last ${REPEATS} \`${tool}\` calls all failed with the same error: "${failure.split("\u0000")[1]}". Repeating it will not change the outcome. Step back: check the current state (re-read the file before editing it again, or look at the latest output), then take a different approach.`
+    return `You have made the same \`${last[0]!.tool}\` call ${REPEATS} times in a row. Repeating it will not change the outcome. Step back: check the current state (re-read the file, or look at the latest output), then take a different approach.`
+  // The same failure from one tool, with other calls in between: re-reading the file and sending
+  // the same failing edit again is a loop too (Track C, 2026-09-27: read, failed edit, 77 times).
+  const failed = tools.findLast((part) => part.state.status === "error")
+  if (!failed || tools.indexOf(failed) < tools.length - 2) return undefined
+  const same = tools.filter((part) => part.tool === failed.tool).slice(-REPEATS)
+  const failure = error(failed)
+  if (same.length === REPEATS && same.every((part) => error(part) === failure))
+    return `Your last ${REPEATS} \`${failed.tool}\` calls all failed with the same error: "${failure!.split("\u0000")[1]}". Repeating it will not change the outcome. Step back: check the current state (re-read the file before editing it again, or look at the latest output), then take a different approach.`
   return undefined
 }
 
