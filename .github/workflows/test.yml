@@ -74,7 +74,9 @@ jobs:
       - name: Run unit tests
         # GitHub's standard Windows runner needs more than the 20 minutes upstream's Blacksmith runners did
         timeout-minutes: ${{ runner.os == 'Windows' && 45 || 20 }}
-        run: GITHUB_ACTIONS=false bun turbo test
+        # Windows: two packages at a time. With every package's tests at once, GitHub's standard runner
+        # timed out a different timing-bound test each run (upstream's Blacksmith runners kept up)
+        run: GITHUB_ACTIONS=false bun turbo test ${{ runner.os == 'Windows' && '--concurrency=2' || '' }}
         env:
           OLAYA_EXPERIMENTAL_DISABLE_FILEWATCHER: ${{ runner.os == 'Windows' && 'true' || 'false' }}
 
