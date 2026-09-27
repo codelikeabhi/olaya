@@ -58,6 +58,7 @@ import { ProviderV2 } from "@olaya/core/provider"
 import { eq } from "drizzle-orm"
 import { SessionTable } from "@olaya/core/session/sql"
 import { SessionReminders } from "./reminders"
+import { LoopGuard } from "./loop-guard"
 import { SessionTools } from "./tools"
 import { LLMEvent } from "@olaya/llm"
 
@@ -1184,6 +1185,32 @@ const layer = Layer.effect(
         // Verify-before-exit nudges sent in this run. Capped at one: the nudge is itself a user
         // turn, so a per-message guard would let the loop nudge its own nudge forever.
         let exitNudges = 0
+        let loopNudges = 0
+        /** A synthetic user message steering the next step; it shows in the transcript. */
+        const nudge = Effect.fnUntraced(function* (
+          lastUser: SessionV1.User,
+          text: string,
+          metadata: Record<string, boolean>,
+        ) {
+          const message = yield* sessions.updateMessage({
+            id: MessageID.ascending(),
+            role: "user",
+            sessionID,
+            time: { created: Date.now() },
+            agent: lastUser.agent,
+            model: lastUser.model,
+          })
+          yield* sessions.updatePart({
+            id: PartID.ascending(),
+            messageID: message.id,
+            sessionID,
+            type: "text",
+            metadata,
+            synthetic: true,
+            text,
+            time: { start: Date.now(), end: Date.now() },
+          })
+        })
         // The latest completed step's usage, reported to plugins once and handed to model selection.
         let usage: StepUsage | undefined
         let prefix: SessionCompaction.Prefix | undefined
@@ -1323,29 +1350,20 @@ const layer = Layer.effect(
             }
             if (exit.continue && exit.prompt && exitNudges < MAX_EXIT_NUDGES) {
               exitNudges++
-              const nudge = yield* sessions.updateMessage({
-                id: MessageID.ascending(),
-                role: "user",
-                sessionID,
-                time: { created: Date.now() },
-                agent: lastUser.agent,
-                model: lastUser.model,
-              })
-              yield* sessions.updatePart({
-                id: PartID.ascending(),
-                messageID: nudge.id,
-                sessionID,
-                type: "text",
-                metadata: { loop_exit_nudge: true },
-                synthetic: true,
-                text: exit.prompt,
-                time: { start: Date.now(), end: Date.now() },
-              })
+              yield* nudge(lastUser, exit.prompt, { loop_exit_nudge: true })
               yield* Effect.logInfo("loop exit deferred", { "session.id": sessionID, nudges: exitNudges })
               continue
             }
             yield* Effect.logInfo("exiting loop", { "session.id": sessionID })
             break
+          }
+
+          const repeating = loopNudges < LoopGuard.MAX_NUDGES ? LoopGuard.loopNudge(msgs) : undefined
+          if (repeating) {
+            loopNudges++
+            yield* nudge(lastUser, repeating, { loop_guard_nudge: true })
+            yield* Effect.logInfo("loop guard", { "session.id": sessionID, nudges: loopNudges })
+            continue
           }
 
           step++
