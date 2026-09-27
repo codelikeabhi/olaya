@@ -50,6 +50,13 @@ jobs:
       - name: Setup Bun
         uses: ./.github/actions/setup-bun
 
+      - name: Install ripgrep
+        shell: bash
+        # The tests use a ripgrep on PATH; without one every run downloads it, and one failed
+        # download on a Windows runner timed out six search tests.
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then choco install ripgrep --no-progress -y; else sudo apt-get update -q && sudo apt-get install -y -q ripgrep; fi
+
       - name: Configure git identity
         run: |
           git config --global user.email "ci@users.noreply.github.com"
