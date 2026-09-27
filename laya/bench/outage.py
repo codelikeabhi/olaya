@@ -38,6 +38,7 @@ import hashlib
 import json
 import os
 import random
+import re
 import socket
 import subprocess
 import sys
@@ -62,6 +63,28 @@ PREFIX = "outage5-"
 # fault run and its baseline stay identical up to the fault and a difference after it is the
 # failover's doing.
 SEED = {"seed": 7}
+# Two runs of the same item would still drift apart on things that are not the model's doing: Ollama
+# makes up random tool-call IDs, test runners print their duration, and the system prompt names
+# the provider. The proxy numbers tool calls in order, zeroes durations, and shows `b` the same
+# provider name as `a`, so a perfect failover reproduces its baseline exactly.
+DURATION = re.compile(r"\b(in )\d+\.\d+(s\b)")
+
+
+def normalise(body, provider):
+    text = DURATION.sub(r"\g<1>0.00\g<2>", json.dumps({**json.loads(body), **SEED}))
+    return (text.replace("provb/", "prova/") if provider == "b" else text).encode()
+
+
+def renumber(line, ids):
+    """One SSE line from upstream, with its tool-call IDs replaced by call_1, call_2, ... in order."""
+    if not line.startswith(b"data: {"):
+        return line
+    event = json.loads(line[6:])
+    for choice in event.get("choices") or []:
+        for call in (choice.get("delta") or {}).get("tool_calls") or []:
+            if call.get("id"):
+                call["id"] = ids.setdefault(call["id"], f"call_{len(ids) + 1}")
+    return b"data: " + json.dumps(event).encode() + b"\n"
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -92,7 +115,7 @@ def fault(scenario, provider, n_a, after, started_fault):
 async def serve(port, scenario, after, log_path):
     from aiohttp import ClientSession, ClientTimeout, web
 
-    state = {"a": 0, "fault_at": None}
+    state = {"a": 0, "fault_at": None, "ids": {}}
     log = open(log_path, "a")
 
     def record(**entry):
@@ -105,7 +128,7 @@ async def serve(port, scenario, after, log_path):
         body = await request.read()
         chat = request.method == "POST" and path.endswith("chat/completions")
         if chat:
-            body = json.dumps({**json.loads(body), **SEED}).encode()
+            body = normalise(body, provider)
         if chat and provider == "a":
             state["a"] += 1
         f = fault(scenario, provider, state["a"], after, state["fault_at"]) if chat else None
@@ -132,8 +155,8 @@ async def serve(port, scenario, after, log_path):
                 resp = web.StreamResponse(status=up.status, headers={"content-type": up.headers.get("content-type", "application/json")})
                 await resp.prepare(request)
                 chunks = 0
-                async for chunk in up.content.iter_any():
-                    await resp.write(chunk)
+                async for line in up.content:
+                    await resp.write(renumber(line, state["ids"]) if chat else line)
                     chunks += 1
                     if f == "drop" and chunks >= 3:
                         request.transport.close()  # cut the stream mid-answer
@@ -318,6 +341,13 @@ def self_test():
     rerun = {"tool": "bash", "callID": "call_4", "state": {"status": "completed", "input": {"c": "pytest"}, "time": {"start": 1_007_000, "end": 1_007_500}}}
     assert analyse({"timed_out": False, "olaya_exit": "0"}, log, [{"type": "tool_use", "part": test}, {"type": "tool_use", "part": rerun}], "ZX-abc")["duplicates"] == 0
     assert lcb_paired([0.0, 0.0, 0.0]) == 0.0 and lcb_paired([]) is None
+    # normalisation: durations zeroed, `b` named like `a`, tool calls numbered in order
+    body = json.loads(normalise(json.dumps({"m": "12 failed in 0.03s; model ID is provb/x"}), "b"))
+    assert body == {"m": "12 failed in 0.00s; model ID is prova/x", "seed": 7}, body
+    ids = {}
+    line = b'data: {"choices":[{"delta":{"tool_calls":[{"id":"call_zq9","index":0}]}}]}\n'
+    assert b'"call_1"' in renumber(line, ids) and b'"call_1"' in renumber(line, ids)
+    assert b'"call_2"' in renumber(line.replace(b"zq9", b"k2"), ids) and renumber(b": keep-alive\n", ids) == b": keep-alive\n"
     return True
 
 
