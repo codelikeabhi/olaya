@@ -66,6 +66,26 @@ describe("loop guard", () => {
     ).toContain("same `bash` call")
   })
 
+  test("re-delegating the same task is a loop even though each run gets a new session ID", () => {
+    // Track E, 2026-09-27: 207 identical `task` calls, each subagent answering "I'll start by..."
+    const delegate = (id: string) =>
+      tool(
+        "task",
+        { subagent_type: "explore", prompt: "Refactor markdown.py" },
+        undefined,
+        `<task id="${id}" state="completed"> <task_result> I'll start by analyzing it. </task_result>`,
+      )
+    expect(
+      LoopGuard.loopNudge(
+        history(
+          delegate("ses_f1f38ba79ffexcbAIx6Kqn4aPq"),
+          delegate("ses_f1f3862c0ffeeRFSAZu13rIOuC"),
+          delegate("ses_f1f384dbeffegiyAcrMXrG58wV"),
+        ),
+      ),
+    ).toContain("same `task` call")
+  })
+
   test("the same failure on different files is not a repeat", () => {
     const edit = (file: string) => tool("edit", { filePath: file, oldString: "x" }, notFound)
     const write = (file: string) => tool("write", { filePath: file })
