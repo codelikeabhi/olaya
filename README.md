@@ -79,6 +79,8 @@ then returns to your model once it is available again:
 - **Only one provider?** `"failover": {}` turns this on without fallbacks: a usage limit or an
   outage is waited out on your model instead of ending the session. Failures that waiting can't
   fix (a rejected key, a request the provider refuses) still stop it, with the provider's error.
+- **Starting `olaya run` from another program?** Pass `--dir`. Without it Olaya works in `$PWD`,
+  which a parent process usually leaves pointing at its own directory; Olaya warns when the two differ.
 - **If the process itself dies,** `olaya run --supervise` restarts the task on the same session.
   Restarts back off and are capped at 6 an hour.
 - **If the model loops** (the same tool call three times running, or three failures with the same

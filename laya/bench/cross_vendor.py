@@ -74,7 +74,9 @@ def run(n_items, binary=BINARY, after=2, timeout=600):
                 task = route.task_text(it) + f"\n\nProject note: this release is codenamed {codename(it['id'])}. Mention the codename in your final message."
                 config = {"provider": {"anthropic": {"options": {"baseURL": f"http://127.0.0.1:{port}/a/v1"}}},
                           "failover": {"models": [FALLBACK], "stall_timeout": 120}}
-                env = {**os.environ, "OLAYA_CONFIG_CONTENT": json.dumps(config), "OLAYA_DISABLE_EXTERNAL_SKILLS": "1",
+                # olaya run works in $PWD, not the process directory: without both, the first runs
+                # worked (and wrote files) in this benchmark's own directory
+                env = {**os.environ, "PWD": work, "OLAYA_CONFIG_CONTENT": json.dumps(config), "OLAYA_DISABLE_EXTERNAL_SKILLS": "1",
                        "OLAYA_DISABLE_CLAUDE_CODE": "1", "OLAYA_DISABLE_AUTOUPDATE": "1"}
                 try:
                     for _ in range(50):
@@ -86,7 +88,7 @@ def run(n_items, binary=BINARY, after=2, timeout=600):
                     timed_out = False
                     with open(os.path.join(out, "0.events.jsonl"), "w") as events:
                         try:
-                            done = subprocess.run([binary, "run", "-m", PRIMARY, "--format", "json", "--dangerously-skip-permissions",
+                            done = subprocess.run([binary, "run", "-m", PRIMARY, "--dir", work, "--format", "json", "--dangerously-skip-permissions",
                                                    "--", task], cwd=work, env=env, stdout=events, stderr=subprocess.DEVNULL, timeout=timeout)
                             code = done.returncode
                         except subprocess.TimeoutExpired:

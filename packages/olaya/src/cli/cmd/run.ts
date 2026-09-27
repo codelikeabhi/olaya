@@ -340,6 +340,14 @@ export const RunCommand = effectCmd({
       const replay = args.replay === false ? false : args.replay || args["replay-limit"] !== undefined
 
       const root = Filesystem.resolve(process.env.PWD ?? process.cwd())
+      // A program that starts `olaya run` in another directory usually leaves its own $PWD behind,
+      // and $PWD wins (it keeps paths as typed through symlinks): say so, since the agent will work there.
+      if (!args.dir && !args.attach && root !== Filesystem.resolve(process.cwd()))
+        UI.println(
+          UI.Style.TEXT_WARNING +
+            `olaya: working in ${root} ($PWD), not the process directory ${process.cwd()}; pass --dir to choose` +
+            UI.Style.TEXT_NORMAL,
+        )
       const directory = (() => {
         if (!args.dir) return args.attach ? undefined : root
         if (args.attach) return args.dir
