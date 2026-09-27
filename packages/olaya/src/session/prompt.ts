@@ -1358,7 +1358,10 @@ const layer = Layer.effect(
             break
           }
 
-          const repeating = loopNudges < LoopGuard.MAX_NUDGES ? LoopGuard.loopNudge(msgs) : undefined
+          const repeating =
+            loopNudges < LoopGuard.MAX_NUDGES && !truthy("OLAYA_DISABLE_LOOP_GUARD")
+              ? LoopGuard.loopNudge(msgs)
+              : undefined
           if (repeating) {
             loopNudges++
             yield* nudge(lastUser, repeating, { loop_guard_nudge: true })
