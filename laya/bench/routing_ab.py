@@ -41,9 +41,10 @@ def name(pool):
     return f"{pool}-pool"  # names the run directories
 
 
-def variant(arm, binary, pool="claude"):
+def variant(arm, binary, pool="claude", tag=""):
+    """`tag` names a second routed arm (another build of the router) beside the same strongest runs."""
     p = POOLS[pool]
-    v = {"name": f"routing-ab-{arm}", "binary": binary, "secrets": p["secrets"], "timeout": 900, "signin": p.get("signin"),
+    v = {"name": f"routing-ab-{arm}{tag if arm == 'routed' else ''}", "binary": binary, "secrets": p["secrets"], "timeout": 900, "signin": p.get("signin"),
          "pool": tuple(m.split("/", 1)[1] for m in (p["cheap"], p["strong"]) if m.startswith("ollama/"))}
     if arm == "routed":
         return {**v, "cli_model": p["cheap"], "env": {"OLAYA_LAYA_ROUTING": "live", "OLAYA_LAYA_ROUTING_START": "cheapest"},
@@ -51,7 +52,7 @@ def variant(arm, binary, pool="claude"):
     return {**v, "cli_model": p["strong"]}
 
 
-def run(binary, only, budget=None, pool="claude"):
+def run(binary, only, budget=None, pool="claude", tag=""):
     items = [it for f in (route.ITEMS, route.ITEMS.replace("items.jsonl", "items-easy.jsonl"))
              for it in (json.loads(l) for l in open(f)) if it["id"] in only]
     spent = 0.0
@@ -59,8 +60,9 @@ def run(binary, only, budget=None, pool="claude"):
         if budget is not None and spent >= budget:
             print(f"budget reached: ${spent:.2f} of ${budget:.2f}; stopping", flush=True)
             break
-        for arm in ARMS:
-            r = route.run_through_limits(it, name(pool), 0, variant(arm, binary, pool))
+        # a tagged run adds a routed arm only: the strongest runs are the untagged ones
+        for arm in ARMS if not tag else ("routed",):
+            r = route.run_through_limits(it, name(pool), 0, variant(arm, binary, pool, tag))
             spent += cost(r)
             print(f"{arm:9} {it['id']:26} passed={r['passed']} steps={len(r['calls'])} {r['wall_s']}s "
                   f"${cost(r):.4f} (total ${spent:.2f}) {r.get('steps_by_model', '')}", flush=True)
@@ -75,25 +77,25 @@ def protocol_failures(r):
     return sum(1 for tool, _ in r.get("tool_uses", []) if tool == "invalid")
 
 
-def run_dir(pool, arm, item):
-    return os.path.join(os.path.dirname(route.RUNS), "variants", f"routing-ab-{arm}", name(pool), item)
+def run_dir(pool, arm, item, tag=""):
+    return os.path.join(os.path.dirname(route.RUNS), "variants", variant(arm, None, pool, tag)["name"], name(pool), item)
 
 
-def load(pool):
+def load(pool, tag=""):
     """arm -> item -> run record, and the items both arms ran."""
     runs = {arm: {} for arm in ARMS}
     for arm in ARMS:
-        d = os.path.dirname(run_dir(pool, arm, "x"))
+        d = os.path.dirname(run_dir(pool, arm, "x", tag))
         for f in os.listdir(d) if os.path.isdir(d) else []:
             if os.path.exists(os.path.join(d, f, "0.json")):
                 runs[arm][f] = json.load(open(os.path.join(d, f, "0.json")))
     return runs, sorted(i for i in runs["routed"] if i in runs["strongest"])
 
 
-def uncached(pool, arm, item):
+def uncached(pool, arm, item, tag=""):
     """(prompt tokens not read from a cache, all prompt tokens) over a run's steps: cache writes on
     Anthropic, uncached input on OpenAI, which caches without a write price."""
-    path = os.path.join(run_dir(pool, arm, item), "0.events.jsonl")
+    path = os.path.join(run_dir(pool, arm, item, tag), "0.events.jsonl")
     fresh = total = 0
     for e in (json.loads(l) for l in open(path) if l.startswith("{")) if os.path.exists(path) else ():
         if e.get("type") == "step_finish":
@@ -112,19 +114,19 @@ def ratio_ucb(a, b, n=2000, rng=None):
     return round(sum(b) / max(1e-12, sum(a)), 4), round(boot[int(0.975 * n) - 1], 4)
 
 
-def gate(pool="chatgpt"):
+def gate(pool="chatgpt", tag=""):
     """G6's report, router/live-ab.json, from this pool's pairs. Its deviations from the design (k and
     tiers) are written into it."""
-    runs, both = load(pool)
+    runs, both = load(pool, tag)
     if not both:
         raise SystemExit("no pairs yet")
     cost_ratio, cost_ucb = ratio_ucb([cost(runs["strongest"][i]) for i in both], [cost(runs["routed"][i]) for i in both])
-    share = {a: [uncached(pool, a, i) for i in both] for a in ARMS}
+    share = {a: [uncached(pool, a, i, tag) for i in both] for a in ARMS}
     share = {a: sum(f for f, _ in v) / max(1, sum(t for _, t in v)) for a, v in share.items()}
     resolve = paired([float(runs["strongest"][i]["passed"]) for i in both], [float(runs["routed"][i]["passed"]) for i in both])
     rep = {
         "gate": "G6", "generated": time.strftime("%Y-%m-%d %H:%M"), "pool": pool, **{k: POOLS[pool][k] for k in ("cheap", "strong")},
-        "pairs": len(both), "k": 1,
+        "pairs": len(both), "k": 1, "routed_runs": variant("routed", None, pool, tag)["name"],
         "metrics": {"resolve_delta_lcb95": resolve["lcb95"], "cost_ratio_ucb95": cost_ucb,
                     "protocol_failures": sum(protocol_failures(runs["routed"][i]) for i in both),
                     "cache_write_share_ratio": round(share["routed"] / share["strongest"], 4) if share["strongest"] else None},
@@ -143,8 +145,8 @@ def gate(pool="chatgpt"):
     print("->", path)
 
 
-def report(pool="claude"):
-    runs, both = load(pool)
+def report(pool="claude", tag=""):
+    runs, both = load(pool, tag)
     n = max(1, len(both))
     arm = lambda a: {"resolved": round(sum(runs[a][i]["passed"] for i in both) / n, 4),
                      "mean_cost": round(sum(cost(runs[a][i]) for i in both) / n, 4),
@@ -170,13 +172,15 @@ def main(argv=None):
     r.add_argument("--budget", type=float); r.add_argument("--pool", choices=POOLS, default="claude")
     p = sub.add_parser("report"); p.add_argument("--pool", choices=POOLS, default="claude")
     g = sub.add_parser("gate"); g.add_argument("--pool", choices=POOLS, default="chatgpt")
+    for x in (r, p, g):
+        x.add_argument("--tag", default="", help="a second routed arm, e.g. -v2 for another router build")
     a = ap.parse_args(argv)
     if a.cmd == "run":
-        run(a.binary, set(a.only.split(",")), a.budget, a.pool)
+        run(a.binary, set(a.only.split(",")), a.budget, a.pool, a.tag)
     elif a.cmd == "gate":
-        gate(a.pool)
+        gate(a.pool, a.tag)
     else:
-        report(a.pool)
+        report(a.pool, a.tag)
 
 
 if __name__ == "__main__":
