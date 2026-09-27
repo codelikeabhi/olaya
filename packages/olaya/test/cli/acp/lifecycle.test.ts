@@ -18,7 +18,9 @@ describe("olaya acp lifecycle subprocess", () => {
         const acp = yield* olaya.acp()
         acp.close()
 
-        const code = yield* Effect.promise(() => acp.exited).pipe(Effect.timeout(Duration.seconds(5)))
+        // 20 s, not 5: the process may still be starting on GitHub's Windows runner (5.5 s there); one that
+        // never exits still fails
+        const code = yield* Effect.promise(() => acp.exited).pipe(Effect.timeout(Duration.seconds(20)))
         expect(code).toBe(0)
       }),
     60_000,
