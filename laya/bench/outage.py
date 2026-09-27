@@ -116,10 +116,15 @@ def fault(scenario, provider, n_a, after, started_fault):
         return (529, {"type": "error", "error": {"type": "overloaded_error", "message": "Overloaded"}}, {})
     if scenario == "server":
         return (500, {"error": {"message": "internal server error"}}, {})
+    if scenario == "credit":  # Anthropic's out-of-credit answer
+        return (400, {"type": "error", "error": {"type": "invalid_request_error", "message":
+                "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."}}, {})
     return scenario  # "stall" and "drop" are streamed faults
 
 
-async def serve(port, scenario, after, log_path):
+async def serve(port, scenario, after, log_path, upstream=UPSTREAM, raw=False):
+    """`upstream`: where requests go (Ollama by default). `raw`: forward bodies and streams as they
+    are, for a real provider: the seed and ID rewriting are for making local runs repeat."""
     from aiohttp import ClientSession, ClientTimeout, web
 
     state = {"a": 0, "fault_at": None, "ids": {}}
@@ -133,8 +138,8 @@ async def serve(port, scenario, after, log_path):
         provider = request.match_info["provider"]
         path = request.match_info["path"]
         body = await request.read()
-        chat = request.method == "POST" and path.endswith("chat/completions")
-        if chat:
+        chat = request.method == "POST" and (path.endswith("chat/completions") or path.endswith("messages"))
+        if chat and not raw:
             body = normalise(body, provider)
         if chat and provider == "a":
             state["a"] += 1
@@ -158,12 +163,12 @@ async def serve(port, scenario, after, log_path):
                 return resp
         async with ClientSession(timeout=ClientTimeout(total=1200)) as session:
             headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host", "content-length")}
-            async with session.request(request.method, f"{UPSTREAM}/{path}", data=body, headers=headers) as up:
+            async with session.request(request.method, f"{upstream}/{path}", data=body, headers=headers) as up:
                 resp = web.StreamResponse(status=up.status, headers={"content-type": up.headers.get("content-type", "application/json")})
                 await resp.prepare(request)
                 chunks = 0
                 async for line in up.content:
-                    await resp.write(renumber(line, state["ids"]) if chat else line)
+                    await resp.write(renumber(line, state["ids"]) if chat and not raw else line)
                     chunks += 1
                     if f == "drop" and chunks >= 3:
                         request.transport.close()  # cut the stream mid-answer
@@ -377,13 +382,14 @@ def main(argv=None):
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("proxy"); p.add_argument("--port", type=int, required=True); p.add_argument("--scenario", required=True)
     p.add_argument("--after", type=int, default=1); p.add_argument("--log", required=True)
+    p.add_argument("--upstream", default=UPSTREAM); p.add_argument("--raw", action="store_true")
     r = sub.add_parser("run"); r.add_argument("--binary", required=True); r.add_argument("--items", type=int, default=6)
     r.add_argument("--scenarios", default=",".join(SCENARIOS))
     sub.add_parser("report")
     sub.add_parser("demo")
     a = ap.parse_args(argv)
     if a.cmd == "proxy":
-        asyncio.run(serve(a.port, a.scenario, a.after, a.log))
+        asyncio.run(serve(a.port, a.scenario, a.after, a.log, a.upstream, a.raw))
     elif a.cmd == "run":
         run(a.binary, a.items, scenarios=a.scenarios.split(","))
     elif a.cmd == "report":

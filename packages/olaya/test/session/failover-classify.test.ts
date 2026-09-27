@@ -175,6 +175,24 @@ const cases: Case[] = [
     "disable",
   ],
   [
+    "anthropic credit balance too low (a 400, as the real API answers)",
+    {
+      providerID: "anthropic",
+      status: 400,
+      message:
+        "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.",
+      body: json({
+        type: "error",
+        error: {
+          type: "invalid_request_error",
+          message:
+            "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.",
+        },
+      }),
+    },
+    "disable",
+  ],
+  [
     "openai credit exhausted",
     {
       providerID: "openai",

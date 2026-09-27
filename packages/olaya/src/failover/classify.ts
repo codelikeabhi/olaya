@@ -99,6 +99,8 @@ export function classify(failure: Failure, now = Date.now()): Verdict {
       "insufficient balance",
     ) ||
     has("you have reached your specified", "used all available credits", "monthly spending limit") ||
+    // Anthropic: a 400 invalid_request_error, not a billing type (found on the real API, 2026-09-27)
+    has("credit balance is too low") ||
     (family !== "alibaba" && has("insufficient_quota")) ||
     (status === 402 && !has("openrouter_in_flight_budget"))
   )
