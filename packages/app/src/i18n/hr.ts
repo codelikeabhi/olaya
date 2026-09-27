@@ -210,7 +210,7 @@ export const dict = {
   "dialog.model.manage": "Upravljanje modelima",
   "dialog.model.manage.description": "Prilagodite koji se modeli pojavljuju u biraču modela.",
   "dialog.model.manage.provider.toggle": "Uključi sve {{provider}} modele",
-  "dialog.model.unpaid.freeModels.title": "Besplatne modele nudi Olaya",
+  "dialog.model.unpaid.freeModels.title": "Besplatne modele nudi OpenCode", // olaya-rename:keep
   "dialog.model.unpaid.addMore.title": "Dodajte još modela popularnih dobavljača",
   "dialog.model.unpaid.viewMoreProviders": "Pogledajte više od 70 pružatelja usluga",
   "dialog.provider.viewAll": "Prikaži više pružatelja usluga",

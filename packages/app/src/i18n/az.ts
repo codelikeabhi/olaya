@@ -209,7 +209,7 @@ export const dict = {
   "dialog.model.manage": "Modelləri idarə et",
   "dialog.model.manage.description": "Model seçicisində hansı modellərin görünəcəyini fərdiləşdir.",
   "dialog.model.manage.provider.toggle": "Bütün {{provider}} modellərini aç/bağla",
-  "dialog.model.unpaid.freeModels.title": "Olaya tərəfindən təqdim olunan pulsuz modellər",
+  "dialog.model.unpaid.freeModels.title": "OpenCode tərəfindən təqdim olunan pulsuz modellər", // olaya-rename:keep
   "dialog.model.unpaid.addMore.title": "Populyar provayderlərdən daha çox model əlavə edin",
   "dialog.model.unpaid.viewMoreProviders": "Daha 70+ provayderə baxın",
   "dialog.provider.viewAll": "Daha çox provayder göstər",

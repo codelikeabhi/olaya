@@ -206,7 +206,7 @@ export const dict = {
   "dialog.model.manage": "ຈັດການຕົວແບບ",
   "dialog.model.manage.description": "ປັບແຕ່ງຕົວແບບທີ່ປາກົດຢູ່ໃນຕົວເລືອກຕົວແບບ.",
   "dialog.model.manage.provider.toggle": "ສະຫຼັບທຸກລຸ້ນ {{provider}}",
-  "dialog.model.unpaid.freeModels.title": "ແບບຟຣີສະໜອງໃຫ້ໂດຍ Olaya",
+  "dialog.model.unpaid.freeModels.title": "ແບບຟຣີສະໜອງໃຫ້ໂດຍ OpenCode", // olaya-rename:keep
   "dialog.model.unpaid.addMore.title": "ເພີ່ມຮູບແບບເພີ່ມເຕີມຈາກຜູ້ໃຫ້ບໍລິການທີ່ນິຍົມ",
   "dialog.model.unpaid.viewMoreProviders": "ເບິ່ງ 70+ ຜູ້ໃຫ້ບໍລິການເພີ່ມເຕີມ",
   "dialog.provider.viewAll": "ສະແດງຜູ້ໃຫ້ບໍລິການເພີ່ມເຕີມ",

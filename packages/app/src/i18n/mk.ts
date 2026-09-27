@@ -207,7 +207,7 @@ export const dict = {
   "dialog.model.manage": "Управувајте со моделите",
   "dialog.model.manage.description": "Прилагодете кои модели се појавуваат во избирачот на модели.",
   "dialog.model.manage.provider.toggle": "Вклучете ги сите {{provider}} модели",
-  "dialog.model.unpaid.freeModels.title": "Бесплатни модели обезбедени од Olaya",
+  "dialog.model.unpaid.freeModels.title": "Бесплатни модели обезбедени од OpenCode", // olaya-rename:keep
   "dialog.model.unpaid.addMore.title": "Додадете повеќе модели од популарни провајдери",
   "dialog.model.unpaid.viewMoreProviders": "Видете повеќе од 70 провајдери",
   "dialog.provider.viewAll": "Прикажи повеќе провајдери",

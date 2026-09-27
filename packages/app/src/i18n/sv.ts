@@ -208,7 +208,7 @@ export const dict = {
   "dialog.model.manage": "Hantera modeller",
   "dialog.model.manage.description": "Anpassa vilka modeller som visas i modellväljaren.",
   "dialog.model.manage.provider.toggle": "Växla alla {{provider}}-modeller",
-  "dialog.model.unpaid.freeModels.title": "Gratis modeller tillhandahålls av Olaya",
+  "dialog.model.unpaid.freeModels.title": "Gratis modeller tillhandahålls av OpenCode", // olaya-rename:keep
   "dialog.model.unpaid.addMore.title": "Lägg till fler modeller från populära leverantörer",
   "dialog.model.unpaid.viewMoreProviders": "Se fler än 70 leverantörer",
   "dialog.provider.viewAll": "Visa fler leverantörer",

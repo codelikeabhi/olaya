@@ -208,7 +208,7 @@ export const dict = {
   "dialog.model.manage": "Gestionar models",
   "dialog.model.manage.description": "Personalitza quins models apareixen al selector de models.",
   "dialog.model.manage.provider.toggle": "Canvia tots els {{provider}} models",
-  "dialog.model.unpaid.freeModels.title": "Models gratuïts proporcionats per Olaya",
+  "dialog.model.unpaid.freeModels.title": "Models gratuïts proporcionats per OpenCode", // olaya-rename:keep
   "dialog.model.unpaid.addMore.title": "Afegiu més models de proveïdors populars",
   "dialog.model.unpaid.viewMoreProviders": "Consulta més de 70 proveïdors més",
   "dialog.provider.viewAll": "Mostra més proveïdors",

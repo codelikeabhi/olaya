@@ -206,7 +206,7 @@ export const dict = {
   "dialog.model.manage": "Gestionează modelele",
   "dialog.model.manage.description": "Personalizează ce modele apar în selectorul de modele.",
   "dialog.model.manage.provider.toggle": "Activează toate modelele {{provider}}",
-  "dialog.model.unpaid.freeModels.title": "Modele gratuite oferite de Olaya",
+  "dialog.model.unpaid.freeModels.title": "Modele gratuite oferite de OpenCode", // olaya-rename:keep
   "dialog.model.unpaid.addMore.title": "Adaugă mai multe modele de la furnizori populari",
   "dialog.model.unpaid.viewMoreProviders": "Vezi peste 70 de furnizori",
   "dialog.provider.viewAll": "Afișează mai mulți furnizori",

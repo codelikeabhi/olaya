@@ -206,7 +206,7 @@ export const dict = {
   "dialog.model.manage": "Správa modelů",
   "dialog.model.manage.description": "Upravte, které modely se zobrazí ve voliči modelů.",
   "dialog.model.manage.provider.toggle": "Přepnout všechny modely {{provider}}",
-  "dialog.model.unpaid.freeModels.title": "Bezplatné modely poskytované Olaya",
+  "dialog.model.unpaid.freeModels.title": "Bezplatné modely poskytované OpenCode", // olaya-rename:keep
   "dialog.model.unpaid.addMore.title": "Přidejte další modely od oblíbených poskytovatelů",
   "dialog.model.unpaid.viewMoreProviders": "Zobrazit více než 70 dalších poskytovatelů",
   "dialog.provider.viewAll": "Zobrazit další poskytovatele",

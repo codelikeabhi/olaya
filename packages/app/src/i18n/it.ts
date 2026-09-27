@@ -115,7 +115,7 @@ export const dict = {
   "dialog.model.manage": "Gestisci modelli",
   "dialog.model.manage.description": "Personalizza quali modelli appaiono nel selettore del modello.",
   "dialog.model.manage.provider.toggle": "Attiva o disattiva tutti i modelli {{provider}}",
-  "dialog.model.unpaid.freeModels.title": "Modelli gratuiti forniti da Olaya",
+  "dialog.model.unpaid.freeModels.title": "Modelli gratuiti forniti da OpenCode", // olaya-rename:keep
   "dialog.model.unpaid.addMore.title": "Aggiungi altri modelli dai provider più diffusi",
   "dialog.model.unpaid.viewMoreProviders": "Scopri oltre 70 provider",
   "dialog.provider.viewAll": "Mostra altri provider",

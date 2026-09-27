@@ -210,7 +210,7 @@ export const dict = {
   "dialog.model.manage": "މޮޑެލްތައް މެނޭޖްކުރުން",
   "dialog.model.manage.description": "މޮޑެލް ސެލެކްޓަރގައި ފެންނަނީ ކޮން މޮޑެލްތަކެއްކަން ކަސްޓަމައިޒް ކުރުން.",
   "dialog.model.manage.provider.toggle": "ހުރިހާ {{provider}} މޮޑެލްތަކެއް ޓޮގްލް ކުރާށެވެ",
-  "dialog.model.unpaid.freeModels.title": "ހިލޭ މޮޑެލްތައް ފޯރުކޮށްދެނީ Olaya އިންނެވެ",
+  "dialog.model.unpaid.freeModels.title": "ހިލޭ މޮޑެލްތައް ފޯރުކޮށްދެނީ OpenCode އިންނެވެ", // olaya-rename:keep
   "dialog.model.unpaid.addMore.title": "މަޝްހޫރު ޕްރޮވައިޑަރުންގެ އިތުރު މޮޑެލްތައް އިތުރުކުރުން",
   "dialog.model.unpaid.viewMoreProviders": "އިތުރު 70+ ޕްރޮވައިޑަރުން ބައްލަވާށެވެ",
   "dialog.provider.viewAll": "އިތުރު ޕްރޮވައިޑަރުން ދައްކާށެވެ",

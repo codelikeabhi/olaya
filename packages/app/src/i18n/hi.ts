@@ -214,7 +214,7 @@ export const dict = {
   "dialog.model.manage": "मॉडल प्रबंधित करें",
   "dialog.model.manage.description": "तय करें कि मॉडल चयनकर्ता में कौन-से मॉडल दिखाई दें।",
   "dialog.model.manage.provider.toggle": "सभी {{provider}} मॉडल को टॉगल करें",
-  "dialog.model.unpaid.freeModels.title": "Olaya द्वारा उपलब्ध निःशुल्क मॉडल",
+  "dialog.model.unpaid.freeModels.title": "OpenCode द्वारा उपलब्ध निःशुल्क मॉडल", // olaya-rename:keep
   "dialog.model.unpaid.addMore.title": "लोकप्रिय प्रोवाइडर से अधिक मॉडल जोड़ें",
   "dialog.model.unpaid.viewMoreProviders": "70+ अधिक प्रोवाइडर देखें",
   "dialog.provider.viewAll": "और प्रोवाइडर दिखाएँ",

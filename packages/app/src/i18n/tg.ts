@@ -207,7 +207,7 @@ export const dict = {
   "dialog.model.manage": "Моделҳоро идора кунед",
   "dialog.model.manage.description": "Муайян кунед, ки кадом моделҳо дар интихоби модел пайдо мешаванд.",
   "dialog.model.manage.provider.toggle": "Ҳама моделҳои {{provider}}-ро иваз кунед",
-  "dialog.model.unpaid.freeModels.title": "Моделҳои ройгон аз ҷониби Olaya пешниҳодшуда",
+  "dialog.model.unpaid.freeModels.title": "Моделҳои ройгон аз ҷониби OpenCode пешниҳодшуда", // olaya-rename:keep
   "dialog.model.unpaid.addMore.title": "Моделҳои бештар аз провайдерҳои маъмул илова кунед",
   "dialog.model.unpaid.viewMoreProviders": "Ба 70+ провайдерҳои дигар нигаред",
   "dialog.provider.viewAll": "Провайдерҳои бештарро нишон диҳед",

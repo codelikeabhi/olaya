@@ -213,7 +213,7 @@ export const dict = {
   "dialog.model.manage": "ماڈل دا انتظام کرو",
   "dialog.model.manage.description": "ماڈل سلیکٹر وچ کیہڑے ماڈل دکھائی دیندے نیں، اپنی مرضی دے مطابق بناؤ۔",
   "dialog.model.manage.provider.toggle": "{{provider}} دے سارے ماڈل ٹوگل کرو",
-  "dialog.model.unpaid.freeModels.title": "Olaya دے ذریعہ فراہم کردہ مفت ماڈل",
+  "dialog.model.unpaid.freeModels.title": "OpenCode دے ذریعہ فراہم کردہ مفت ماڈل", // olaya-rename:keep
   "dialog.model.unpaid.addMore.title": "مقبول پرووائیڈراں توں ہور ماڈل شامل کرو",
   "dialog.model.unpaid.viewMoreProviders": "70+ ہور پرووائیڈر ویکھو",
   "dialog.provider.viewAll": "ہور پرووائیڈر وکھاؤ",

@@ -206,7 +206,7 @@ export const dict = {
   "dialog.model.manage": "Urus model",
   "dialog.model.manage.description": "Sesuaikan model yang dipaparkan dalam pemilih model.",
   "dialog.model.manage.provider.toggle": "Togol semua model {{provider}}",
-  "dialog.model.unpaid.freeModels.title": "Model percuma yang disediakan oleh Olaya",
+  "dialog.model.unpaid.freeModels.title": "Model percuma yang disediakan oleh OpenCode", // olaya-rename:keep
   "dialog.model.unpaid.addMore.title": "Tambah lebih banyak model daripada penyedia popular",
   "dialog.model.unpaid.viewMoreProviders": "Lihat 70+ lagi penyedia",
   "dialog.provider.viewAll": "Tunjukkan lebih banyak penyedia",

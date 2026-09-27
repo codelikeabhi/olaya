@@ -22,8 +22,8 @@ test("creates a session in a new project, connects OpenCode Go, and selects its 
     provider: () => ({
       all: [
         {
-          id: "olaya",
-          name: "Olaya",
+          id: "opencode", // olaya-rename:keep (OpenCode's free-model provider)
+          name: "OpenCode", // olaya-rename:keep
           models: {
             "free-model": {
               id: "free-model",
@@ -46,8 +46,8 @@ test("creates a session in a new project, connects OpenCode Go, and selects its 
           },
         },
       ],
-      connected: connectedGo ? ["olaya", "opencode-go"] : ["olaya"],
-      default: { providerID: "olaya", modelID: "free-model" },
+      connected: connectedGo ? ["opencode", "opencode-go"] : ["opencode"], // olaya-rename:keep
+      default: { providerID: "opencode", modelID: "free-model" }, // olaya-rename:keep
     }),
     integrationMethods: { "opencode-go": [{ type: "api", label: "API key" }] },
     onConnectKey: (input) => {
@@ -79,7 +79,7 @@ test("creates a session in a new project, connects OpenCode Go, and selects its 
 
   const modelControl = page.locator('[data-action="prompt-model"]')
   await modelControl.click()
-  await expect(page.locator('[data-section="free-models"]')).toContainText("Free models provided by Olaya")
+  await expect(page.locator('[data-section="free-models"]')).toContainText("Free models provided by OpenCode") // olaya-rename:keep
 
   await page.locator('[data-provider-id="opencode-go"]').click()
   await page.locator('[data-input="provider-api-key"]').fill("mock-go-api-key")
