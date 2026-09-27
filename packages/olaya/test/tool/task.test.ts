@@ -504,6 +504,33 @@ describe("tool.task", () => {
     }),
   )
 
+  it.instance("execute creates a child when task_id is malformed, as small models invent", () =>
+    Effect.gen(function* () {
+      const sessions = yield* Session.Service
+      const { chat, assistant } = yield* seed()
+      const tool = yield* TaskTool
+      const def = yield* tool.init()
+      const promptOps = stubOps({ text: "created" })
+
+      const result = yield* def.execute(
+        { description: "implement", prompt: "implement the cipher", subagent_type: "general", task_id: "1" },
+        {
+          sessionID: chat.id,
+          messageID: assistant.id,
+          agent: "build",
+          abort: new AbortController().signal,
+          extra: { promptOps },
+          messages: [],
+          metadata: () => Effect.void,
+          ask: () => Effect.void,
+        },
+      )
+
+      expect(yield* sessions.children(chat.id)).toHaveLength(1)
+      expect(result.output).toContain(`<task id="${result.metadata.sessionId}" state="completed">`)
+    }),
+  )
+
   it.instance("prevents subagents from launching subagents by default", () =>
     Effect.gen(function* () {
       const sessions = yield* Session.Service

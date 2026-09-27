@@ -133,8 +133,13 @@ export const TaskTool = Tool.define(
         return yield* Effect.fail(new Error(`Unknown agent type: ${params.subagent_type} is not a valid agent type`))
       }
 
-      const session = params.task_id
-        ? yield* sessions.get(SessionID.make(params.task_id)).pipe(Effect.catchCause(() => Effect.succeed(undefined)))
+      // an unknown or malformed task_id (small models invent "1") starts a fresh task instead of failing
+      const taskID = params.task_id
+      const session = taskID
+        ? yield* Effect.sync(() => SessionID.make(taskID)).pipe(
+            Effect.flatMap((id) => sessions.get(id)),
+            Effect.catchCause(() => Effect.succeed(undefined)),
+          )
         : undefined
       const childPermission = deriveSubagentSessionPermission({
         parentSessionPermission: parent.permission ?? [],
