@@ -61,9 +61,10 @@ OUTAGE_S = 60
 # IDs, test timings); "outage6-*" ran build f85db16, whose loop guard missed a task re-delegated 207
 # times. "outage7-*": the G9 pilot's window, a fixed seed and normalised requests (SEED, normalise),
 # on build 944b6b3 (both review rounds, the announced-step nudge); its 30 s stall limit stalled
-# healthy runs whose model was writing a long tool call. "outage8-*": a 240 s stall limit, on a build
-# where a stall cools for a minute instead of the growing backoff.
-PREFIX = "outage8-"
+# healthy runs whose model was writing a long tool call; "outage8-*" (bd6155e) still retried a stall
+# once, another 240 s. "outage9-*": a 240 s stall limit, on build 0b0f524, where a stall switches at
+# once and cools for a minute.
+PREFIX = "outage9-"
 STALL_S = 240
 # Forced on every chat request: sampling as usual, but the same request gets the same answer, so a
 # fault run and its baseline stay identical up to the fault and a difference after it is the
