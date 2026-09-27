@@ -99,7 +99,7 @@ def olaya_config(model, extra=None, top=None, pool=()):
 SECRETS = os.path.expanduser("~/.local/share/olaya/harness/secrets.env")
 
 
-def run_one(item, model, k, variant=None):
+def run_one(item, model, k, variant=None, timeout=TIMEOUT_S):
     """`variant` ({name, model, config, env, binary, timeout, cli_model, secrets}) runs the same item under changed settings,
     into its own directory: model-entry and top-level config overrides, extra environment, another
     build, another time limit."""
@@ -138,7 +138,7 @@ def run_one(item, model, k, variant=None):
                "-e", "OLAYA_DISABLE_AUTOUPDATE=1", item.get("image", IMAGE), "sh", "-c", script]
         timed_out = False
         try:
-            subprocess.run(cmd, capture_output=True, timeout=v.get("timeout", TIMEOUT_S))
+            subprocess.run(cmd, capture_output=True, timeout=v.get("timeout", timeout))
         except subprocess.TimeoutExpired:
             timed_out = True
             subprocess.run(["docker", "kill", name], capture_output=True)
@@ -179,14 +179,14 @@ def calls_from(events, model):
     return calls
 
 
-def run(tiers, k, only=None, items_path=ITEMS):
+def run(tiers, k, only=None, items_path=ITEMS, timeout=TIMEOUT_S):
     items = [json.loads(l) for l in open(items_path)]
     if only:
         items = [it for it in items if it["id"] in only]
     for model in tiers:            # one tier at a time keeps one model resident
         for rep in range(k):
             for it in items:
-                r = run_one(it, model, rep)
+                r = run_one(it, model, rep, timeout=timeout)
                 print(f"{model:16} {it['id']:28} k={rep} passed={r['passed']} steps={len(r['calls'])} {r['wall_s']}s", flush=True)
 
 
@@ -323,6 +323,7 @@ def main(argv=None):
     b.add_argument("--max-difficulty", type=int); b.add_argument("--out", default=ITEMS)
     r = sub.add_parser("run"); r.add_argument("--tiers", required=True); r.add_argument("--k", type=int, default=2); r.add_argument("--only")
     r.add_argument("--items", default=ITEMS)
+    r.add_argument("--timeout", type=int, default=TIMEOUT_S, help="seconds per run (small single-function tasks: 180)")
     p = sub.add_parser("report"); p.add_argument("--tiers", default="qwen3-0.6b-16k,qwen3-4b-16k,qwen3-8b-16k,qwen3-14b-16k")
     sh = sub.add_parser("shadow-smoke"); sh.add_argument("--model", default="qwen3-4b-16k"); sh.add_argument("--pool", default="qwen3-0.6b-16k")
     sh.add_argument("--binary", required=True); sh.add_argument("--n", type=int, default=4)
@@ -331,7 +332,7 @@ def main(argv=None):
     if a.cmd == "build":
         build(a.exercism, a.n, max_difficulty=a.max_difficulty, out=a.out)
     elif a.cmd == "run":
-        run(a.tiers.split(","), a.k, set(a.only.split(",")) if a.only else None, a.items)
+        run(a.tiers.split(","), a.k, set(a.only.split(",")) if a.only else None, a.items, a.timeout)
     elif a.cmd == "report":
         report(a.tiers.split(","))
     elif a.cmd == "shadow-smoke":
