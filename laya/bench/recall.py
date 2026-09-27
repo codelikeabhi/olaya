@@ -28,6 +28,7 @@ import ast
 import glob
 import hashlib
 import json
+import math
 import os
 import random
 import re
@@ -186,20 +187,25 @@ def pins(s):
 
 
 def laya_policy(s, budget, scores=None):
-    """Pins, then items by P(needed later) x recovery cost per token, then stubs for the rest.
-    Without scores it ranks by recency, which is the pins-and-stubs ablation."""
+    """Pins; then a stub for every other tool result (cheap, and it keeps the call, error lines and
+    paths); then items upgraded to whole by P(needed later) x recovery cost per token^0.75.
+    Without scores it ranks by recency, which is the pins-and-stubs ablation. Stubs-first and the
+    0.75 exponent were chosen on the dev split (docs/worklog.md), never on Track D."""
     h = s["items"][: s["cut"]]
     plan = pins(s)
     used = cost(s, plan)
     scores = scores or [it["turn"] / max(1, h[-1]["turn"]) for it in h]
+    # n ** 0.75 as sqrt(n) * sqrt(sqrt(n)): square roots round the same in Python and TypeScript
+    per_token = lambda n: math.sqrt(n) * math.sqrt(math.sqrt(n))
     rest = sorted((i for i in range(len(h)) if i not in plan),
-                  key=lambda i: -scores[i] * RECOVERY[kind_of(h[i])] / max(1, size(h[i])))
+                  key=lambda i: -scores[i] * RECOVERY[kind_of(h[i])] / per_token(max(1, size(h[i]))))
     for i in rest:
-        if used + size(h[i]) <= budget:
-            plan[i], used = "keep", used + size(h[i])
-    for i in rest:
-        if i not in plan and h[i]["role"] == "tool" and used + size(h[i], "stub") <= budget:
+        if h[i]["role"] == "tool" and used + size(h[i], "stub") <= budget:
             plan[i], used = "stub", used + size(h[i], "stub")
+    for i in rest:
+        extra = size(h[i]) - (size(h[i], "stub") if plan.get(i) == "stub" else 0)
+        if plan.get(i) != "keep" and used + extra <= budget:
+            plan[i], used = "keep", used + extra
     return plan
 
 
@@ -739,6 +745,8 @@ def self_test():
     assert set(laya_policy(s, 0)) == {0, 2, 3, 4}
     # with room, the remaining item is kept whole; with a little room, stubbed
     assert laya_policy(s, 54)[1] == "keep" and laya_policy(s, 42 + size(s["items"][1], "stub"))[1] == "stub"
+    # stubs come before whole items: with room for the stub plus a little, it stays a stub
+    assert laya_policy(s, 42 + size(s["items"][1], "stub") + 1)[1] == "stub"
     return True
 
 

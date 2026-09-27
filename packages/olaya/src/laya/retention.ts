@@ -4,8 +4,10 @@
  * model-written summary:
  * - pins, chosen by provenance and never dropped: user messages, the last 3 turns, and the tail
  *   of the latest run of each test or build command;
- * - then items by P(needed later) x recovery cost per token, up to a token budget;
- * - then extractive stubs (call, length, first and last error line, paths) for the rest.
+ * - then an extractive stub (call, length, first and last error line, paths) for every other
+ *   tool result;
+ * - then items upgraded to whole by P(needed later) x recovery cost per token^0.75, up to a
+ *   token budget (stubs-first and the exponent were chosen on the dev split).
  *
  * The policy mirrors laya/bench/recall.py (`laya_policy`), and test/laya/retention.test.ts checks
  * that both give the same plans on fixtures the Python writes. With no scores it ranks by recency,
@@ -85,23 +87,27 @@ export function plan(items: Item[], budget: number, scores?: number[]) {
   let used = [...result].reduce((sum, [i, how]) => sum + size(items[i]!, how), 0)
   const last = Math.max(1, items.at(-1)?.turn ?? 0)
   const score = scores ?? items.map((item) => item.turn / last)
+  // n ** 0.75 as sqrt(n) * sqrt(sqrt(n)): square roots round the same here and in Python
+  const perToken = (n: number) => Math.sqrt(n) * Math.sqrt(Math.sqrt(n))
   const value = (i: number) => {
     const k = kind(items[i]!)
-    return k === "user" ? Infinity : (-score[i]! * RECOVERY[k]) / Math.max(1, size(items[i]!))
+    return k === "user" ? Infinity : (-score[i]! * RECOVERY[k]) / perToken(Math.max(1, size(items[i]!)))
   }
   const rest = items
     .map((_, i) => i)
     .filter((i) => !result.has(i))
     .sort((a, b) => value(a) - value(b))
+  // a stub for every tool result first: cheap, and it keeps the call, error lines and paths
   for (const i of rest) {
-    if (used + size(items[i]!) > budget) continue
-    result.set(i, "keep")
-    used += size(items[i]!)
-  }
-  for (const i of rest) {
-    if (result.has(i) || items[i]!.role !== "tool" || used + size(items[i]!, "stub") > budget) continue
+    if (items[i]!.role !== "tool" || used + size(items[i]!, "stub") > budget) continue
     result.set(i, "stub")
     used += size(items[i]!, "stub")
+  }
+  for (const i of rest) {
+    const extra = size(items[i]!) - (result.get(i) === "stub" ? size(items[i]!, "stub") : 0)
+    if (result.get(i) === "keep" || used + extra > budget) continue
+    result.set(i, "keep")
+    used += extra
   }
   return result
 }
