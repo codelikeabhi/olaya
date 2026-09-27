@@ -645,7 +645,7 @@ describe("reset times", () => {
 })
 
 describe("failures as the harness records them", () => {
-  test("a refused connection is a network failure that clears with time, however it is worded", () => {
+  test("a refused or cut connection is a network failure that clears with time, however it is worded", () => {
     const api = {
       name: "APIError",
       data: {
@@ -657,7 +657,15 @@ describe("failures as the harness records them", () => {
       name: "UnknownError",
       data: { message: "Unable to connect. Is the computer able to access the url?" },
     }
-    for (const error of [api, bun]) {
+    // a stream cut mid-answer: Bun raises this while the body is read, so it is not an APIError
+    const cut = {
+      name: "UnknownError",
+      data: {
+        message:
+          "The socket connection was closed unexpectedly. For more information, pass `verbose: true` in the second argument to fetch()",
+      },
+    }
+    for (const error of [api, bun, cut]) {
       const failure = FailoverFailure.failureOf(error as never, "ollama")
       expect(failure.kind).toBe("network")
       expect(FailoverClassify.clearsWithTime(classify(failure, NOW))).toBe(true)
