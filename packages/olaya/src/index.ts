@@ -28,8 +28,12 @@ import { SessionCommand } from "./cli/cmd/session"
 import { DbCommand } from "./cli/cmd/db"
 import { LayaCommand } from "./cli/cmd/laya"
 import { errorMessage } from "./util/error"
+import { drained, track } from "./cli/stdout"
 import { PluginCommand } from "./cli/cmd/plug"
 import { Heap } from "./cli/heap"
+
+// Olaya: count queued stdout writes so the exit below doesn't drop them (cli/stdout.ts)
+track()
 
 const args = hideBin(process.argv)
 
@@ -143,5 +147,6 @@ try {
   // Most notably, some docker-container-based MCP servers don't handle such signals unless
   // run using `docker run --init`.
   // Explicitly exit to avoid any hanging subprocesses.
+  await drained()
   process.exit()
 }
