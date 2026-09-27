@@ -71,7 +71,7 @@ function save() {
 export function mark(model: string, verdict: Verdict, now = Date.now()) {
   load()
   const failures = (entries.get(model)?.failures ?? 0) + 1
-  const backoff = verdict.cooldown ?? BACKOFF_MINUTES[Math.min(failures, BACKOFF_MINUTES.length) - 1]! * 60_000
+  const backoff = BACKOFF_MINUTES[Math.min(failures, BACKOFF_MINUTES.length) - 1]! * 60_000
   const until =
     verdict.action === "disable"
       ? now + DISABLED_MS

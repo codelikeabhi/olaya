@@ -24,7 +24,7 @@ is the failover mechanism's doing, not model quality's.
 Metrics (thresholds in gates.json, F6):
 - session_stops: fault runs that ended with an error exit, or timed out when their baseline did not;
 - success_delta_lcb95: paired pass rate, fault minus baseline, lower 95% bound;
-- duplicate_tool_calls: file changes repeated identically after the switch, or one call executed twice
+- duplicate_tool_calls: file changes repeated identically, and completed, after the switch, or one call executed twice
   (re-running a command such as the tests is normal work and does not count);
 - lost_tool_results: tool calls completed before the switch whose results the fallback never saw;
 - needles_after_switch: runs whose first request to `b` still carries the task's planted codename;
@@ -262,7 +262,10 @@ def analyse(record, proxy_log, events, needle):
     # normal work, so shell calls don't count.
     side = {"edit", "write", "apply_patch", "multiedit"}
     ids = [u.get("callID") for u in uses if (u.get("state") or {}).get("status") == "completed" and u.get("callID")]
-    duplicates = sum(1 for u in after if u.get("tool") in side and key(u) in {key(b) for b in before}) + len(ids) - len(set(ids))
+    # A repeat that failed changed nothing (typically "oldString not found": the change is already
+    # there), so only completed repeats count.
+    done = lambda u: (u.get("state") or {}).get("status") == "completed"
+    duplicates = sum(1 for u in after if u.get("tool") in side and done(u) and key(u) in {key(b) for b in before}) + len(ids) - len(set(ids))
     body = json.dumps(b_first["body"]) if switched else ""
     lost = sum(1 for u in before if u.get("callID") and u["callID"] not in body) if switched else 0
     return {
@@ -355,6 +358,8 @@ def self_test():
     assert facts == {"switched": True, "faulted": True, "stopped": False, "duplicates": 1, "lost": 0, "needle": True, "failover_s": 4.0}, facts
     test = {"tool": "bash", "callID": "call_3", "state": {"status": "completed", "input": {"c": "pytest"}, "time": {"start": 1_001_000, "end": 1_002_000}}}
     rerun = {"tool": "bash", "callID": "call_4", "state": {"status": "completed", "input": {"c": "pytest"}, "time": {"start": 1_007_000, "end": 1_007_500}}}
+    failed = {"tool": "edit", "callID": "call_5", "state": {"status": "error", "input": {"f": 1}, "time": {"start": 1_007_000, "end": 1_007_500}}}
+    assert analyse({"timed_out": False, "olaya_exit": "0"}, log, [{"type": "tool_use", "part": edit}, {"type": "tool_use", "part": failed}], "ZX-abc")["duplicates"] == 0
     assert analyse({"timed_out": False, "olaya_exit": "0"}, log, [{"type": "tool_use", "part": test}, {"type": "tool_use", "part": rerun}], "ZX-abc")["duplicates"] == 0
     assert lcb_paired([0.0, 0.0, 0.0]) == 0.0 and lcb_paired([]) is None
     # normalisation: durations zeroed, `b` named like `a`, tool calls numbered in order

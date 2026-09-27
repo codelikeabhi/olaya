@@ -49,12 +49,6 @@ describe("availability store", () => {
     ])
   })
 
-  test("a stall cools for a minute however often it happens: a slow provider is not a broken one", () => {
-    const now = Date.now()
-    const stall = { action: "switch" as const, reason: "stream stalled", cooldown: 60_000 }
-    for (let i = 0; i < 4; i++) expect(FailoverAvailability.mark("slow", stall, now).until).toBe(now + 60_000)
-  })
-
   test("backoff grows with repeated failures and starts over after a success", () => {
     const now = Date.now()
     const verdict = { action: "switch" as const, reason: "overloaded" }
