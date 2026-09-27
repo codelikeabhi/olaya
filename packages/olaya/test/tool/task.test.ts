@@ -284,6 +284,37 @@ describe("tool.task", () => {
     }),
   )
 
+  it.instance("execute never resumes a session that is not the caller's own subagent", () =>
+    Effect.gen(function* () {
+      const sessions = yield* Session.Service
+      const { chat, assistant } = yield* seed()
+      // a restricted subagent passing its parent's ID would otherwise run with the parent's permissions
+      const other = yield* sessions.create({ title: "Someone else's session" })
+      const tool = yield* TaskTool
+      const def = yield* tool.init()
+      let seen: SessionPrompt.PromptInput | undefined
+      const promptOps = stubOps({ text: "created", onPrompt: (input) => (seen = input) })
+
+      const result = yield* def.execute(
+        { description: "inspect", prompt: "look around", subagent_type: "general", task_id: other.id },
+        {
+          sessionID: chat.id,
+          messageID: assistant.id,
+          agent: "build",
+          abort: new AbortController().signal,
+          extra: { promptOps },
+          messages: [],
+          metadata: () => Effect.void,
+          ask: () => Effect.void,
+        },
+      )
+
+      expect(result.metadata.sessionId).not.toBe(other.id)
+      expect(seen?.sessionID).not.toBe(other.id)
+      expect(yield* sessions.children(chat.id)).toHaveLength(1)
+    }),
+  )
+
   it.instance("execute surfaces child errors with a resumable task_id", () =>
     Effect.gen(function* () {
       const sessions = yield* Session.Service

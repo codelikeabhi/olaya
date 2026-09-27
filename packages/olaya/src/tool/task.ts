@@ -133,11 +133,14 @@ export const TaskTool = Tool.define(
         return yield* Effect.fail(new Error(`Unknown agent type: ${params.subagent_type} is not a valid agent type`))
       }
 
-      // an unknown or malformed task_id (small models invent "1") starts a fresh task instead of failing
+      // An unknown or malformed task_id (small models invent "1") starts a fresh task instead of
+      // failing. Only the caller's own subagent sessions resume: a resumed session keeps its own
+      // permissions, so resuming the parent or another session would escape this one's.
       const taskID = params.task_id
       const session = taskID
         ? yield* Effect.sync(() => SessionID.make(taskID)).pipe(
             Effect.flatMap((id) => sessions.get(id)),
+            Effect.map((found) => (found.parentID === ctx.sessionID ? found : undefined)),
             Effect.catchCause(() => Effect.succeed(undefined)),
           )
         : undefined
