@@ -43,12 +43,16 @@ import sys
 import time
 
 from . import route
+from .retention_ab import COMPACTION, LIMIT
 from .run import REPORTS
 
 SCENARIOS = ["none", "quota", "throttle", "overload", "server", "stall", "drop", "outage"]
 UPSTREAM = "http://localhost:11434"
 MODEL = "qwen3-8b-16k"
 OUTAGE_S = 60
+# The first runs used an 8k usable window, which the system prompt nearly fills: every scenario
+# compacted over and over. Those sit under "outage-*"; runs with the G9 pilot's window, "outage2-*".
+PREFIX = "outage2-"
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -151,22 +155,21 @@ def codename(item_id):
 
 def variant(scenario, binary, port):
     base = f"http://host.docker.internal:{port}"
-    model = {"name": MODEL, "tools": True, "options": {"reasoningEffort": "none"},
-             "limit": {"context": 16384, "output": 8192}}
+    model = {"name": MODEL, "tools": True, "options": {"reasoningEffort": "none"}, **LIMIT}
     return {
-        "name": f"outage-{scenario}", "binary": binary, "cli_model": f"prova/{MODEL}",
+        "name": f"{PREFIX}{scenario}", "binary": binary, "cli_model": f"prova/{MODEL}",
         "config": {
             "provider": {
                 "prova": {"npm": "@ai-sdk/openai-compatible", "name": "Provider A", "options": {"baseURL": f"{base}/a/v1"}, "models": {MODEL: model}},
                 "provb": {"npm": "@ai-sdk/openai-compatible", "name": "Provider B", "options": {"baseURL": f"{base}/b/v1"}, "models": {MODEL: model}},
             },
-            "failover": {"models": [f"provb/{MODEL}"], "stall_timeout": 30},
+            "failover": {"models": [f"provb/{MODEL}"], "stall_timeout": 30}, **COMPACTION,
         },
         "timeout": 1500,
     }
 
 
-def run(binary, n_items, after=1, scenarios=SCENARIOS, seed=0):
+def run(binary, n_items, after=3, scenarios=SCENARIOS, seed=0):
     import random as _r
     items = [json.loads(l) for l in open(route.ITEMS)]
     solved = {r["item"] for f in glob.glob(os.path.join(route.RUNS, MODEL, "*", "0.json")) if (r := json.load(open(f)))["passed"]}
@@ -177,7 +180,7 @@ def run(binary, n_items, after=1, scenarios=SCENARIOS, seed=0):
                                                          f"Mention the codename in your final message.")
         for scenario in scenarios:
             port = free_port()
-            out_dir = os.path.join(os.path.dirname(route.RUNS), "variants", f"outage-{scenario}", f"prova-{MODEL}", it["id"])
+            out_dir = os.path.join(os.path.dirname(route.RUNS), "variants", f"{PREFIX}{scenario}", f"prova-{MODEL}", it["id"])
             os.makedirs(out_dir, exist_ok=True)
             log = os.path.join(out_dir, "0.proxy.jsonl")
             if os.path.exists(os.path.join(out_dir, "0.json")):
@@ -237,8 +240,8 @@ def lcb_paired(diffs, rng=None, n=2000):
 def report():
     base = os.path.join(os.path.dirname(route.RUNS), "variants")
     runs = {}
-    for f in glob.glob(os.path.join(base, "outage-*", f"prova-{MODEL}", "*", "0.json")):
-        scenario = f.split(os.sep)[-4].removeprefix("outage-")
+    for f in glob.glob(os.path.join(base, f"{PREFIX}*", f"prova-{MODEL}", "*", "0.json")):
+        scenario = f.split(os.sep)[-4].removeprefix(PREFIX)
         d = os.path.dirname(f)
         rec = json.load(open(f))
         read = lambda name: [json.loads(l) for l in open(os.path.join(d, name))] if os.path.exists(os.path.join(d, name)) else []
