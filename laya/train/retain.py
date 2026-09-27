@@ -205,7 +205,9 @@ def calibrate(checkpoint, device=None):
     probs, labels = [p for p, _, _ in blk], [y for _, y, _ in blk]
     a, b = fit_platt(probs, labels)
     out = {"a": a, "b": b, "sessions": len(calib), "blocks": len(blk), "positive_rate": round(sum(labels) / len(labels), 4),
-           "ece_before": ece(probs, labels), "ece_after": ece([recalibrate(p, a, b) for p in probs], labels)}
+           "ece_before": ece(probs, labels), "ece_after": ece([recalibrate(p, a, b) for p in probs], labels),
+           # dev ranking quality: how a new head is chosen over the old one without touching Track D
+           "auroc": round(auroc(probs, labels), 4)}
     json.dump(out, open(os.path.join(checkpoint, "platt.json"), "w"), indent=1)
     print(json.dumps(out, indent=1))
 
