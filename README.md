@@ -14,9 +14,10 @@ Olaya is a terminal AI coding agent (CLI, TUI, desktop app, server and SDK) buil
 [Laya](https://github.com/NandhaKishorM/laya): a small, local, calibrated model that decides
 what the agent may do without asking you, and when a task is really done.
 
-> **Status: early development. Nothing is released yet.** There are no published binaries or
-> packages, and `olaya upgrade` deliberately refuses channels that do not exist yet. Build from
-> source (below). The decision layer runs in **Observe** mode by default: it watches and logs, and
+> **Status: early preview.** v0.1.0 is the first release: CLI builds for macOS, Linux and Windows
+> on [GitHub Releases](https://github.com/codelikeabhi/olaya/releases), installed with the script
+> below. That is the only channel so far (no npm, Homebrew or desktop app yet), and `olaya upgrade`
+> deliberately refuses channels that do not exist. The decision layer runs in **Observe** mode by default: it watches and logs, and
 > never changes what the agent is allowed to do. **Auto-approve** exists, but it acts only on a
 > certified checkpoint, and none has been certified yet.
 
@@ -103,6 +104,15 @@ then returns to your model once it is available again:
   `limit.context`, because local servers drop old messages silently when it is exceeded.
 
 Settings → Routing in the app, and `/failover` in the terminal, edit the chain.
+
+## Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/codelikeabhi/olaya/main/install | bash
+```
+
+It installs to `~/.olaya/bin`. The macOS builds are not signed or notarised yet: if macOS
+refuses to open `olaya`, run `xattr -d com.apple.quarantine ~/.olaya/bin/olaya` once.
 
 ## Build from source
 
