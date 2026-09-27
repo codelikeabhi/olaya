@@ -286,7 +286,9 @@ const run = Effect.fn("Cli.export.body")(function* (args: { sessionID?: string; 
 
     const exportData = { info: sessionInfo, messages }
 
-    process.stdout.write(JSON.stringify(args.sanitize ? sanitize(exportData) : exportData, null, 2))
-    process.stdout.write(EOL)
+    // Olaya: one awaited write. The CLI exits right after, and under Bun 1.3 an unawaited write to a
+    // pipe lost everything past 64 KiB (`olaya export <id> | jq` got a cut session).
+    const text = JSON.stringify(args.sanitize ? sanitize(exportData) : exportData, null, 2) + EOL
+    yield* Effect.promise(() => new Promise<void>((resolve) => process.stdout.write(text, () => resolve())))
   }).pipe(Effect.catchCause(() => fail(`Session not found: ${sessionID!}`)))
 })
