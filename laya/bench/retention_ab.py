@@ -19,6 +19,7 @@ import glob
 import json
 import os
 import random
+import shutil
 import time
 
 from . import cachesim
@@ -43,14 +44,40 @@ def load_items():
     return [json.loads(l) for f in ITEM_FILES if os.path.exists(f) for l in open(f)]
 
 
-def variant(arm, binary, cloud=None):
+BUNDLES = os.path.join(route.HOME, "bundles")
+
+
+def bundles(size):
+    """Long tasks from short ones: `size` Exercism exercises in one workspace and one instruction to
+    make every test pass, so the context grows past a realistic window. Groups follow item order."""
+    singles = [it for it in load_items() if it["id"] not in route.STUB_PASSES]
+    out = []
+    for b in range(len(singles) // size):
+        group = singles[b * size:(b + 1) * size]
+        files = [f for it in group for f in it["solution"] + it["test"]]
+        assert len(files) == len(set(files)), f"file names collide in bundle {b}"
+        d = os.path.join(BUNDLES, f"b{size}-{b}")
+        os.makedirs(d, exist_ok=True)
+        for it in group:
+            for f in it["solution"] + it["test"]:
+                shutil.copy(os.path.join(it["dir"], f), os.path.join(d, f))
+        out.append({"id": f"b{size}-{b}", "difficulty": max(it["difficulty"] for it in group), "dir": d,
+                    "solution": [f for it in group for f in it["solution"]], "test": [f for it in group for f in it["test"]],
+                    "instructions": "\n\n".join(f"## {it['id']}\n\n{it['instructions']}" for it in group)})
+    return out
+
+
+def variant(arm, binary, cloud=None, window=None):
+    """`window`: the declared input limit for a cloud model, in place of the forced-small default."""
     # forced compaction adds summary requests, and local models write long; 20 minutes per run
     v = {"name": f"retention-ab-{arm}", "model": LIMIT, "config": COMPACTION, "env": ARMS[arm], "binary": binary,
          "timeout": 1200}
     if cloud:  # e.g. anthropic/claude-haiku-4-5: the same forced window on the provider's own model entry
         provider, model_id = cloud.split("/", 1)
-        limit = {"limit": {**LIMIT["limit"], "input": INPUT.get(provider, LIMIT["limit"]["input"])}}
-        v.update(cli_model=cloud, secrets=provider not in SIGNIN, timeout=900,
+        limit = {"limit": {**LIMIT["limit"], "input": window or INPUT.get(provider, LIMIT["limit"]["input"])}}
+        if window:
+            limit["limit"]["context"] = max(LIMIT["limit"]["context"], window + LIMIT["limit"]["output"])
+        v.update(cli_model=cloud, secrets=provider not in SIGNIN, timeout=1800 if window else 900,
                  config={**COMPACTION, "provider": {provider: {"models": {model_id: limit}}}})
         if provider in SIGNIN:  # the sandbox gets the sign-in's access token only (route.signin_env)
             v.update(signin=provider)
@@ -64,10 +91,11 @@ def solvable(model):
             if (r := json.load(open(f)))["passed"] and r["item"] not in route.STUB_PASSES}
 
 
-def run(model, binary, only_solvable=False, cloud=None, only=None, budget=None):
+def run(model, binary, only_solvable=False, cloud=None, only=None, budget=None, bundle=None, window=None):
     """`cloud`: run on a provider's model (its key from the harness secrets file) instead of a local
-    one; `model` then only names the run directories. `budget`: stop before spending more (USD)."""
-    items = load_items()
+    one; `model` then only names the run directories. `budget`: stop before spending more (USD).
+    `bundle`: long tasks of that many exercises each; `window`: the cloud model's declared input limit."""
+    items = bundles(bundle) if bundle else load_items()
     if only_solvable:
         keep = solvable(model)
         items = [it for it in items if it["id"] in keep]
@@ -80,7 +108,7 @@ def run(model, binary, only_solvable=False, cloud=None, only=None, budget=None):
             print(f"budget reached: ${spent:.2f} of ${budget:.2f}; stopping", flush=True)
             break
         for arm in ARMS:
-            r = route.run_through_limits(it, model, 0, variant(arm, binary, cloud))
+            r = route.run_through_limits(it, model, 0, variant(arm, binary, cloud, window))
             spent += r["list_cost"] if "list_cost" in r else (r.get("cost") or 0)
             print(f"{arm:10} {it['id']:28} passed={r['passed']} steps={len(r['calls'])} "
                   f"compactions={r.get('compactions', 0)} {r['wall_s']}s ${r.get('cost') or 0:.4f} (total ${spent:.2f})", flush=True)
@@ -101,13 +129,7 @@ def reacquisitions(r):
 
 
 def report(model):
-    items = load_items()
-    runs = {arm: {} for arm in ARMS}
-    for arm in ARMS:
-        for it in items:
-            path = os.path.join(os.path.dirname(route.RUNS), "variants", f"retention-ab-{arm}", model, it["id"], "0.json")
-            if os.path.exists(path):
-                runs[arm][it["id"]] = json.load(open(path))
+    runs = runs_of(model)
     both = [i for i in runs["compaction"] if i in runs["retention"]]
     per = lambda arm, f: [f(runs[arm][i]) for i in both]
     # a sign-in run carries its list price; local runs are billed by the cache simulator
@@ -136,6 +158,15 @@ def report(model):
     print("->", path)
 
 
+def runs_of(model):
+    """arm -> item -> run record, for every run of this model (single items or bundles)."""
+    runs = {arm: {} for arm in ARMS}
+    for arm in ARMS:
+        for path in glob.glob(os.path.join(os.path.dirname(route.RUNS), "variants", f"retention-ab-{arm}", model, "*", "0.json")):
+            runs[arm][os.path.basename(os.path.dirname(path))] = json.load(open(path))
+    return runs
+
+
 def cache_hit(model, arm, item):
     """(prompt tokens read from a cache, all prompt tokens) over a run's steps."""
     path = os.path.join(os.path.dirname(route.RUNS), "variants", f"retention-ab-{arm}", model, item, "0.events.jsonl")
@@ -153,13 +184,7 @@ def gate(model):
     """G9's report, retention/live-ab.json, from this model's pairs, with its deviations written in."""
     from .routing_ab import ratio_ucb
 
-    items = load_items()
-    runs = {arm: {} for arm in ARMS}
-    for arm in ARMS:
-        for it in items:
-            path = os.path.join(os.path.dirname(route.RUNS), "variants", f"retention-ab-{arm}", model, it["id"], "0.json")
-            if os.path.exists(path):
-                runs[arm][it["id"]] = json.load(open(path))
+    runs = runs_of(model)
     both = [i for i in runs["compaction"] if i in runs["retention"]]
     if not both:
         raise SystemExit("no pairs yet")
@@ -216,12 +241,14 @@ def main(argv=None):
     r.add_argument("--solvable", action="store_true", help="only items the model solved in Track C")
     r.add_argument("--cloud", help="a provider's model, e.g. anthropic/claude-haiku-4-5 (key from the harness secrets file)")
     r.add_argument("--only", help="comma-separated item ids"); r.add_argument("--budget", type=float, help="stop at this spend (USD)")
+    r.add_argument("--bundle", type=int, help="long tasks: this many exercises per workspace")
+    r.add_argument("--window", type=int, help="the cloud model's declared input limit (tokens)")
     p = sub.add_parser("report"); p.add_argument("--model", default="qwen3-8b-16k")
     g = sub.add_parser("gate"); g.add_argument("--model", required=True)
     sub.add_parser("demo")
     a = ap.parse_args(argv)
     if a.cmd == "run":
-        run(a.model, a.binary, a.solvable, a.cloud, set(a.only.split(",")) if a.only else None, a.budget)
+        run(a.model, a.binary, a.solvable, a.cloud, set(a.only.split(",")) if a.only else None, a.budget, a.bundle, a.window)
     elif a.cmd == "report":
         report(a.model)
     elif a.cmd == "gate":
