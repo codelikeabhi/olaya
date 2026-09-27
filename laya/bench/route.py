@@ -154,6 +154,8 @@ def run_one(item, model, k, variant=None, timeout=TIMEOUT_S):
             "tool_uses": [[(e.get("part") or {}).get("tool"), json.dumps(((e.get("part") or {}).get("state") or {}).get("input"), sort_keys=True)[:300]]
                           for e in events if e.get("type") == "tool_use"],
             "compactions": sum(1 for e in events if e.get("type") == "text" and AUTO_CONTINUE in (e.get("part") or {}).get("text", "")),
+            # what the provider billed, when it reports cost (cloud models); local models report none
+            "cost": round(sum((e.get("part") or {}).get("cost") or 0 for e in events if e.get("type") == "step_finish"), 6),
         }
         if os.path.exists(os.path.join(logs, "events.jsonl")):
             shutil.copy(os.path.join(logs, "events.jsonl"), os.path.join(out_dir, f"{k}.events.jsonl"))

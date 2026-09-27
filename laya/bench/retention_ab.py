@@ -32,10 +32,15 @@ COMPACTION = {"compaction": {"reserved": 1_000, "preserve_recent_tokens": 1_000}
 ARMS = {"compaction": {}, "retention": {"OLAYA_LAYA_RETENTION": "live"}}
 
 
-def variant(arm, binary):
+def variant(arm, binary, cloud=None):
     # forced compaction adds summary requests, and local models write long; 20 minutes per run
-    return {"name": f"retention-ab-{arm}", "model": LIMIT, "config": COMPACTION, "env": ARMS[arm], "binary": binary,
-            "timeout": 1200}
+    v = {"name": f"retention-ab-{arm}", "model": LIMIT, "config": COMPACTION, "env": ARMS[arm], "binary": binary,
+         "timeout": 1200}
+    if cloud:  # e.g. anthropic/claude-haiku-4-5: the same forced window on the provider's own model entry
+        provider, model_id = cloud.split("/", 1)
+        v.update(cli_model=cloud, secrets=True, timeout=900,
+                 config={**COMPACTION, "provider": {provider: {"models": {model_id: LIMIT}}}})
+    return v
 
 
 def solvable(model):
@@ -44,17 +49,26 @@ def solvable(model):
     return {r["item"] for f in glob.glob(os.path.join(route.RUNS, model, "*", "0.json")) if (r := json.load(open(f)))["passed"]}
 
 
-def run(model, binary, only_solvable=False):
+def run(model, binary, only_solvable=False, cloud=None, only=None, budget=None):
+    """`cloud`: run on a provider's model (its key from the harness secrets file) instead of a local
+    one; `model` then only names the run directories. `budget`: stop before spending more (USD)."""
     items = [json.loads(l) for l in open(route.ITEMS)]
     if only_solvable:
         keep = solvable(model)
         items = [it for it in items if it["id"] in keep]
         print(f"{len(items)} items {model} solved in Track C", flush=True)
+    if only:
+        items = [it for it in items if it["id"] in only]
+    spent = 0.0
     for it in items:  # arms alternate per item, so drift in machine load hits both alike
+        if budget is not None and spent >= budget:
+            print(f"budget reached: ${spent:.2f} of ${budget:.2f}; stopping", flush=True)
+            break
         for arm in ARMS:
-            r = route.run_one(it, model, 0, variant(arm, binary))
+            r = route.run_one(it, model, 0, variant(arm, binary, cloud))
+            spent += r.get("cost") or 0
             print(f"{arm:10} {it['id']:28} passed={r['passed']} steps={len(r['calls'])} "
-                  f"compactions={r.get('compactions', 0)} {r['wall_s']}s", flush=True)
+                  f"compactions={r.get('compactions', 0)} {r['wall_s']}s ${r.get('cost') or 0:.4f} (total ${spent:.2f})", flush=True)
 
 
 def paired(a, b, rng=None, n=2000):
@@ -120,11 +134,13 @@ def main(argv=None):
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run"); r.add_argument("--model", default="qwen3-8b-16k"); r.add_argument("--binary", required=True)
     r.add_argument("--solvable", action="store_true", help="only items the model solved in Track C")
+    r.add_argument("--cloud", help="a provider's model, e.g. anthropic/claude-haiku-4-5 (key from the harness secrets file)")
+    r.add_argument("--only", help="comma-separated item ids"); r.add_argument("--budget", type=float, help="stop at this spend (USD)")
     p = sub.add_parser("report"); p.add_argument("--model", default="qwen3-8b-16k")
     sub.add_parser("demo")
     a = ap.parse_args(argv)
     if a.cmd == "run":
-        run(a.model, a.binary, a.solvable)
+        run(a.model, a.binary, a.solvable, a.cloud, set(a.only.split(",")) if a.only else None, a.budget)
     elif a.cmd == "report":
         report(a.model)
     else:
