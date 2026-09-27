@@ -48,6 +48,15 @@ def split_of(group, calib_share=0.2, test_share=0.2):
     return "train"
 
 
+def split_for(item):
+    """The item's split, or None to drop it. Splits go by group, so a group never straddles two;
+    test is human-only, so a non-human row whose group falls in test is dropped, not moved."""
+    split = item.get("split") or split_of(item["group"])
+    if split == "test" and (item.get("provenance") or {}).get("source") != "human":
+        return None
+    return split
+
+
 def rows_from_items(items, questions, budget):
     """Compact items with the production code and turn them into training rows.
 
@@ -56,9 +65,12 @@ def rows_from_items(items, questions, budget):
     """
     qid = next(iter(questions))
     compacted = bench.bridge(items, budget)
-    rows, dropped = [], {"denylisted": 0, "refused": 0}
+    rows, dropped = [], {"denylisted": 0, "refused": 0, "not_human_in_test": 0}
     for it in items:
         c = compacted[it["id"]]
+        if split_for(it) is None:
+            dropped["not_human_in_test"] += 1
+            continue
         if "denylisted" in c:
             dropped["denylisted"] += 1
             continue
@@ -71,7 +83,7 @@ def rows_from_items(items, questions, budget):
             "gold": json.dumps(gold_from_label(it.get("label"), qid, it.get("soft"))),
             "id": it["id"],
             "group": it["group"],
-            "split": it.get("split") or split_of(it["group"]),
+            "split": split_for(it),
             "source": (it.get("provenance") or {}).get("source", "unknown"),
             "labeler": (it.get("provenance") or {}).get("labeler", "unknown"),
             "label": it.get("label"),
@@ -163,8 +175,22 @@ def demo():
             if replier:
                 rec["replier"] = replier
             f.write(json.dumps(rec) + "\n")
-    ids = [r["id"] for r in rows_from_shadow(d)]
-    assert ids == ["p0", "p2"], ids  # the auto-approved reply is not a label; old records count as user
+        f.write(json.dumps({"kind": "decision", "id": "p3", "state": "{}", "questions": "{}", "gold": gold, "reply": "always"}) + "\n")
+        f.write(json.dumps({"kind": "decision", "id": "p4", "state": "{}", "questions": "{}", "gold": None}) + "\n")
+    rows = rows_from_shadow(d)
+    # the auto-approved reply is not a label, old records count as user, an unlabelled one is left out
+    assert [r["id"] for r in rows] == ["p0", "p2", "p3"], rows
+    assert rows[2]["reply"] == "always"  # `always` survives loading (it weighs more in training)
+    # splits: a group never straddles two, and test is human-only
+    teacher = lambda g: {"group": g, "provenance": {"source": "synthetic", "labeler": "teacher:x"}}
+    human = lambda g: {"group": g, "provenance": {"source": "human"}}
+    groups = ["g%d" % i for i in range(400)]
+    assert all(split_for(teacher(g)) in (None, split_for(human(g))) for g in groups)
+    assert {split_for(teacher(g)) for g in groups} == {None, "calib", "train"}
+    assert "test" in {split_for(human(g)) for g in groups}
+    # the default dataset home is outside the repository, so rows can't be committed by accident
+    repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    assert not os.path.abspath(DATA_HOME).startswith(repo + os.sep), DATA_HOME
     print("data self-check ok")
 
 

@@ -5,7 +5,8 @@
 The gate a checkpoint must pass before Olaya's live mode will let it grant anything
 (research-plan R1, finetune spec "decision-eval"):
 
-1. Only human labels count. A gold row whose provenance is not "human" is refused.
+1. Only human labels count. A gold row whose provenance is not "human" is refused, and so is a gold
+   set sharing a group with the checkpoint's training data (graded on what it was trained on).
 2. Split by group into a calibration half and a test half: no counterfactual group in both.
 3. Threshold by Learn-Then-Test on the calibration half (false-approve <= alpha, confidence
    1 - delta, fixed-sequence testing).
@@ -26,6 +27,8 @@ import time
 
 from bench import metrics as M
 from bench import run as bench
+
+from . import data as D
 
 
 def score(checkpoint, items, device, budget):
@@ -75,6 +78,34 @@ def certify(rows, alpha, delta, min_auto, max_ece, min_asks, seed="olaya-gate-v1
     return result
 
 
+def trained_groups(checkpoint, data_home=None):
+    """Groups of the rows the checkpoint was trained and calibrated on, found through its manifest.
+    None when that dataset is missing or has changed since training: overlap can't be ruled out. A
+    checkpoint with no dataset in its manifest (a hub checkpoint) never saw Olaya's data."""
+    path = os.path.join(checkpoint, "olaya_manifest.json")
+    ds = (json.load(open(path)) if os.path.exists(path) else {}).get("dataset")
+    if not ds:
+        return set()
+    rows = os.path.join(data_home or D.DATA_HOME, ds["name"], "rows.jsonl")
+    if not os.path.exists(rows):
+        return None
+    body = open(rows).read()
+    if hashlib.sha256(body.encode()).hexdigest() != ds["content_sha256"]:
+        return None
+    return {json.loads(line)["group"] for line in body.splitlines() if line}
+
+
+def leak(checkpoint, items, data_home=None):
+    """Why this gold set can't certify this checkpoint, or None."""
+    seen = trained_groups(checkpoint, data_home)
+    if seen is None:
+        return "the checkpoint's training data is missing or changed, so gold overlap can't be ruled out"
+    shared = sorted({it["group"] for it in items} & seen)
+    if shared:
+        return "%d gold groups were in the training data (e.g. %s)" % (len(shared), shared[0])
+    return None
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("checkpoint")
@@ -93,6 +124,9 @@ def main(argv=None):
     not_human = [it["id"] for it in items if (it.get("provenance") or {}).get("source") != "human"]
     if not_human:
         raise SystemExit("refusing: %d gold rows are not human-labelled (e.g. %s)" % (len(not_human), not_human[0]))
+    why = leak(args.checkpoint, items)
+    if why:
+        raise SystemExit("refusing: " + why)
     rows = score(args.checkpoint, items, args.device, args.budget)
     gate = certify(rows, args.alpha, args.delta, args.min_auto, args.max_ece, args.min_asks)
     gate.update(certified_at=time.strftime("%Y-%m-%dT%H:%M:%S"), gold_sha256=hashlib.sha256(open(args.gold, "rb").read()).hexdigest())
@@ -121,6 +155,17 @@ def demo():
     bad = [dict(r, p=0.99) if r["label"] == "ask" and int(r["id"]) % 20 == 0 else r for r in rows]
     g = certify(bad, 0.01, 0.05, 0.3, 0.08, 300)
     assert not g["passed"], g
+    # A gold set sharing a group with the training rows is refused; so is training data that changed.
+    import tempfile
+    home, ck = tempfile.mkdtemp(), tempfile.mkdtemp()
+    q = {"q": {"type": "noul", "instructions": "i"}}
+    _, m = D.write_dataset([{"group": "t0-v0", "split": "train", "label": "ask", "source": "synthetic"}], "d", q, out=home)
+    assert leak(ck, [{"group": "t0-v0"}], home) is None  # no manifest: a hub checkpoint
+    json.dump({"dataset": {"name": "d", "content_sha256": m["content_sha256"]}}, open(os.path.join(ck, "olaya_manifest.json"), "w"))
+    assert leak(ck, [{"group": "t9-v0"}], home) is None
+    assert "1 gold groups" in leak(ck, [{"group": "t9-v0"}, {"group": "t0-v0"}], home)
+    open(os.path.join(home, "d", "rows.jsonl"), "a").write("{}\n")
+    assert "missing or changed" in leak(ck, [{"group": "t9-v0"}], home)
     print("certify self-check ok")
 
 
