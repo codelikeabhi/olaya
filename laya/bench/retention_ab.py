@@ -30,6 +30,12 @@ from .run import REPORTS
 LIMIT = {"limit": {"context": 16_384, "input": 11_000, "output": 5_000}}
 COMPACTION = {"compaction": {"reserved": 1_000, "preserve_recent_tokens": 1_000}}
 ARMS = {"compaction": {}, "retention": {"OLAYA_LAYA_RETENTION": "live"}}
+# Track C's first 32 items and the 56 Exercism items added for the routing head, once they exist
+ITEM_FILES = [route.ITEMS, os.path.join(route.HOME, "items-exercism-rest.jsonl")]
+
+
+def load_items():
+    return [json.loads(l) for f in ITEM_FILES if os.path.exists(f) for l in open(f)]
 
 
 def variant(arm, binary, cloud=None):
@@ -46,13 +52,14 @@ def variant(arm, binary, cloud=None):
 def solvable(model):
     """Items the model solved in Track C's first pass: where retention can make a difference.
     On an item the model cannot solve anyway, both arms fail and the pair says nothing."""
-    return {r["item"] for f in glob.glob(os.path.join(route.RUNS, model, "*", "0.json")) if (r := json.load(open(f)))["passed"]}
+    return {r["item"] for f in glob.glob(os.path.join(route.RUNS, model, "*", "0.json"))
+            if (r := json.load(open(f)))["passed"] and r["item"] not in route.STUB_PASSES}
 
 
 def run(model, binary, only_solvable=False, cloud=None, only=None, budget=None):
     """`cloud`: run on a provider's model (its key from the harness secrets file) instead of a local
     one; `model` then only names the run directories. `budget`: stop before spending more (USD)."""
-    items = [json.loads(l) for l in open(route.ITEMS)]
+    items = load_items()
     if only_solvable:
         keep = solvable(model)
         items = [it for it in items if it["id"] in keep]
@@ -86,7 +93,7 @@ def reacquisitions(r):
 
 
 def report(model):
-    items = [json.loads(l) for l in open(route.ITEMS)]
+    items = load_items()
     runs = {arm: {} for arm in ARMS}
     for arm in ARMS:
         for it in items:

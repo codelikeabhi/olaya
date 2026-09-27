@@ -148,7 +148,9 @@ def score(sessions, checkpoint, device=None, cache=None, platt=None):
     return blocks_out
 
 
-def model_probs(states_, checkpoint, device=None):
+def model_probs(states_, checkpoint, device=None, questions=None):
+    """P(true) for each state; `questions` gives each state its own one-question dict (the router
+    asks per tier), and defaults to this module's question."""
     from laya.agent import Agent
     from laya.common import temp_bucket
     from .train import featurise, pick_device, raw_logits
@@ -156,8 +158,9 @@ def model_probs(states_, checkpoint, device=None):
     dev = pick_device(device)
     agent = Agent(checkpoint, device="cpu")
     model = agent.model.float().to(dev)
-    rows = [{"state": json.dumps(st), "questions": json.dumps(QUESTIONS),
-             "gold": json.dumps({"needed_later": {"probabilities": {"true": 0.0, "false": 1.0}}})} for st in states_]
+    rows = [{"state": json.dumps(st), "questions": json.dumps(q),
+             "gold": json.dumps({next(iter(q)): {"probabilities": {"true": 0.0, "false": 1.0}}})}
+            for st, q in zip(states_, questions or [QUESTIONS] * len(states_))]
     t0 = time.time()
     preds = raw_logits(model, featurise(rows, agent), agent.tok.pad_token_id, dev, cached=False)
     print(f"scored {len(rows)} blocks in {time.time() - t0:.0f}s", flush=True)

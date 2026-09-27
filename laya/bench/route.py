@@ -37,6 +37,10 @@ TIMEOUT_S = 600
 # models often ignore the summary template, so this is how compactions are counted.
 AUTO_CONTINUE = "Continue if you have next steps"
 
+# Items whose stub already passes its tests: an outcome there says whether the agent broke working
+# code or ran out of time, not what the tier can do, so routing labels and A/B pairs leave them out
+STUB_PASSES = {"markdown"}
+
 # The heuristic baseline, fixed before any outcome was seen: Exercism difficulty -> tier index.
 HEURISTIC = [(2, 0), (4, 1), (6, 2), (10, 3)]
 
@@ -83,6 +87,13 @@ def binary():
     return path
 
 
+def price(model):
+    """A local tier carries the price of the real tier it stands in for, so a router in the harness
+    orders its pool by the same price table the bills use."""
+    p = cachesim.PRICES.get(cachesim.PROXY.get(model, ""))
+    return {"cost": {"input": p["input"], "output": p["output"], "cache_read": p["read"], "cache_write": p["write_5m"]}} if p else {}
+
+
 def olaya_config(model, extra=None, top=None, pool=()):
     """`pool`: further models defined alongside, for routing to choose from."""
     top = top or {}
@@ -92,7 +103,7 @@ def olaya_config(model, extra=None, top=None, pool=()):
                                 # qwen3 thinks by default and spends a 16k window on thinking before it edits
                                 # anything; the tiers are compared with thinking off
                                 "models": {m: {"name": m, "tools": True, "options": {"reasoningEffort": "none"},
-                                               **(extra or {})} for m in (model, *pool)}}},
+                                               **price(m), **(extra or {})} for m in (model, *pool)}}},
     })
 
 
@@ -154,7 +165,8 @@ def run_one(item, model, k, variant=None, timeout=TIMEOUT_S):
             "tool_uses": [[(e.get("part") or {}).get("tool"), json.dumps(((e.get("part") or {}).get("state") or {}).get("input"), sort_keys=True)[:300]]
                           for e in events if e.get("type") == "tool_use"],
             "compactions": sum(1 for e in events if e.get("type") == "text" and AUTO_CONTINUE in (e.get("part") or {}).get("text", "")),
-            # what the provider billed, when it reports cost (cloud models); local models report none
+            # what the harness billed at its configured prices: the provider's for cloud models, the
+            # proxy tier's for local ones (no cache discount: Ollama reports no cache tokens)
             "cost": round(sum((e.get("part") or {}).get("cost") or 0 for e in events if e.get("type") == "step_finish"), 6),
         }
         if os.path.exists(os.path.join(logs, "events.jsonl")):

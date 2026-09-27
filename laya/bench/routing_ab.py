@@ -1,16 +1,18 @@
-"""A first real-model pilot for gate G6: Olaya's router live against always the strongest model.
+"""A first pilot for gate G6: Olaya's router live against always the strongest model.
 
-    python -m bench.routing_ab run --binary <linux build> --only a,b,c [--budget 1.5]
-    python -m bench.routing_ab report                    # router/live-pilot.json
+    python -m bench.routing_ab run --binary <linux build> --only a,b,c [--budget 1.5] [--pool local]
+    python -m bench.routing_ab report [--pool local]      # router/live-pilot[-local].json
 
-- routed:    starts on the cheapest model of the pool (claude-haiku-4-5) and escalates, one step up
-             by price, only on the router's hard triggers (a doom loop, malformed calls, no test
-             progress, edits piling up without tests);
-- strongest: claude-sonnet-5 throughout.
+- routed:    starts on the cheapest model of the pool and escalates, one step up by price, only on
+             the router's hard triggers (a doom loop, malformed calls, no test progress, edits
+             piling up without tests);
+- strongest: the pool's strongest model throughout.
 
-Each Track C item runs once per arm; cost is what Anthropic billed. This checks the live path and
-gives a first read of cost against success; G6 itself asks for a paired A/B at k = 5 on an agreed
-task set and budget, which this is not.
+Pools: `claude` (Haiku 4.5 -> Sonnet 5, billed by Anthropic; needs API credit) and `local` (qwen3
+4b -> 8b in Ollama, priced as the Claude tiers they stand in for, bench.cachesim.PROXY). Each Track
+C item runs once per arm. This checks the live path and gives a first read of cost against success
+and of protocol failures (calls to a tool that does not exist or with invalid input); G6 itself asks
+for a paired A/B at k = 5 on an agreed task set and budget, which this is not.
 """
 
 import argparse
@@ -22,52 +24,67 @@ from . import route
 from .retention_ab import paired
 from .run import REPORTS
 
-CHEAP, STRONG = "anthropic/claude-haiku-4-5", "anthropic/claude-sonnet-5"
-ARMS = {
-    "routed": {"cli_model": CHEAP, "env": {"OLAYA_LAYA_ROUTING": "live", "OLAYA_LAYA_ROUTING_START": "cheapest"},
-               "config": {"routing": {"enabled": True, "models": [CHEAP, STRONG]}}},
-    "strongest": {"cli_model": STRONG},
+POOLS = {
+    "claude": {"cheap": "anthropic/claude-haiku-4-5", "strong": "anthropic/claude-sonnet-5", "secrets": True},
+    "local": {"cheap": "ollama/qwen3-4b-16k", "strong": "ollama/qwen3-8b-16k", "secrets": False},
 }
-NAME = "claude-pool"  # names the run directories
+ARMS = ("routed", "strongest")
 
 
-def variant(arm, binary):
-    return {"name": f"routing-ab-{arm}", "binary": binary, "secrets": True, "timeout": 900, **ARMS[arm]}
+def name(pool):
+    return f"{pool}-pool"  # names the run directories
 
 
-def run(binary, only, budget=None):
-    items = [it for it in (json.loads(l) for l in open(route.ITEMS)) if it["id"] in only]
+def variant(arm, binary, pool="claude"):
+    p = POOLS[pool]
+    v = {"name": f"routing-ab-{arm}", "binary": binary, "secrets": p["secrets"], "timeout": 900,
+         "pool": tuple(m.split("/", 1)[1] for m in (p["cheap"], p["strong"]) if m.startswith("ollama/"))}
+    if arm == "routed":
+        return {**v, "cli_model": p["cheap"], "env": {"OLAYA_LAYA_ROUTING": "live", "OLAYA_LAYA_ROUTING_START": "cheapest"},
+                "config": {"routing": {"enabled": True, "models": [p["cheap"], p["strong"]]}}}
+    return {**v, "cli_model": p["strong"]}
+
+
+def run(binary, only, budget=None, pool="claude"):
+    items = [it for f in (route.ITEMS, route.ITEMS.replace("items.jsonl", "items-easy.jsonl"))
+             for it in (json.loads(l) for l in open(f)) if it["id"] in only]
     spent = 0.0
     for it in items:
         if budget is not None and spent >= budget:
             print(f"budget reached: ${spent:.2f} of ${budget:.2f}; stopping", flush=True)
             break
         for arm in ARMS:
-            r = route.run_one(it, NAME, 0, variant(arm, binary))
+            r = route.run_one(it, name(pool), 0, variant(arm, binary, pool))
             spent += r.get("cost") or 0
             print(f"{arm:9} {it['id']:26} passed={r['passed']} steps={len(r['calls'])} {r['wall_s']}s "
                   f"${r.get('cost') or 0:.4f} (total ${spent:.2f})", flush=True)
 
 
-def report():
+def protocol_failures(r):
+    return sum(1 for tool, _ in r.get("tool_uses", []) if tool == "invalid")
+
+
+def report(pool="claude"):
     base = os.path.join(os.path.dirname(route.RUNS), "variants")
     runs = {arm: {} for arm in ARMS}
     for arm in ARMS:
-        for f in os.listdir(os.path.join(base, f"routing-ab-{arm}", NAME)) if os.path.isdir(os.path.join(base, f"routing-ab-{arm}", NAME)) else []:
-            p = os.path.join(base, f"routing-ab-{arm}", NAME, f, "0.json")
-            if os.path.exists(p):
-                runs[arm][f] = json.load(open(p))
-    both = [i for i in runs["routed"] if i in runs["strongest"]]
-    arm = lambda a: {"resolved": round(sum(runs[a][i]["passed"] for i in both) / max(1, len(both)), 4),
-                     "mean_cost": round(sum(runs[a][i].get("cost") or 0 for i in both) / max(1, len(both)), 4),
-                     "mean_steps": round(sum(len(runs[a][i]["calls"]) for i in both) / max(1, len(both)), 2)}
-    rep = {"pilot": "G6 live (Claude)", "generated": time.strftime("%Y-%m-%d %H:%M"), "cheap": CHEAP, "strong": STRONG,
+        d = os.path.join(base, f"routing-ab-{arm}", name(pool))
+        for f in os.listdir(d) if os.path.isdir(d) else []:
+            if os.path.exists(os.path.join(d, f, "0.json")):
+                runs[arm][f] = json.load(open(os.path.join(d, f, "0.json")))
+    both = sorted(i for i in runs["routed"] if i in runs["strongest"])
+    n = max(1, len(both))
+    arm = lambda a: {"resolved": round(sum(runs[a][i]["passed"] for i in both) / n, 4),
+                     "mean_cost": round(sum(runs[a][i].get("cost") or 0 for i in both) / n, 4),
+                     "mean_steps": round(sum(len(runs[a][i]["calls"]) for i in both) / n, 2),
+                     "protocol_failures": sum(protocol_failures(runs[a][i]) for i in both)}
+    rep = {"pilot": f"G6 live ({pool})", "generated": time.strftime("%Y-%m-%d %H:%M"), **{k: POOLS[pool][k] for k in ("cheap", "strong")},
            "pairs": len(both), "arms": {a: arm(a) for a in ARMS},
            "resolve_delta": paired([float(runs["strongest"][i]["passed"]) for i in both], [float(runs["routed"][i]["passed"]) for i in both]) if both else None,
            "items": {i: {a: {"passed": runs[a][i]["passed"], "cost": runs[a][i].get("cost")} for a in ARMS} for i in both},
-           "note": "pilot, one run per arm: it cannot certify G6's margin"}
+           "note": "pilot, one run per arm: it cannot certify G6's margin" + ("; local tiers priced as the Claude tiers they stand in for" if pool == "local" else "")}
     os.makedirs(os.path.join(REPORTS, "router"), exist_ok=True)
-    path = os.path.join(REPORTS, "router", "live-pilot.json")
+    path = os.path.join(REPORTS, "router", "live-pilot.json" if pool == "claude" else f"live-pilot-{pool}.json")
     json.dump(rep, open(path, "w"), indent=2)
     print(json.dumps({k: rep[k] for k in ("pairs", "arms", "resolve_delta")}, indent=1))
     print("->", path)
@@ -77,13 +94,13 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run"); r.add_argument("--binary", required=True); r.add_argument("--only", required=True)
-    r.add_argument("--budget", type=float)
-    sub.add_parser("report")
+    r.add_argument("--budget", type=float); r.add_argument("--pool", choices=POOLS, default="claude")
+    p = sub.add_parser("report"); p.add_argument("--pool", choices=POOLS, default="claude")
     a = ap.parse_args(argv)
     if a.cmd == "run":
-        run(a.binary, set(a.only.split(",")), a.budget)
+        run(a.binary, set(a.only.split(",")), a.budget, a.pool)
     else:
-        report()
+        report(a.pool)
 
 
 if __name__ == "__main__":
