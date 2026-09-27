@@ -8,8 +8,11 @@
              piling up without tests);
 - strongest: the pool's strongest model throughout.
 
-Pools: `claude` (Haiku 4.5 -> Sonnet 5, billed by Anthropic; needs API credit) and `local` (qwen3
-4b -> 8b in Ollama, priced as the Claude tiers they stand in for, bench.cachesim.PROXY). Each Track
+Pools: `claude` (Haiku 4.5 -> Sonnet 5, billed by Anthropic; needs API credit), `local` (qwen3
+4b -> 8b in Ollama, priced as the Claude tiers they stand in for, bench.cachesim.PROXY) and
+`chatgpt` (gpt-6-luna -> gpt-6-sol through the owner's ChatGPT sign-in: the sandbox gets the
+access token only; priced per step at OpenAI's list prices). A run stopped by a plan's usage limit is set aside and
+retried after a wait. Each Track
 C item runs once per arm. This checks the live path and gives a first read of cost against success
 and of protocol failures (calls to a tool that does not exist or with invalid input); G6 itself asks
 for a paired A/B at k = 5 on an agreed task set and budget, which this is not.
@@ -27,6 +30,8 @@ from .run import REPORTS
 POOLS = {
     "claude": {"cheap": "anthropic/claude-haiku-4-5", "strong": "anthropic/claude-sonnet-5", "secrets": True},
     "local": {"cheap": "ollama/qwen3-4b-16k", "strong": "ollama/qwen3-8b-16k", "secrets": False},
+    # the owner's ChatGPT sign-in, on this machine; priced at OpenAI's list prices
+    "chatgpt": {"cheap": "openai/gpt-6-luna", "strong": "openai/gpt-6-sol", "secrets": False, "signin": "openai"},
 }
 ARMS = ("routed", "strongest")
 
@@ -37,7 +42,7 @@ def name(pool):
 
 def variant(arm, binary, pool="claude"):
     p = POOLS[pool]
-    v = {"name": f"routing-ab-{arm}", "binary": binary, "secrets": p["secrets"], "timeout": 900,
+    v = {"name": f"routing-ab-{arm}", "binary": binary, "secrets": p["secrets"], "timeout": 900, "signin": p.get("signin"),
          "pool": tuple(m.split("/", 1)[1] for m in (p["cheap"], p["strong"]) if m.startswith("ollama/"))}
     if arm == "routed":
         return {**v, "cli_model": p["cheap"], "env": {"OLAYA_LAYA_ROUTING": "live", "OLAYA_LAYA_ROUTING_START": "cheapest"},
@@ -54,10 +59,15 @@ def run(binary, only, budget=None, pool="claude"):
             print(f"budget reached: ${spent:.2f} of ${budget:.2f}; stopping", flush=True)
             break
         for arm in ARMS:
-            r = route.run_one(it, name(pool), 0, variant(arm, binary, pool))
-            spent += r.get("cost") or 0
+            r = route.run_through_limits(it, name(pool), 0, variant(arm, binary, pool))
+            spent += cost(r)
             print(f"{arm:9} {it['id']:26} passed={r['passed']} steps={len(r['calls'])} {r['wall_s']}s "
-                  f"${r.get('cost') or 0:.4f} (total ${spent:.2f})", flush=True)
+                  f"${cost(r):.4f} (total ${spent:.2f}) {r.get('steps_by_model', '')}", flush=True)
+
+
+def cost(r):
+    """Billed cost, or list price where a sign-in bills nothing per token."""
+    return r["list_cost"] if "list_cost" in r else (r.get("cost") or 0)
 
 
 def protocol_failures(r):
@@ -75,14 +85,15 @@ def report(pool="claude"):
     both = sorted(i for i in runs["routed"] if i in runs["strongest"])
     n = max(1, len(both))
     arm = lambda a: {"resolved": round(sum(runs[a][i]["passed"] for i in both) / n, 4),
-                     "mean_cost": round(sum(runs[a][i].get("cost") or 0 for i in both) / n, 4),
+                     "mean_cost": round(sum(cost(runs[a][i]) for i in both) / n, 4),
                      "mean_steps": round(sum(len(runs[a][i]["calls"]) for i in both) / n, 2),
                      "protocol_failures": sum(protocol_failures(runs[a][i]) for i in both)}
     rep = {"pilot": f"G6 live ({pool})", "generated": time.strftime("%Y-%m-%d %H:%M"), **{k: POOLS[pool][k] for k in ("cheap", "strong")},
            "pairs": len(both), "arms": {a: arm(a) for a in ARMS},
            "resolve_delta": paired([float(runs["strongest"][i]["passed"]) for i in both], [float(runs["routed"][i]["passed"]) for i in both]) if both else None,
-           "items": {i: {a: {"passed": runs[a][i]["passed"], "cost": runs[a][i].get("cost")} for a in ARMS} for i in both},
-           "note": "pilot, one run per arm: it cannot certify G6's margin" + ("; local tiers priced as the Claude tiers they stand in for" if pool == "local" else "")}
+           "items": {i: {a: {"passed": runs[a][i]["passed"], "cost": cost(runs[a][i]), "steps_by_model": runs[a][i].get("steps_by_model")} for a in ARMS} for i in both},
+           "note": "pilot, one run per arm: it cannot certify G6's margin" + {"local": "; local tiers priced as the Claude tiers they stand in for",
+                                                                       "chatgpt": "; ChatGPT sign-in, priced per step at OpenAI's list prices"}.get(pool, "")}
     os.makedirs(os.path.join(REPORTS, "router"), exist_ok=True)
     path = os.path.join(REPORTS, "router", "live-pilot.json" if pool == "claude" else f"live-pilot-{pool}.json")
     json.dump(rep, open(path, "w"), indent=2)

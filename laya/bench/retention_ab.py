@@ -30,6 +30,11 @@ from .run import REPORTS
 LIMIT = {"limit": {"context": 16_384, "input": 11_000, "output": 5_000}}
 COMPACTION = {"compaction": {"reserved": 1_000, "preserve_recent_tokens": 1_000}}
 ARMS = {"compaction": {}, "retention": {"OLAYA_LAYA_RETENTION": "live"}}
+# providers reached through the owner's sign-in (ChatGPT), not an API key
+SIGNIN = {"openai"}
+# GPT's system prompt is ~5.8k tokens against Claude's ~8.5k: its declared input limit is lowered so the
+# headroom over the prompt, and so how often it compacts, matches the Claude pilot
+INPUT = {"openai": 8_500}
 # Track C's first 32 items and the 56 Exercism items added for the routing head, once they exist
 ITEM_FILES = [route.ITEMS, os.path.join(route.HOME, "items-exercism-rest.jsonl")]
 
@@ -44,8 +49,11 @@ def variant(arm, binary, cloud=None):
          "timeout": 1200}
     if cloud:  # e.g. anthropic/claude-haiku-4-5: the same forced window on the provider's own model entry
         provider, model_id = cloud.split("/", 1)
-        v.update(cli_model=cloud, secrets=True, timeout=900,
-                 config={**COMPACTION, "provider": {provider: {"models": {model_id: LIMIT}}}})
+        limit = {"limit": {**LIMIT["limit"], "input": INPUT.get(provider, LIMIT["limit"]["input"])}}
+        v.update(cli_model=cloud, secrets=provider not in SIGNIN, timeout=900,
+                 config={**COMPACTION, "provider": {provider: {"models": {model_id: limit}}}})
+        if provider in SIGNIN:  # the sandbox gets the sign-in's access token only (route.signin_env)
+            v.update(signin=provider)
     return v
 
 
@@ -72,8 +80,8 @@ def run(model, binary, only_solvable=False, cloud=None, only=None, budget=None):
             print(f"budget reached: ${spent:.2f} of ${budget:.2f}; stopping", flush=True)
             break
         for arm in ARMS:
-            r = route.run_one(it, model, 0, variant(arm, binary, cloud))
-            spent += r.get("cost") or 0
+            r = route.run_through_limits(it, model, 0, variant(arm, binary, cloud))
+            spent += r["list_cost"] if "list_cost" in r else (r.get("cost") or 0)
             print(f"{arm:10} {it['id']:28} passed={r['passed']} steps={len(r['calls'])} "
                   f"compactions={r.get('compactions', 0)} {r['wall_s']}s ${r.get('cost') or 0:.4f} (total ${spent:.2f})", flush=True)
 
@@ -102,7 +110,8 @@ def report(model):
                 runs[arm][it["id"]] = json.load(open(path))
     both = [i for i in runs["compaction"] if i in runs["retention"]]
     per = lambda arm, f: [f(runs[arm][i]) for i in both]
-    cost = lambda r: cachesim.bill([cachesim.Call(**c) for c in r["calls"]]).total
+    # a sign-in run carries its list price; local runs are billed by the cache simulator
+    cost = lambda r: r["list_cost"] if "list_cost" in r else cachesim.bill([cachesim.Call(**c) for c in r["calls"]]).total
     summary = {arm: {"resolved": round(sum(per(arm, lambda r: r["passed"])) / max(1, len(both)), 4),
                      "mean_steps": round(sum(per(arm, lambda r: len(r["calls"]))) / max(1, len(both)), 2),
                      "mean_compactions": round(sum(per(arm, lambda r: r.get("compactions", 0))) / max(1, len(both)), 2),
@@ -111,7 +120,7 @@ def report(model):
                      "timeouts": sum(per(arm, lambda r: r["timed_out"]))} for arm in ARMS}
     base = summary["compaction"]
     rep = {
-        "pilot": "G9 local", "generated": time.strftime("%Y-%m-%d %H:%M"), "model": model,
+        "pilot": "G9 local" if model in cachesim.PROXY else f"G9 {model}", "generated": time.strftime("%Y-%m-%d %H:%M"), "model": model,
         "priced_as": cachesim.PROXY.get(model, model), "declared_window": LIMIT["limit"], "compaction_config": COMPACTION["compaction"], "pairs": len(both),
         "self_test": "pass" if self_test() else "fail", "arms": summary,
         "resolve_delta": paired(per("compaction", lambda r: float(r["passed"])), per("retention", lambda r: float(r["passed"]))) if both else None,
@@ -121,7 +130,7 @@ def report(model):
         "note": "pilot on items the model solved in Track C: it cannot certify the -5 pp margin; not G9's live-ab.json",
     }
     os.makedirs(os.path.join(REPORTS, "retention"), exist_ok=True)
-    path = os.path.join(REPORTS, "retention", "pilot-ab.json")
+    path = os.path.join(REPORTS, "retention", "pilot-ab.json" if model == "qwen3-8b-16k" else f"pilot-ab-{model}.json")
     json.dump(rep, open(path, "w"), indent=2)
     print(json.dumps(rep, indent=2))
     print("->", path)

@@ -18,6 +18,7 @@ import hashlib
 import json
 import os
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -111,9 +112,9 @@ SECRETS = os.path.expanduser("~/.local/share/olaya/harness/secrets.env")
 
 
 def run_one(item, model, k, variant=None, timeout=TIMEOUT_S):
-    """`variant` ({name, model, config, env, binary, timeout, cli_model, secrets}) runs the same item under changed settings,
-    into its own directory: model-entry and top-level config overrides, extra environment, another
-    build, another time limit."""
+    """`variant` ({name, model, config, env, binary, timeout, cli_model, secrets, signin}) runs the same item under
+    changed settings, into its own directory: model-entry and top-level config overrides, extra environment,
+    another build, another time limit, cloud keys, or a provider's sign-in (its access token only)."""
     v = variant or {}
     if v.get("secrets") and not os.path.exists(SECRETS):
         raise FileNotFoundError(f"{SECRETS} is missing: this variant needs cloud API keys (KEY=value lines)")
@@ -132,27 +133,8 @@ def run_one(item, model, k, variant=None, timeout=TIMEOUT_S):
         for f in item["test"]:
             shutil.copy(os.path.join(item["dir"], f), os.path.join(pristine, f))
         os.chmod(work, 0o777); os.chmod(logs, 0o777)
-        name = "trackc-" + hashlib.sha1(f"{model}{item['id']}{k}{time.time()}".encode()).hexdigest()[:10]
-        script = (
-            f"olaya --model {v.get('cli_model') or 'ollama/' + model} run --format json --dangerously-skip-permissions -- \"$TASK\" "
-            "> /logs/events.jsonl 2>/logs/stderr; echo $? > /logs/olaya-exit; "
-            "cp /pristine/* /work/; python -m pytest -q > /logs/pytest.txt 2>&1; echo $? > /logs/pytest-exit; true"
-        )
         t0 = time.time()
-        cmd = ["docker", "run", "--rm", "--name", name, "--add-host", "host.docker.internal:host-gateway",
-               "-v", f"{work}:/work", "-v", f"{pristine}:/pristine:ro", "-v", f"{logs}:/logs", "-v", f"{v.get('binary') or binary()}:/usr/local/bin/olaya:ro",
-               "-e", f"OLAYA_CONFIG_CONTENT={olaya_config(model, v.get('model'), v.get('config'), v.get('pool', ()))}", "-e", f"TASK={task_text(item)}",
-               *[x for key, value in v.get("env", {}).items() for x in ("-e", f"{key}={value}")],
-               # cloud API keys only for runs that need them, from a file outside the repo; --env-file
-               # keeps them off the command line (and out of `ps`)
-               *(["--env-file", SECRETS] if v.get("secrets") else []),
-               "-e", "OLAYA_DISABLE_AUTOUPDATE=1", item.get("image", IMAGE), "sh", "-c", script]
-        timed_out = False
-        try:
-            subprocess.run(cmd, capture_output=True, timeout=v.get("timeout", timeout))
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            subprocess.run(["docker", "kill", name], capture_output=True)
+        timed_out = docker_run(item, work, pristine, logs, v, model, k, v.get("timeout", timeout))
         read = lambda f, d="": open(os.path.join(logs, f), errors="replace").read() if os.path.exists(os.path.join(logs, f)) else d
         events = [json.loads(l) for l in read("events.jsonl").splitlines() if l.startswith("{")]
         record = {
@@ -168,7 +150,13 @@ def run_one(item, model, k, variant=None, timeout=TIMEOUT_S):
             # what the harness billed at its configured prices: the provider's for cloud models, the
             # proxy tier's for local ones (no cache discount: Ollama reports no cache tokens)
             "cost": round(sum((e.get("part") or {}).get("cost") or 0 for e in events if e.get("type") == "step_finish"), 6),
+            "errors": [json.dumps(e.get("error"))[:300] for e in events if e.get("type") == "error"],
+            "retries": [str((e.get("status") or {}).get("message"))[:300] for e in events if e.get("type") == "retry"],
         }
+        usage = usage_from(logs) if v.get("signin") else []
+        if usage:  # steps per model, priced at list price (a sign-in bills nothing per token)
+            record["steps_by_model"] = {m: sum(u["model"] == m for u in usage) for m in sorted({u["model"] for u in usage})}
+            record["list_cost"] = round(sum(u["list_cost"] for u in usage), 6)
         if os.path.exists(os.path.join(logs, "events.jsonl")):
             shutil.copy(os.path.join(logs, "events.jsonl"), os.path.join(out_dir, f"{k}.events.jsonl"))
         # Laya's shadow records, when the variant points OLAYA_LAYA_SHADOW_DIR at /logs/shadow
@@ -177,6 +165,95 @@ def run_one(item, model, k, variant=None, timeout=TIMEOUT_S):
             open(os.path.join(out_dir, f"{k}.shadow.jsonl"), "w").write(shadow)
     json.dump(record, open(out, "w"))
     return record
+
+
+QUOTA = re.compile(r"usage.?limit|rate.?limit|quota|\b429\b|too many requests", re.I)
+
+
+def run_through_limits(item, model, k, variant, wait=1800):
+    """run_one, but a failed run that met a provider's usage limit is void: it moves to _archive and the
+    item runs again after `wait` seconds. An exhausted plan pauses the benchmark instead of scoring failures."""
+    while True:
+        r = run_one(item, model, k, variant)
+        if r["passed"] or not any(QUOTA.search(m) for m in r.get("errors", []) + r.get("retries", [])):
+            return r
+        base = os.path.join(os.path.dirname(RUNS), "variants")
+        shutil.move(os.path.join(base, variant["name"], model, item["id"]),
+                    os.path.join(base, "_archive", f"{variant['name']}-{model}-{item['id']}-limit-{int(time.time())}"))
+        print(f"usage limit on {item['id']} ({variant['name']}): set aside, again in {wait // 60} min", flush=True)
+        time.sleep(wait)
+
+
+def docker_run(item, work, pristine, logs, v, model, k, timeout):
+    """One run in the sandbox container. True when it hit the time limit."""
+    name = "trackc-" + hashlib.sha1(f"{model}{item['id']}{k}{time.time()}".encode()).hexdigest()[:10]
+    script = (
+        f"olaya --model {v.get('cli_model') or 'ollama/' + model} run --format json --dangerously-skip-permissions -- \"$TASK\" "
+        "> /logs/events.jsonl 2>/logs/stderr; echo $? > /logs/olaya-exit; "
+        "cp /pristine/* /work/; python -m pytest -q > /logs/pytest.txt 2>&1; echo $? > /logs/pytest-exit; "
+        # the session's messages, for per-step models and list prices; to a file, since through a pipe
+        # `olaya export` stops at 64 KiB
+        + ("SID=$(head -c 400 /logs/events.jsonl | sed -n 's/.*\"sessionID\":\"\\([^\"]*\\)\".*/\\1/p' | head -1); "
+           "[ -n \"$SID\" ] && olaya export \"$SID\" > /logs/export.json 2>/dev/null; " if v.get("signin") else "")
+        + "true"
+    )
+    cmd = ["docker", "run", "--rm", "--name", name, "--add-host", "host.docker.internal:host-gateway",
+           "-v", f"{work}:/work", "-v", f"{pristine}:/pristine:ro", "-v", f"{logs}:/logs", "-v", f"{v.get('binary') or binary()}:/usr/local/bin/olaya:ro",
+           "-e", f"OLAYA_CONFIG_CONTENT={olaya_config(model, v.get('model'), v.get('config'), v.get('pool', ()))}", "-e", f"TASK={task_text(item)}",
+           *[x for key, value in v.get("env", {}).items() for x in ("-e", f"{key}={value}")],
+           # cloud API keys only for runs that need them, from a file outside the repo; --env-file
+           # keeps them off the command line (and out of `ps`)
+           *(["--env-file", SECRETS] if v.get("secrets") else []),
+           *(["--env-file", signin_env(v["signin"], os.path.join(os.path.dirname(logs), "signin.env"))] if v.get("signin") else []),
+           "-e", "OLAYA_DISABLE_AUTOUPDATE=1", item.get("image", IMAGE), "sh", "-c", script]
+    try:
+        subprocess.run(cmd, capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        subprocess.run(["docker", "kill", name], capture_output=True)
+        return True
+    return False
+
+
+# Sign-in runs (the owner's ChatGPT login): the container gets the access token only, never the
+# refresh token, so nothing in a sandbox can rotate the login on this machine. Olaya refreshes only
+# after expiry, and a run is refused when less than an hour is left.
+AUTH = os.path.expanduser("~/.local/share/olaya/auth.json")
+MODELS_CACHE = os.path.expanduser("~/.cache/olaya/models.json")
+
+
+def signin_env(provider, path):
+    """Writes an env file (mode 600) carrying `provider`'s access token as OLAYA_AUTH_CONTENT."""
+    entry = json.load(open(AUTH))[provider]
+    if entry.get("type") != "oauth" or entry.get("expires", 0) / 1000 - time.time() < 3600:
+        raise RuntimeError(f"the {provider} sign-in is missing or expires within the hour; sign in again with `olaya auth login`")
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write("OLAYA_AUTH_CONTENT=" + json.dumps({provider: {**entry, "refresh": ""}}) + "\n")
+    return path
+
+
+def list_price(model, tokens, catalogue):
+    """$ for one step at the provider's list price (models.dev, as Olaya caches it)."""
+    provider, model_id = model.split("/", 1)
+    c = ((catalogue.get(provider) or {}).get("models", {}).get(model_id) or {}).get("cost") or {}
+    cache = tokens.get("cache") or {}
+    return ((tokens.get("input") or 0) * c.get("input", 0) + (cache.get("read") or 0) * c.get("cache_read", c.get("input", 0))
+            + (cache.get("write") or 0) * c.get("cache_write", c.get("input", 0))
+            + ((tokens.get("output") or 0) + (tokens.get("reasoning") or 0)) * c.get("output", 0)) / 1e6
+
+
+def usage_from(logs):
+    """Each assistant step's model and list price, from the session export a sign-in run leaves."""
+    path = os.path.join(logs, "export.json")
+    text = open(path, errors="replace").read() if os.path.exists(path) else ""
+    try:
+        messages = json.loads(text[text.index("{"):])["messages"]
+    except ValueError:
+        return []
+    catalogue = json.load(open(MODELS_CACHE)) if os.path.exists(MODELS_CACHE) else {}
+    return [{"model": f"{i['providerID']}/{i['modelID']}", "tokens": i.get("tokens") or {},
+             "list_cost": list_price(f"{i['providerID']}/{i['modelID']}", i.get("tokens") or {}, catalogue)}
+            for i in (m["info"] for m in messages) if i.get("role") == "assistant" and i.get("modelID")]
 
 
 def calls_from(events, model):
