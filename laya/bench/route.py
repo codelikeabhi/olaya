@@ -154,6 +154,8 @@ def run_one(item, model, k, variant=None, timeout=TIMEOUT_S):
             "retries": [str((e.get("status") or {}).get("message"))[:300] for e in events if e.get("type") == "retry"],
         }
         usage = usage_from(logs) if v.get("signin") else []
+        if v.get("signin") and not usage:  # killed at its limit before the export: price its steps as logged
+            usage = usage_from_events(events, v["cli_model"])
         if usage:  # steps per model, priced at list price (a sign-in bills nothing per token)
             record["steps_by_model"] = {m: sum(u["model"] == m for u in usage) for m in sorted({u["model"] for u in usage})}
             record["list_cost"] = round(sum(u["list_cost"] for u in usage), 6)
@@ -241,6 +243,15 @@ def list_price(model, tokens, catalogue):
     return ((tokens.get("input") or 0) * c.get("input", 0) + (cache.get("read") or 0) * c.get("cache_read", c.get("input", 0))
             + (cache.get("write") or 0) * c.get("cache_write", c.get("input", 0))
             + ((tokens.get("output") or 0) + (tokens.get("reasoning") or 0)) * c.get("output", 0)) / 1e6
+
+
+def usage_from_events(events, model):
+    """Each step's list price from the run's own step events, at the model it was started on: for a
+    run killed before its session export. Exact when the run stays on one model; a routed run cut off
+    after escalating would be priced low."""
+    catalogue = json.load(open(MODELS_CACHE)) if os.path.exists(MODELS_CACHE) else {}
+    steps = [(e.get("part") or {}).get("tokens") or {} for e in events if e.get("type") == "step_finish"]
+    return [{"model": model, "tokens": t, "list_cost": list_price(model, t, catalogue)} for t in steps]
 
 
 def usage_from(logs):

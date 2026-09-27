@@ -47,21 +47,25 @@ def load_items():
 BUNDLES = os.path.join(route.HOME, "bundles")
 
 
-def bundles(size):
+def bundles(size, seed=0):
     """Long tasks from short ones: `size` Exercism exercises in one workspace and one instruction to
-    make every test pass, so the context grows past a realistic window. Groups follow item order."""
+    make every test pass, so the context grows past a realistic window. Groups follow item order,
+    or a shuffle of it for another `seed` (more pairs from the same exercises)."""
     singles = [it for it in load_items() if it["id"] not in route.STUB_PASSES]
+    if seed:
+        random.Random(seed).shuffle(singles)
+    tag = f"b{size}" + (f"s{seed}" if seed else "")
     out = []
     for b in range(len(singles) // size):
         group = singles[b * size:(b + 1) * size]
         files = [f for it in group for f in it["solution"] + it["test"]]
         assert len(files) == len(set(files)), f"file names collide in bundle {b}"
-        d = os.path.join(BUNDLES, f"b{size}-{b}")
+        d = os.path.join(BUNDLES, f"{tag}-{b}")
         os.makedirs(d, exist_ok=True)
         for it in group:
             for f in it["solution"] + it["test"]:
                 shutil.copy(os.path.join(it["dir"], f), os.path.join(d, f))
-        out.append({"id": f"b{size}-{b}", "difficulty": max(it["difficulty"] for it in group), "dir": d,
+        out.append({"id": f"{tag}-{b}", "difficulty": max(it["difficulty"] for it in group), "dir": d,
                     "solution": [f for it in group for f in it["solution"]], "test": [f for it in group for f in it["test"]],
                     "instructions": "\n\n".join(f"## {it['id']}\n\n{it['instructions']}" for it in group)})
     return out
@@ -91,11 +95,11 @@ def solvable(model):
             if (r := json.load(open(f)))["passed"] and r["item"] not in route.STUB_PASSES}
 
 
-def run(model, binary, only_solvable=False, cloud=None, only=None, budget=None, bundle=None, window=None):
+def run(model, binary, only_solvable=False, cloud=None, only=None, budget=None, bundle=None, window=None, seed=0):
     """`cloud`: run on a provider's model (its key from the harness secrets file) instead of a local
     one; `model` then only names the run directories. `budget`: stop before spending more (USD).
     `bundle`: long tasks of that many exercises each; `window`: the cloud model's declared input limit."""
-    items = bundles(bundle) if bundle else load_items()
+    items = bundles(bundle, seed) if bundle else load_items()
     if only_solvable:
         keep = solvable(model)
         items = [it for it in items if it["id"] in keep]
@@ -243,12 +247,13 @@ def main(argv=None):
     r.add_argument("--only", help="comma-separated item ids"); r.add_argument("--budget", type=float, help="stop at this spend (USD)")
     r.add_argument("--bundle", type=int, help="long tasks: this many exercises per workspace")
     r.add_argument("--window", type=int, help="the cloud model's declared input limit (tokens)")
+    r.add_argument("--seed", type=int, default=0, help="another grouping of the exercises into bundles")
     p = sub.add_parser("report"); p.add_argument("--model", default="qwen3-8b-16k")
     g = sub.add_parser("gate"); g.add_argument("--model", required=True)
     sub.add_parser("demo")
     a = ap.parse_args(argv)
     if a.cmd == "run":
-        run(a.model, a.binary, a.solvable, a.cloud, set(a.only.split(",")) if a.only else None, a.budget, a.bundle, a.window)
+        run(a.model, a.binary, a.solvable, a.cloud, set(a.only.split(",")) if a.only else None, a.budget, a.bundle, a.window, a.seed)
     elif a.cmd == "report":
         report(a.model)
     elif a.cmd == "gate":
