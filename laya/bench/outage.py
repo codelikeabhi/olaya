@@ -56,9 +56,10 @@ OUTAGE_S = 60
 # (every scenario compacted over and over); "outage2-*" sampled, so a fault run and its baseline
 # diverged by chance; "outage3-*" decoded greedily, and qwen3-8b looped on its own output (178
 # requests in 11 minutes); "outage4-*" ran a build without the loop guard, where qwen3-8b called
-# `task` with task_id "1" hundreds of times. "outage5-*": the G9 pilot's window, a fixed seed
-# (SEED), and a build with the loop guard and the task_id fix (1c4cd9a).
-PREFIX = "outage5-"
+# `task` with task_id "1" hundreds of times; "outage5-*" still drifted between runs (random tool-call
+# IDs, test timings). "outage6-*": the G9 pilot's window, a fixed seed and normalised requests
+# (SEED, normalise), on build f85db16 (loop guard, task_id, double-escaped edits, review fixes).
+PREFIX = "outage6-"
 # Forced on every chat request: sampling as usual, but the same request gets the same answer, so a
 # fault run and its baseline stay identical up to the fault and a difference after it is the
 # failover's doing.
