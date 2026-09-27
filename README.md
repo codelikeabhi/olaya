@@ -76,6 +76,8 @@ then returns to your model once it is available again:
   compacted to fit a smaller window, on the new model, never on the one that failed.
 - **When everything is down,** Olaya waits for the earliest reset and carries on by itself.
   Cooldowns are kept on disk, so the next `olaya run` skips a provider that is still exhausted.
+- **Only one provider?** `"failover": {}` turns this on without fallbacks: a usage limit or an
+  outage is waited out on your model instead of ending the session.
 - **If the process itself dies,** `olaya run --supervise` restarts the task on the same session.
   Restarts back off and are capped at 6 an hour.
 - **Privacy.** Every model in the chain receives the task's context, including code, when it

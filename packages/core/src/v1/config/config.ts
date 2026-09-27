@@ -107,7 +107,10 @@ export const Info = Schema.Struct({
           "Minutes. When every model is unavailable, how long to wait for one before ending the run (default: no limit)",
       }),
     }),
-  ).annotate({ description: "Failover: keep a task running on other models when a provider fails" }),
+  ).annotate({
+    description:
+      "Failover: keep a task running when a provider fails, on the models listed or, with none listed, on the same model once it recovers",
+  }),
   default_agent: Schema.optional(Schema.String).annotate({
     description:
       "Default agent to use when none is specified. Must be a primary agent. Falls back to 'build' if not set or if the specified agent is invalid.",

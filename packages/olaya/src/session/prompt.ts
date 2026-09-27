@@ -1349,10 +1349,11 @@ const layer = Layer.effect(
           }
 
           step++
-          // With a fallback chain, a preferred model still cooling from an earlier failure is skipped.
-          const fallbacks = (yield* config.get()).failover?.models ?? []
-          const chain = fallbacks.length
-            ? FailoverAvailability.chain(`${lastUser.model.providerID}/${lastUser.model.modelID}`, fallbacks)
+          // With failover on, a preferred model still cooling from an earlier failure is skipped, or
+          // waited for when there are no fallbacks.
+          const failover = (yield* config.get()).failover
+          const chain = failover
+            ? FailoverAvailability.chain(`${lastUser.model.providerID}/${lastUser.model.modelID}`, failover.models)
             : []
           // Back to a better model once it's available, at a safe point: not while an edit waits
           // for its test run, so a half-done change never passes between models.
@@ -1368,8 +1369,10 @@ const layer = Layer.effect(
             }
           }
           if (chain.length && !failedOver && !FailoverAvailability.available(chain[0]!)) {
-            failedOver = yield* nextModel(chain, FailoverAvailability.get(chain[0]!)?.reason ?? "unavailable")
-            if (!failedOver) {
+            const next = yield* nextModel(chain, FailoverAvailability.get(chain[0]!)?.reason ?? "unavailable")
+            // the preferred model back is not a failover: it goes through model selection as usual
+            failedOver = next === chain[0] ? undefined : next
+            if (!next) {
               yield* events.publish(Session.Event.Error, {
                 sessionID,
                 error: new NamedError.Unknown({ message: "No model in the fallback chain is available" }).toObject(),
@@ -1419,9 +1422,16 @@ const layer = Layer.effect(
             if (typeof result === "object") {
               // the summary request's provider failed: compact again on the next model
               const entry = FailoverAvailability.mark(`${model.providerID}/${model.id}`, result)
-              failedOver = yield* nextModel(chain, entry.reason)
+              const next = yield* nextModel(chain, entry.reason)
+              failedOver = next === chain[0] ? undefined : next
               prefix = undefined
-              if (!failedOver) break
+              if (!next) {
+                yield* events.publish(Session.Event.Error, {
+                  sessionID,
+                  error: new NamedError.Unknown({ message: "No model in the fallback chain is available" }).toObject(),
+                })
+                break
+              }
               continue
             }
             if (result === "stop") break
@@ -1613,20 +1623,21 @@ const layer = Layer.effect(
                 handle.message.finish = "tool-calls"
                 yield* sessions.updateMessage(handle.message)
               }
-              failedOver = yield* nextModel(chain, entry.reason)
+              const next = yield* nextModel(chain, entry.reason)
+              failedOver = next === chain[0] ? undefined : next
               prefix = undefined // the failed model's cached prefix is no use to the next one
               yield* Effect.logInfo("failover", {
                 "session.id": sessionID,
                 from: failed,
-                to: failedOver,
+                to: next,
                 reason: entry.reason,
                 until: entry.until,
               })
-              if (failedOver) {
+              if (next) {
                 yield* status.set(sessionID, {
                   type: "retry",
                   attempt: 0,
-                  message: `Continuing on ${failedOver} (${entry.reason})`,
+                  message: `Continuing on ${next} (${entry.reason})`,
                   next: Date.now(),
                 })
                 return "continue" as const

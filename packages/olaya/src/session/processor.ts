@@ -640,7 +640,9 @@ const layer = Layer.effect(
           return
         }
         const cfg = yield* config.get()
-        if (cfg.failover?.models?.length) {
+        // A `failover` block, even without fallbacks, means Olaya handles failures itself: the loop
+        // moves on, or waits out a usage limit on the same model, instead of the session stopping.
+        if (cfg.failover) {
           const verdict = FailoverClassify.classify(FailoverFailure.failureOf(error, input.model.providerID))
           // a context error the provider phrased its own way: compact, as for the ones parse() knows
           if (verdict.action === "shrink" && cfg.compaction?.auto !== false && !ctx.assistantMessage.summary) {
@@ -691,10 +693,10 @@ const layer = Layer.effect(
               Stream.takeUntil(() => ctx.needsCompaction),
               Stream.runDrain,
             )
-            // With a fallback chain, a stream that goes quiet counts as stalled, so the next model can
+            // With failover on, a stream that goes quiet counts as stalled, so the next model can
             // take over. Keep-alive bytes don't count as progress (they never reach this stream), and
             // a running tool isn't silence: tools run inside the stream and can take many minutes.
-            const stallMs = cfg.failover?.models?.length ? (cfg.failover.stall_timeout ?? 300) * 1000 : 0
+            const stallMs = cfg.failover ? (cfg.failover.stall_timeout ?? 300) * 1000 : 0
             const watchdog = Effect.gen(function* () {
               while (true) {
                 yield* Effect.sleep(Duration.millis(Math.min(5_000, stallMs / 2)))
@@ -719,7 +721,7 @@ const layer = Layer.effect(
             Effect.retry(
               SessionRetry.policy({
                 provider: input.model.providerID,
-                failover: Boolean(cfg.failover?.models?.length),
+                failover: Boolean(cfg.failover),
                 parse,
                 set: (info) => {
                   return status.set(ctx.sessionID, {

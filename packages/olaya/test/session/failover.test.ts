@@ -176,3 +176,32 @@ it.instance(
     }),
   30_000,
 )
+
+it.instance(
+  "with failover on and no fallbacks, a usage limit is waited out on the same model",
+  () =>
+    Effect.gen(function* () {
+      yield* project(undefined, undefined, { failover: {} })
+      const limit = {
+        error: {
+          type: "usage_limit_reached",
+          message: "You've hit your usage limit",
+          resets_at: Math.ceil(Date.now() / 1000) + 2,
+        },
+      }
+      const started = Date.now()
+      const { bodies, assistants } = yield* run(
+        Effect.gen(function* () {
+          const llm = yield* TestLLMServer
+          yield* llm.pushMatch(on("test-model"), httpErrorItem(429, limit))
+          yield* llm.pushMatch(on("test-model"), textItem("done after the reset"))
+        }),
+      )
+      expect((bodies as unknown as Body[]).map((b) => b.model)).toEqual(["test-model", "test-model"])
+      expect(Date.now() - started).toBeGreaterThan(1_000) // it waited for the reset
+      expect(assistants.at(-1)!.finish).toBe("stop")
+      expect(assistants.at(-1)!.error).toBeUndefined()
+      expect(FailoverAvailability.get("test/test-model")).toBeUndefined() // the success cleared it
+    }),
+  30_000,
+)
