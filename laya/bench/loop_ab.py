@@ -13,7 +13,8 @@
 
 Every Track C item runs once per arm, on one build, through Track E's proxy with no fault, which
 puts the same seed on every request. Both arms are identical until the nudge first fires, so a
-paired difference is the nudge's doing. Items where it never fires pair up as ties.
+paired difference is the nudge's doing. The "on" arm runs first; where the nudge never fired, the
+"off" run would be the same run, so it is recorded as a tie by construction and not run.
 """
 
 import argparse
@@ -61,8 +62,19 @@ def fired(out_dir, feature):
 
 def run(binary, model, feature):
     prefix = FEATURES[feature]["prefix"]
+    base = os.path.join(os.path.dirname(route.RUNS), "variants")
     for it in (json.loads(l) for l in open(route.ITEMS)):
-        for arm in ("off", "on"):
+        # "on" first: with every request seeded the arms are identical until the feature first fires,
+        # so where it never fired the "on" run is the "off" run too, and is not run twice.
+        for arm in ("on", "off"):
+            out_dir = os.path.join(base, f"{prefix}-{arm}", model, it["id"])
+            on_dir = os.path.join(base, f"{prefix}-on", model, it["id"])
+            if arm == "off" and not os.path.exists(os.path.join(out_dir, "0.json")) \
+                    and os.path.exists(os.path.join(on_dir, "0.json")) and not fired(on_dir, feature):
+                os.makedirs(out_dir, exist_ok=True)
+                json.dump(dict(json.load(open(os.path.join(on_dir, "0.json"))), inferred_from="on"), open(os.path.join(out_dir, "0.json"), "w"))
+                print(f"off {it['id']:28} tie: the feature never fired", flush=True)
+                continue
             port = free_port()
             log = os.path.join(os.path.dirname(route.RUNS), "variants", f"{prefix}-{arm}", model, it["id"], "0.proxy.jsonl")
             os.makedirs(os.path.dirname(log), exist_ok=True)
@@ -103,6 +115,7 @@ def report(model, feature):
         "experiment": f"{feature} A/B", "generated": time.strftime("%Y-%m-%d %H:%M"), "model": model,
         "priced_as": cachesim.PROXY.get(model, model), "pairs": len(both), "arms": {"off": arm("off"), "on": arm("on")},
         "fired_in": len(touched),
+        "ties_by_construction": sum(1 for i in both if runs["off"][i][0].get("inferred_from")),
         "resolve_delta": paired([float(runs["off"][i][0]["passed"]) for i in both], [float(runs["on"][i][0]["passed"]) for i in both]) if both else None,
         "where_it_fired": {i: {"off": runs["off"][i][0]["passed"], "on": runs["on"][i][0]["passed"], "nudges": runs["on"][i][1],
                                "steps_off": len(runs["off"][i][0]["calls"]), "steps_on": len(runs["on"][i][0]["calls"])} for i in touched},
