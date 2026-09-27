@@ -57,6 +57,7 @@ def targets(s):
 
 
 @torch.no_grad()
+@torch.no_grad()  # scoring only: with gradients on, each 4k pass held its activations (24 GB, swapping)
 def logprob(model, tok, history, segments, device, keep="", reserve=0):
     """Sum of log p over the scored segments, given `keep` and then the history, left-truncated to
     fit MAX_CTX (`keep` itself is never cut). `reserve` holds back room as if `keep` were there, so
@@ -68,9 +69,15 @@ def logprob(model, tok, history, segments, device, keep="", reserve=0):
                 piece = tok(text, add_special_tokens=False)["input_ids"]
                 ids += piece
                 scored += [score] * len(piece)
+    # the scored actions alone may not fit: keep their first half-window, so history still has room
+    ids, scored = ids[: MAX_CTX // 2], scored[: MAX_CTX // 2]
+    if not any(scored):
+        return 0.0
     kept = tok(keep, add_special_tokens=False)["input_ids"] if keep else []
     room = MAX_CTX - len(ids) - max(len(kept), reserve)
-    prefix = kept + tok(history, add_special_tokens=False)["input_ids"][-max(0, room):]
+    past = tok(history, add_special_tokens=False)["input_ids"]
+    # `past[-0:]` is all of it: with no room, no history at all
+    prefix = kept + (past[-room:] if room > 0 else [])
     ids, scored = prefix + ids, [False] * len(prefix) + scored
     x = torch.tensor([ids], device=device)
     # only the scored positions go through the output head: a full 8k x vocab logit matrix is
@@ -212,6 +219,18 @@ def self_test():
     finally:
         MAX_CTX = saved
     assert far[0][3] != 0, far
+    # scored actions longer than the window: every pass stays inside it (a `-0` slice once took the
+    # whole history), and no gradients are kept
+    seen = []
+    forward = model.base_model.forward
+    model.base_model.forward = lambda x, *a, **k: (seen.append((x.shape[1], torch.is_grad_enabled())), forward(x, *a, **k))[1]
+    MAX_CTX, saved = 256, MAX_CTX
+    try:
+        assert math.isfinite(logprob(model, tok, "y " * 2000, [("", "z " * 600)], "cpu"))
+    finally:
+        MAX_CTX = saved
+        model.base_model.forward = forward
+    assert seen and all(n <= 256 and not grad for n, grad in seen), seen
     return True
 
 
