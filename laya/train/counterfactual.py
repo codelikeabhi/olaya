@@ -1,6 +1,7 @@
 """Counterfactual labels for the retention scorer (gate G8, design D7).
 
     python -m train.counterfactual label --model Qwen/Qwen3-1.7B --states 250 [--device mps]
+    python -m train.counterfactual merge     # retain-v1 + retain-cf -> retain-v2 for train.train
     python -m train.counterfactual demo      # mechanics self-test: a tiny random model, CPU, no download
 
 Hindsight labels call a block "needed" when an action after the compaction point quotes it. A
@@ -131,6 +132,23 @@ def run(model, tok, n_states, device, per_state=12, seed=0, name="retain-cf", po
     return rows
 
 
+def merge(n_each=1500, cf_weight=2.0, seed=0, name="retain-v2"):
+    """retain-v2: hindsight rows plus counterfactual rows, at most ~3,000 (the trainer caches ~1 MB
+    per row). Where both label the same block, the counterfactual label wins; its rows count double."""
+    rng = random.Random(seed)
+    read = lambda d: [json.loads(l) for l in open(os.path.join(D.DATA_HOME, d, "rows.jsonl"))]
+    cf = read("retain-cf")
+    rng.shuffle(cf)
+    cf = [dict(r, weight=cf_weight) for r in cf[:n_each]]
+    taken = {r["state"] for r in cf}
+    hindsight = [r for r in read("retain-v1") if r["state"] not in taken]
+    rng.shuffle(hindsight)
+    rows = hindsight[:n_each] + cf
+    d, _ = D.write_dataset(rows, name, retain.QUESTIONS)
+    print(f"{len(rows)} rows ({len(rows) - len(cf)} hindsight, {len(cf)} counterfactual at weight {cf_weight}) -> {d}")
+    return rows
+
+
 def self_test():
     """Mechanics on a tiny random model: a stubbed block changes the score, rows are well formed."""
     from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM
@@ -157,10 +175,13 @@ def main(argv=None):
     sub = ap.add_subparsers(dest="cmd", required=True)
     l = sub.add_parser("label"); l.add_argument("--model", default="Qwen/Qwen3-1.7B"); l.add_argument("--states", type=int, default=250)
     l.add_argument("--device", default="mps"); l.add_argument("--per-state", type=int, default=12)
+    sub.add_parser("merge")
     sub.add_parser("demo")
     a = ap.parse_args(argv)
     if a.cmd == "label":
         label(a.model, a.states, a.device, a.per_state)
+    elif a.cmd == "merge":
+        merge()
     else:
         print("counterfactual self-test", "passed" if self_test() else "FAILED")
 

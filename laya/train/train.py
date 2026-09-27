@@ -73,6 +73,7 @@ def featurise(rows, agent):
             items.append({
                 "ids": seq, "markers": markers, "qtype": QTYPES[q["t"]], "target": [t / s for t in target],
                 "label": row.get("label"), "reply": row.get("reply"), "id": row.get("id"),
+                "weight": float(row.get("weight", 1.0)),
             })
     return items
 
@@ -151,12 +152,12 @@ def rlcd_loss(logits, act, b, device, sigma, group=4, w_ce=1.0, weights=None):
 
 def sample_weights(items, always_weight):
     """Class-balanced: each label (approve/ask, or needed/not_needed) carries equal total weight;
-    `always` replies count more."""
+    `always` replies count more, and a row may carry its own `weight` (counterfactual labels)."""
     counts = {}
     for it in items:
         counts[it["label"]] = counts.get(it["label"], 0) + 1
     w = [len(items) / (len(counts) * counts[it["label"]]) * (always_weight if it.get("reply") == "always" else 1.0)
-         for it in items]
+         * it.get("weight", 1.0) for it in items]
     return torch.tensor(w, dtype=torch.float32)
 
 
