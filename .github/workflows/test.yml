@@ -72,7 +72,8 @@ jobs:
             turbo-${{ runner.os }}-
 
       - name: Run unit tests
-        timeout-minutes: 20
+        # GitHub's standard Windows runner needs more than the 20 minutes upstream's Blacksmith runners did
+        timeout-minutes: ${{ runner.os == 'Windows' && 45 || 20 }}
         run: GITHUB_ACTIONS=false bun turbo test
         env:
           OLAYA_EXPERIMENTAL_DISABLE_FILEWATCHER: ${{ runner.os == 'Windows' && 'true' || 'false' }}
