@@ -1,0 +1,169 @@
+"""Counterfactual labels for the retention scorer (gate G8, design D7).
+
+    python -m train.counterfactual label --model Qwen/Qwen3-1.7B --states 250 [--device mps]
+    python -m train.counterfactual demo      # mechanics self-test: a tiny random model, CPU, no download
+
+Hindsight labels call a block "needed" when an action after the compaction point quotes it. A
+counterfactual label asks instead whether the agent's actual next actions become less likely
+without it: under a fixed causal LM, the drop in log-probability of the calls made after the cut
+when one block is replaced by a stub. Blocks are scored in training sessions only (repositories
+disjoint from Track D); the hindsight positives of each state are scored with sampled negatives.
+
+The drop is kept on every row (`delta`), and a block is labelled "needed" when its drop is in the
+top share that matches hindsight's positive rate, so the two label sets are comparable. The rows
+extend retain-v1 for retraining; Track D is untouched until the scorer is evaluated once.
+"""
+
+import argparse
+import glob
+import json
+import math
+import os
+import random
+
+import torch
+
+from . import data as D
+from . import retain
+
+STUB = "[...]"
+MAX_CTX = 8192
+RESULT_CHARS = 600
+
+
+def render(it):
+    if it["role"] == "tool":
+        return f"CALL {it.get('call', '')}\nRESULT {it['text']}\n"
+    return f"{it['role'].upper()} {it['text']}\n"
+
+
+def targets(s):
+    """(context, scored) text pairs after the cut: each call and assistant message is scored; the
+    tool results between them are context only."""
+    out = []
+    for it in s["items"][s["cut"]:]:
+        if it["role"] == "tool":
+            out.append(("", f"CALL {it.get('call', '')}\n"))
+            out.append((f"RESULT {it['text'][:RESULT_CHARS]}\n", ""))
+        elif it["role"] == "assistant":
+            out.append(("", f"ASSISTANT {it['text']}\n"))
+    return out
+
+
+@torch.no_grad()
+def logprob(model, tok, history, segments, device):
+    """Sum of log p over the scored segments, given the history (left-truncated to fit)."""
+    ids, scored = [], []
+    for context, target in segments:
+        for text, score in ((context, False), (target, True)):
+            if text:
+                piece = tok(text, add_special_tokens=False)["input_ids"]
+                ids += piece
+                scored += [score] * len(piece)
+    prefix = tok(history, add_special_tokens=False)["input_ids"][-max(0, MAX_CTX - len(ids)):]
+    ids, scored = prefix + ids, [False] * len(prefix) + scored
+    x = torch.tensor([ids], device=device)
+    # only the scored positions go through the output head: a full 8k x vocab logit matrix is
+    # gigabytes, and all but a few hundred rows of it would be thrown away
+    at = torch.tensor([i for i in range(len(ids) - 1) if scored[i + 1]], device=device)
+    hidden = model.base_model(x).last_hidden_state[0, at]
+    lp = torch.log_softmax(model.get_output_embeddings()(hidden).float(), -1)
+    return float(lp.gather(1, x[0, at + 1, None])[:, 0].sum())
+
+
+def deltas(model, tok, s, candidates, device):
+    """Log-probability drop of the post-cut actions when each candidate block is stubbed."""
+    h = s["items"][: s["cut"]]
+    segments = targets(s)
+    base = logprob(model, tok, "".join(render(it) for it in h), segments, device)
+    out = []
+    for i, block, state in candidates:
+        without = [dict(it, text=it["text"].replace(block, STUB, 1)) if j == i else it for j, it in enumerate(h)]
+        out.append((i, block, state, base - logprob(model, tok, "".join(render(it) for it in without), segments, device)))
+    return out
+
+
+def label(model_name, n_states, device, per_state=12, seed=0, name="retain-cf", positive_rate=0.078):
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    tok = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16 if device != "cpu" else torch.float32)
+    model.to(device).eval()
+    return run(model, tok, n_states, device, per_state, seed, name, positive_rate)
+
+
+def run(model, tok, n_states, device, per_state=12, seed=0, name="retain-cf", positive_rate=0.078, write=True):
+    rng = random.Random(seed)
+    sessions = [json.loads(l) for l in open(retain.TRAIN_SESSIONS)]
+    rng.shuffle(sessions)
+    scored = []
+    for s in sessions[:n_states]:
+        if not targets(s):
+            continue
+        need = retain.needed_texts(s)
+        cands = retain.states(s)
+        pos = [c for c in cands if any(t in c[1] for t in need)]
+        neg = [c for c in cands if c not in pos]
+        rng.shuffle(neg)
+        pick = pos[: per_state // 2] + neg[: per_state - min(len(pos), per_state // 2)]
+        scored += [(s, i, block, state, d, any(t in block for t in need)) for i, block, state, d in deltas(model, tok, s, pick, device)]
+        print(f"{s['id']}: {len(pick)} blocks, max drop {max((x[4] for x in scored[-len(pick):]), default=0):.2f}", flush=True)
+    if not scored:
+        return []
+    cut = sorted((x[4] for x in scored), reverse=True)[max(0, math.ceil(positive_rate * len(scored)) - 1)]
+    rows = []
+    for s, i, block, state, d, hindsight in scored:
+        needed = d >= cut and d > 0
+        group = s["repo"] if s["source"] == "public" else s["id"]
+        rows.append({
+            "state": json.dumps(state, ensure_ascii=False), "questions": json.dumps(retain.QUESTIONS),
+            "gold": json.dumps({"needed_later": {"probabilities": {"true": float(needed), "false": float(not needed)}}}),
+            "id": f"{s['id']}-{i}-cf{len(rows)}", "group": group,
+            "split": D.split_of(group, calib_share=0.2, test_share=0.0),
+            "source": s["source"], "labeler": "counterfactual", "label": "needed" if needed else "not_needed",
+            "delta": round(d, 4), "hindsight": "needed" if hindsight else "not_needed",
+        })
+    agree = sum((r["label"] == r["hindsight"]) for r in rows) / len(rows)
+    print(f"{len(rows)} rows, drop threshold {cut:.3f}, {sum(r['label'] == 'needed' for r in rows)} needed, agreement with hindsight {agree:.3f}")
+    if write:
+        d, _ = D.write_dataset(rows, name, retain.QUESTIONS)
+        print("->", d)
+    return rows
+
+
+def self_test():
+    """Mechanics on a tiny random model: a stubbed block changes the score, rows are well formed."""
+    from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM
+
+    # any tokenizer will do for mechanics; Laya's is already cached (in an older snapshot)
+    path = glob.glob(os.path.expanduser("~/.cache/huggingface/hub/models--convaiinnovations--laya/snapshots/*/tokenizer"))[0]
+    tok = AutoTokenizer.from_pretrained(path)
+    torch.manual_seed(0)
+    model = LlamaForCausalLM(LlamaConfig(vocab_size=len(tok), hidden_size=32, num_hidden_layers=1, num_attention_heads=2,
+                                         num_key_value_heads=2, intermediate_size=64, max_position_embeddings=MAX_CTX)).eval()
+    s = {"items": [{"role": "user", "text": "fix the failing test", "turn": 0},
+                   {"role": "tool", "call": "bash(pytest)", "text": "E KeyError: 'tenant_d477'", "turn": 1},
+                   {"role": "tool", "call": "read(a.py)", "text": "def f(): pass", "turn": 2},
+                   {"role": "tool", "call": "edit(a.py, 'tenant_d477')", "text": "Edit applied.", "turn": 3}], "cut": 3}
+    segments = targets(s)
+    assert segments == [("", "CALL edit(a.py, 'tenant_d477')\n"), ("RESULT Edit applied.\n", "")], segments
+    out = deltas(model, tok, s, [(1, "E KeyError: 'tenant_d477'", {}), (2, "def f(): pass", {})], "cpu")
+    assert len(out) == 2 and all(math.isfinite(d) for *_, d in out) and any(d != 0 for *_, d in out), out
+    return True
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser()
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    l = sub.add_parser("label"); l.add_argument("--model", default="Qwen/Qwen3-1.7B"); l.add_argument("--states", type=int, default=250)
+    l.add_argument("--device", default="mps"); l.add_argument("--per-state", type=int, default=12)
+    sub.add_parser("demo")
+    a = ap.parse_args(argv)
+    if a.cmd == "label":
+        label(a.model, a.states, a.device, a.per_state)
+    else:
+        print("counterfactual self-test", "passed" if self_test() else "FAILED")
+
+
+if __name__ == "__main__":
+    main()
