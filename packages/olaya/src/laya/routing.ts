@@ -4,7 +4,8 @@
  * - D0, task start: the prompt's model, or with `start: "cheapest"` the cheapest model in the
  *   user's pool (a cascade; opt-in until Track C shows it keeps quality);
  * - D3, hard triggers: one step up the pool by price after a doom loop, 2 malformed calls in a
- *   row, no test progress over 3 runs, or 4 edits to one file since the last test run;
+ *   row, no test progress over 3 runs, or 4 edits to one file since the last test run; and a failed
+ *   "done": the model ends its turn while its last test run failed (`failedDone`, at loop exit);
  * - D4, compaction: stay (the ratchet never steps down).
  *
  * Restart-smart (design D4): escalating with a large context would send the whole history, uncached,
@@ -37,6 +38,8 @@ type State = {
   restart?: { tier: number; reason: string; step: number }
   /** Live and turned on by the user: only then does a held escalation ask for a compaction. */
   live?: boolean
+  /** Models in the user's pool, as of the last step. */
+  poolSize?: number
 }
 
 const MAX_ESCALATIONS = 2
@@ -67,6 +70,7 @@ export function trigger(state: State, usage: StepUsage | undefined) {
 /** Decides the model for one step. Returns the pool index to run on, or undefined to leave it. */
 export function decide(state: State, input: Input, start: RoutingOptions["start"]) {
   const pool = byPrice(input.routing.pool)
+  state.poolSize = pool.length
   if (pool.length < 2) return { reason: "pool has fewer than two models" }
   if (input.point === "start") {
     // only a real change of model starts the spacing between switches
@@ -95,15 +99,18 @@ export function decide(state: State, input: Input, start: RoutingOptions["start"
   state.pending = trigger(state, input.usage) ?? state.pending
   if (!state.pending) return { reason: "no trigger" }
   // an edit is waiting for its test run: switching now would hand a half-done change to another
-  // model. Piled-up edits without tests are themselves the trigger, so they are not held back.
+  // model. Piled-up edits without tests are themselves the trigger, so they are not held back, and
+  // neither is a failed "done": the model has stopped, so no change is half-way.
+  const done = state.pending === "failed-done"
   if (
     (input.usage?.signals.sameFileEdits ?? 0) > 0 &&
     !input.usage?.signals.tests &&
-    state.pending !== "edits-without-tests"
+    state.pending !== "edits-without-tests" &&
+    !done
   )
     return { reason: `${state.pending}: deferred, edit awaiting its test run` }
   if (state.escalations >= MAX_ESCALATIONS) return { reason: `${state.pending}: escalation cap reached` }
-  if (input.step - state.lastSwitch < MIN_STEPS_BETWEEN_SWITCHES)
+  if (input.step - state.lastSwitch < MIN_STEPS_BETWEEN_SWITCHES && !done)
     return { reason: `${state.pending}: too soon after the last switch` }
   // one step up from the current model: above its pool position, or above its price when outside the pool
   const current = state.tier >= 0 ? pool[state.tier]! : undefined
@@ -169,6 +176,27 @@ export function handler(
     } catch (error) {
       console.error("laya routing failed; the harness's model is used:", error)
     }
+  }
+}
+
+export const FAILED_DONE_PROMPT =
+  "The tests still fail, so the task isn't done. You now run on a stronger model: find the cause, fix it, and run the tests until they pass."
+
+/**
+ * A failed "done" (design D4): the model ends its turn while its last test run failed. Live and
+ * turned on, below the strongest model and under the escalation cap, the turn goes on, and the next
+ * step escalates. Shares `handler`'s sessions.
+ */
+export function failedDone(sessions: Map<string, State>): NonNullable<Hooks["experimental.loop.exit"]> {
+  return async (input, output) => {
+    const state = sessions.get(input.sessionID)
+    // a trigger still held back (say, an edit awaiting its test run) is replaced: the model has stopped
+    if (output.continue || !state?.live || state.restart) return
+    if (state.tier < 0 || state.tier >= (state.poolSize ?? 0) - 1 || state.escalations >= MAX_ESCALATIONS) return
+    if (!((state.failures.at(-1) ?? 0) > 0)) return
+    state.pending = "failed-done"
+    output.continue = true
+    output.prompt = FAILED_DONE_PROMPT
   }
 }
 

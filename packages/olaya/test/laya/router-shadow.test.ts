@@ -7,7 +7,14 @@ import fs from "fs/promises"
 import os from "os"
 import path from "path"
 import type { PoolModel, StepUsage } from "@olaya/plugin"
-import { handler, restartPoint, RESTART_TOKENS, type RoutingState } from "../../src/laya/routing"
+import {
+  FAILED_DONE_PROMPT,
+  failedDone,
+  handler,
+  restartPoint,
+  RESTART_TOKENS,
+  type RoutingState,
+} from "../../src/laya/routing"
 import { ShadowLog } from "../../src/laya/shadow"
 
 const model = (modelID: string, output: number): PoolModel => ({
@@ -272,5 +279,65 @@ describe("restart-smart escalation", () => {
   test("shadow mode never asks for a compaction", async () => {
     const r = await run(RESTART_TOKENS, "shadow", [])
     expect(r.trigger.compact).toBe(false)
+  })
+})
+
+describe("a failed done", () => {
+  const opus = { providerID: "anthropic", modelID: "claude-opus-5-5" }
+  // the prompt's model is Opus and routing starts on the cheapest (Haiku, a switch at step 1); tests
+  // run at step 3, an edit at step 4, then the turn ends
+  const run = async (opts: { mode?: "live" | "shadow"; failed?: number; tested?: boolean; on?: typeof sonnet; already?: boolean }) => {
+    const sessions = new Map<string, RoutingState>()
+    const route = handler({ mode: opts.mode ?? "live", start: opts.on ? "default" : "cheapest" }, sessions)
+    const exit = failedDone(sessions)
+    const call = async (step: number, signals: Partial<StepUsage["signals"]> = {}) => {
+      const output: { model?: { providerID: string; modelID: string }; reason?: string } = {}
+      await route(
+        {
+          sessionID: "s",
+          agent: "build",
+          step,
+          point: step === 1 ? "start" : "step",
+          model: opts.on ?? opus,
+          ...(step > 1 && { usage: usage(step - 1, signals) }),
+          routing: { enabled: true, pool },
+        },
+        output,
+      )
+      return output
+    }
+    await call(1)
+    await call(2)
+    await call(3, opts.tested === false ? {} : { tests: { passed: 13, failed: opts.failed ?? 15 } })
+    await call(4, { sameFileEdits: 1 })
+    const ended = { continue: opts.already ?? false, prompt: opts.already ? "other" : undefined } as {
+      continue: boolean
+      prompt?: string
+    }
+    await exit({ sessionID: "s", agent: "build", step: 4, text: "The tests still fail; I could not finish." }, ended)
+    const next = await call(5, { sameFileEdits: 1 })
+    return { ended, next }
+  }
+
+  test("ending with failing tests goes on, one model up, even with an edit untested and soon after the start", async () => {
+    const r = await run({})
+    expect(r.ended).toEqual({ continue: true, prompt: FAILED_DONE_PROMPT })
+    expect(r.next.model?.modelID).toBe("claude-sonnet-5")
+    expect(r.next.reason).toBe("escalate: failed-done")
+  })
+
+  test("passing tests, no test run, the strongest model, shadow mode or another nudge: the turn ends as it would", async () => {
+    for (const r of [
+      await run({ failed: 0 }),
+      await run({ tested: false }),
+      await run({ on: opus }),
+      await run({ mode: "shadow" }),
+    ]) {
+      expect(r.ended.continue).toBe(false)
+      expect(r.next.reason).not.toBe("escalate: failed-done")
+      expect(r.next.model?.modelID).not.toBe("claude-sonnet-5")
+    }
+    const other = await run({ already: true })
+    expect(other.ended.prompt).toBe("other")
   })
 })

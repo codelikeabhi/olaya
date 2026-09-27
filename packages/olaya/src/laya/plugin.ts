@@ -15,7 +15,7 @@ import { liveHandler, shadowHandler } from "./judgment"
 import { observe } from "./inject"
 import type { SessionContext } from "./state"
 import { compactionPoint, handler as retentionHandler, recallTool } from "./retention"
-import { handler as routingHandler, restartPoint, type RoutingState } from "./routing"
+import { failedDone, handler as routingHandler, restartPoint, type RoutingState } from "./routing"
 
 export const SHADOW_DIR = path.join(Global.Path.data, "laya-shadow")
 /** Full text of what live retention shortened or dropped, one append-only file per session. */
@@ -89,6 +89,7 @@ export const LayaPlugin: Plugin = async (input, options) => {
             },
             routed,
           ),
+          "experimental.loop.exit": failedDone(routed),
         }
   // Live retention and routing's restart-smart may both ask for an earlier compaction; each only
   // ever sets `compact`.
