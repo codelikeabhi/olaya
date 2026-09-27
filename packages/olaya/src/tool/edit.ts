@@ -690,17 +690,23 @@ export function replace(content: string, oldString: string, newString: string, r
   }
 
   // Some models escape their arguments twice, sending a backslash and "n" for every line break. When
-  // oldString has those, no real line breaks, and isn't in the file as written, both strings meant
-  // real line breaks: matching only oldString's would refuse the edit, or write backslashes into
-  // the file.
-  const twice = (text: string) => !text.includes("\n") && text.includes("\\n")
-  if (twice(oldString) && !content.includes(oldString)) {
-    return replace(
-      content,
-      unescapeString(oldString),
-      twice(newString) ? unescapeString(newString) : newString,
-      replaceAll,
-    )
+  // oldString has those, no real line breaks, and isn't in the file as written, it is tried
+  // unescaped first, and a single-line newString with it (its quotes and backslashes were escaped
+  // the same way); line breaks take the file's own ending. Matching only oldString's escapes would
+  // refuse the edit, or write backslashes into the file.
+  if (!oldString.includes("\n") && oldString.includes("\\n") && !content.includes(oldString)) {
+    const eol = content.includes("\r\n") ? "\r\n" : "\n"
+    const unescape = (text: string) => unescapeString(text).replace(/\r?\n/g, eol)
+    try {
+      return replace(
+        content,
+        unescape(oldString),
+        newString.includes("\n") ? newString : unescape(newString),
+        replaceAll,
+      )
+    } catch {
+      // not escaped twice after all (a real backslash-n with a typo nearby): matched as written below
+    }
   }
 
   let notFound = true

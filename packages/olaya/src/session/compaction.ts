@@ -419,8 +419,12 @@ const layer = Layer.effect(
 
       const agent = yield* agents.get("compaction")
       // A compaction model of its own gives way to the session's while it cools after a failure.
+      // It is only "its own" when it differs from the model the session is on: the same model is the
+      // session's, with a warm cache, and its failures go through the session's failover.
       const own =
-        agent.model && FailoverAvailability.available(`${agent.model.providerID}/${agent.model.modelID}`)
+        agent.model &&
+        FailoverAvailability.available(`${agent.model.providerID}/${agent.model.modelID}`) &&
+        !(input.model && input.model.providerID === agent.model.providerID && input.model.id === agent.model.modelID)
           ? agent.model
           : undefined
       // A compaction model of its own has a cold cache anyway, so the shared prefix would only add tokens.
@@ -607,11 +611,7 @@ const layer = Layer.effect(
             role: "user",
             sessionID: input.sessionID,
             time: { created: Date.now() },
-            agent: original.agent,
-            model: original.model,
-            format: original.format,
-            tools: original.tools,
-            system: original.system,
+            ...MessageV2.settings(original),
           })
           for (const part of replay.parts) {
             if (part.type === "compaction") continue

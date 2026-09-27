@@ -585,6 +585,20 @@ describe("arguments escaped twice", () => {
     )
   })
 
+  test("a real backslash-n with a spacing typo still reaches the fuzzy matchers", () => {
+    const code = '\tlines = text.split("\\n")\n'
+    // before the fallback this threw "Could not find oldString"
+    expect(replace(code, 'lines = text.split("\\n") ', "lines = text.splitlines()")).toContain("splitlines()")
+  })
+
+  test("unescaped line breaks follow a CRLF file's endings, and escaped quotes in newString are undone too", () => {
+    const crlf = "class Cipher:\r\n    def encode(self, text):\r\n        pass\r\n"
+    const old = "class Cipher:\\n    def encode(self, text):\\n        pass"
+    expect(replace(crlf, old, 'class Cipher:\\n    def encode(self, text):\\n        return \\"x\\"')).toBe(
+      'class Cipher:\r\n    def encode(self, text):\r\n        return "x"\r\n',
+    )
+  })
+
   test("a backslash-n the file really contains is matched as written", () => {
     const code = 'print("a\\nb")\n'
     expect(replace(code, 'print("a\\nb")', 'print("a\\nc")')).toBe('print("a\\nc")\n')

@@ -446,8 +446,7 @@ const layer = Layer.effect(
         sessionID,
         role: "user",
         time: { created: Date.now() },
-        agent: lastUser.agent,
-        model: lastUser.model,
+        ...MessageV2.settings(lastUser),
       }
       yield* sessions.updateMessage(summaryUserMsg)
       yield* sessions.updatePart({

@@ -18,17 +18,24 @@ export function failureOf(error: SessionRetry.Err, providerID: string): Failure 
       body,
       status: typeof data["statusCode"] === "number" ? data["statusCode"] : undefined,
       headers: (data["responseHeaders"] as Record<string, string> | undefined) ?? undefined,
-      kind: /timed? ?out|header timeout/i.test(message)
-        ? "stall"
-        : /ECONNRESET|socket|fetch failed|terminated|network/i.test(message)
-          ? "network"
-          : undefined,
+      kind: /timed? ?out|header timeout/i.test(message) ? "stall" : NETWORK.test(message) ? "network" : undefined,
     }
   return {
     providerID,
     message,
-    kind: /stall/i.test(message) ? "stall" : /timed out/i.test(message) ? "timeout" : undefined,
+    kind: /stall/i.test(message)
+      ? "stall"
+      : /timed out/i.test(message)
+        ? "timeout"
+        : NETWORK.test(message)
+          ? "network"
+          : undefined,
   }
 }
+
+// Bun says "Unable to connect" (ConnectionRefused) and the AI SDK "Cannot connect to API": a local
+// model server restarting looks like this, and it clears with time.
+const NETWORK =
+  /ECONNRESET|ECONNREFUSED|ConnectionRefused|ConnectionClosed|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|socket|fetch failed|terminated|network|unable to connect|cannot connect|connection (?:refused|reset|closed|lost)/i
 
 export * as FailoverFailure from "./failure"

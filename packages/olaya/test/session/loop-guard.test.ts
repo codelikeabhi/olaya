@@ -58,6 +58,22 @@ describe("loop guard", () => {
     expect(LoopGuard.loopNudge(history(read, edit(1), read, edit(2), read))).toBeUndefined()
   })
 
+  test("a command rerun unchanged is a loop even when its timing and saved-output name differ", () => {
+    const run = (secs: string, id: string) =>
+      tool("bash", { command: "bun test" }, undefined, `3 fail in ${secs}s\nFull output saved to: /tmp/tool_${id}`)
+    expect(
+      LoopGuard.loopNudge(history(run("1.02", "0e04a1b2c3"), run("0.98", "0e04d4e5f6"), run("1.10", "0e04a7b8c9"))),
+    ).toContain("same `bash` call")
+  })
+
+  test("the same failure on different files is not a repeat", () => {
+    const edit = (file: string) => tool("edit", { filePath: file, oldString: "x" }, notFound)
+    const write = (file: string) => tool("write", { filePath: file })
+    expect(
+      LoopGuard.loopNudge(history(edit("/a.py"), write("/a.py"), edit("/b.py"), write("/b.py"), edit("/c.py"))),
+    ).toBeUndefined()
+  })
+
   test("polling until the output changes is not a loop", () => {
     const poll = (output: string) => tool("bash", { command: "gh run view 42" }, undefined, output)
     expect(LoopGuard.loopNudge(history(poll("queued"), poll("in_progress"), poll("in_progress")))).toBeUndefined()

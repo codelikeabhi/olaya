@@ -3,6 +3,8 @@
  * fixture per documented shape, reset parsing in every format providers use, and the conservative
  * default for shapes it does not know.
  */
+import { FailoverFailure } from "../../src/failover/failure"
+import { FailoverClassify } from "../../src/failover/classify"
 import { describe, expect, test } from "bun:test"
 import { classify, duration, familyOf, parseReset, type Action, type Failure } from "../../src/failover/classify"
 
@@ -639,5 +641,26 @@ describe("reset times", () => {
         "azure",
       ].map(familyOf),
     ).toEqual(["anthropic", "anthropic", "kimi", "kimi", "alibaba", "openrouter", "openai"])
+  })
+})
+
+describe("failures as the harness records them", () => {
+  test("a refused connection is a network failure that clears with time, however it is worded", () => {
+    const api = {
+      name: "APIError",
+      data: {
+        message: "Cannot connect to API: Unable to connect. Is the computer able to access the url?",
+        isRetryable: true,
+      },
+    }
+    const bun = {
+      name: "UnknownError",
+      data: { message: "Unable to connect. Is the computer able to access the url?" },
+    }
+    for (const error of [api, bun]) {
+      const failure = FailoverFailure.failureOf(error as never, "ollama")
+      expect(failure.kind).toBe("network")
+      expect(FailoverClassify.clearsWithTime(classify(failure, NOW))).toBe(true)
+    }
   })
 })

@@ -23,15 +23,22 @@ export function loopNudge(msgs: SessionV1.WithParts[]) {
     .filter((part) => !(part.state.status === "error" && part.state.metadata?.interrupted === true))
   const last = tools.slice(-REPEATS)
   if (last.length < REPEATS) return undefined
-  // the same call with the same result: polling a job or a log until it changes is not a loop
+  // The same call with the same result: polling a job or a log until it changes is not a loop. Test
+  // timings and saved-output file names differ on every run, so decimals and long IDs with digits
+  // don't count as a change; small numbers (a progress count) do.
+  const outcome = (part: SessionV1.ToolPart) =>
+    (part.state.status === "completed" ? part.state.output : part.state.status === "error" ? part.state.error : "")
+      .replace(/\d+\.\d+/g, "#")
+      .replace(/\b(?=[\w-]*\d)[\w-]{8,}\b/g, "#")
   const call = (part: SessionV1.ToolPart) =>
-    [
-      part.tool,
-      JSON.stringify(part.state.input ?? null),
-      part.state.status === "completed" ? part.state.output : part.state.status === "error" ? part.state.error : "",
-    ].join("\u0000")
+    [part.tool, JSON.stringify(part.state.input ?? null), outcome(part)].join("\u0000")
   const error = (part: SessionV1.ToolPart) =>
     part.state.status === "error" ? part.tool + "\u0000" + part.state.error.split("\n")[0] : undefined
+  // what a call acts on: the same failure on different files or URLs is not a repeat
+  const target = (part: SessionV1.ToolPart) => {
+    const input = (part.state.input ?? {}) as Record<string, unknown>
+    return JSON.stringify(input.filePath ?? input.path ?? input.url ?? input.command ?? null)
+  }
   if (last.every((part) => call(part) === call(last[0]!)))
     return `You have made the same \`${last[0]!.tool}\` call ${REPEATS} times in a row. Repeating it will not change the outcome. Step back: check the current state (re-read the file, or look at the latest output), then take a different approach.`
   // The same failure from one tool, with other calls in between: re-reading the file and sending
@@ -40,7 +47,7 @@ export function loopNudge(msgs: SessionV1.WithParts[]) {
   if (!failed || tools.indexOf(failed) < tools.length - 2) return undefined
   const same = tools.filter((part) => part.tool === failed.tool).slice(-REPEATS)
   const failure = error(failed)
-  if (same.length === REPEATS && same.every((part) => error(part) === failure))
+  if (same.length === REPEATS && same.every((part) => error(part) === failure && target(part) === target(failed)))
     return `Your last ${REPEATS} \`${failed.tool}\` calls all failed with the same error: "${failure!.split("\u0000")[1]}". Repeating it will not change the outcome. Step back: check the current state (re-read the file before editing it again, or look at the latest output), then take a different approach.`
   return undefined
 }
