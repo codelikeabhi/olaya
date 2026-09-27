@@ -183,7 +183,7 @@ it.instance(
 )
 
 it.instance(
-  "a stream that goes quiet counts as stalled: one retry, then the next model takes over",
+  "a stream that goes quiet counts as stalled, and the next model takes over at once",
   () =>
     Effect.gen(function* () {
       yield* project(undefined, undefined, { failover: { models: ["test/cheap-model"], stall_timeout: 1 } })
@@ -191,11 +191,10 @@ it.instance(
         Effect.gen(function* () {
           const llm = yield* TestLLMServer
           yield* llm.pushMatch(on("test-model"), reply().hang().item())
-          yield* llm.pushMatch(on("test-model"), reply().hang().item())
           yield* llm.pushMatch(on("cheap-model"), reply().text("done").stop().item())
         }),
       )
-      expect(models(bodies)).toEqual(["test-model", "test-model", "cheap-model"])
+      expect(models(bodies)).toEqual(["test-model", "cheap-model"])
       expect(assistants.at(-1)!.finish).toBe("stop")
     }),
   60_000,

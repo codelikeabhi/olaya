@@ -28,7 +28,8 @@ Metrics (thresholds in gates.json, F6):
   (re-running a command such as the tests is normal work and does not count);
 - lost_tool_results: tool calls completed before the switch whose results the fallback never saw;
 - needles_after_switch: runs whose first request to `b` still carries the task's planted codename;
-- failover_p95_s: first fault to first answer from `b`.
+- failover_p95_s: first fault to first answer from `b`; for a stall, from when it is detectable (the
+  stall limit after the first fault), with the raw stall times reported beside it.
 """
 
 import argparse
@@ -63,6 +64,7 @@ OUTAGE_S = 60
 # healthy runs whose model was writing a long tool call. "outage8-*": a 240 s stall limit, on a build
 # where a stall cools for a minute instead of the growing backoff.
 PREFIX = "outage8-"
+STALL_S = 240
 # Forced on every chat request: sampling as usual, but the same request gets the same answer, so a
 # fault run and its baseline stay identical up to the fault and a difference after it is the
 # failover's doing.
@@ -203,7 +205,7 @@ def variant(scenario, binary, port):
             },
             # Ollama sends a tool call only when it is complete: a 5,000-token output cap at ~28
             # tokens a second is ~180 s of silence, plus prompt processing. 30 s stalled healthy runs.
-            "failover": {"models": [f"provb/{MODEL}"], "stall_timeout": 240}, **COMPACTION,
+            "failover": {"models": [f"provb/{MODEL}"], "stall_timeout": STALL_S}, **COMPACTION,
         },
         "timeout": 1500,
     }
@@ -300,7 +302,12 @@ def report():
     diffs = [float(runs[(s, i)][0]["passed"]) - float(runs[("none", i)][0]["passed"]) for s, i in faults]
     facts = [runs[k][1] for k in faults]
     switched = [f for f in facts if f["switched"]]
-    times = sorted(f["failover_s"] for f in facts if f["failover_s"] is not None)
+    # A stall is detectable only once the stall limit has passed, and that window is configuration,
+    # not failover: stall runs count from then. (F1 fixed 180 s assuming a 30 s limit; a local model's
+    # long tool call arrives all at once, so the limit is 240 s. The raw stall times are reported.)
+    detect = lambda k: STALL_S if k[0] == "stall" else 0
+    times = sorted(runs[k][1]["failover_s"] - detect(k) for k in faults if runs[k][1]["failover_s"] is not None)
+    stall_raw = sorted(runs[k][1]["failover_s"] for k in faults if k[0] == "stall" and runs[k][1]["failover_s"] is not None)
     per = {s: {"runs": sum(1 for k in faults if k[0] == s),
                "passed": sum(runs[k][0]["passed"] for k in faults if k[0] == s),
                "switched": sum(runs[k][1]["switched"] for k in faults if k[0] == s),
@@ -318,7 +325,9 @@ def report():
             "duplicate_tool_calls": sum(f["duplicates"] for f in facts),
             "lost_tool_results": sum(f["lost"] for f in facts),
             "needles_after_switch": round(sum(bool(f["needle"]) for f in switched) / len(switched), 4) if switched else None,
-            "failover_p95_s": times[int(0.95 * (len(times) - 1))] if times else None,
+            "failover_p95_s": round(times[int(0.95 * (len(times) - 1))], 1) if times else None,
+            "stall_failover_s_raw": stall_raw,
+            "stall_limit_s": STALL_S,
         },
     }
     os.makedirs(os.path.join(REPORTS, "failover"), exist_ok=True)

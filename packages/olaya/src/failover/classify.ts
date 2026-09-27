@@ -157,8 +157,9 @@ export function classify(failure: Failure, now = Date.now()): Verdict {
 
   if (status !== undefined && status >= 500) return { action: "switch", retries: 2, reason: `server error ${status}` }
   // Usually a slow provider rather than a broken one (a local server sends a whole tool call at
-  // once), so it is tried again after a minute, not after a growing backoff.
-  if (failure.kind === "stall") return { action: "switch", retries: 1, reason: "stream stalled", cooldown: 60_000 }
+  // once), so it is tried again after a minute, not after a growing backoff. No retry in between:
+  // it would cost another whole stall timeout; with no fallback the loop retries after the minute.
+  if (failure.kind === "stall") return { action: "switch", retries: 0, reason: "stream stalled", cooldown: 60_000 }
   if (failure.kind === "timeout" || failure.kind === "network" || status === 408)
     return { action: "switch", retries: 2, reason: "network or timeout" }
   if (status === 400 || status === 422) return { action: "stop", reason: `request rejected (${status})` }

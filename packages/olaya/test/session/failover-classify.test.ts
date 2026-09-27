@@ -551,7 +551,7 @@ const cases: Case[] = [
     "stalled stream",
     { providerID: "anthropic", message: "SSE read timed out", kind: "stall" },
     "switch",
-    { retries: 1 },
+    { retries: 0 },
   ],
   ["connection reset", { providerID: "openai", message: "ECONNRESET", kind: "network" }, "switch", { retries: 2 }],
   [
