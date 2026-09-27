@@ -135,7 +135,7 @@ def run_one(item, model, k, variant=None):
                # cloud API keys only for runs that need them, from a file outside the repo; --env-file
                # keeps them off the command line (and out of `ps`)
                *(["--env-file", SECRETS] if v.get("secrets") else []),
-               "-e", "OLAYA_DISABLE_AUTOUPDATE=1", IMAGE, "sh", "-c", script]
+               "-e", "OLAYA_DISABLE_AUTOUPDATE=1", item.get("image", IMAGE), "sh", "-c", script]
         timed_out = False
         try:
             subprocess.run(cmd, capture_output=True, timeout=v.get("timeout", TIMEOUT_S))
